@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#e75a8d">
+  <meta name="description" content="Ocena samopoczucia trzy razy dziennie z wykresami tygodniowymi i miesięcznymi.">
+  <title>Nastrój</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app">
+    <section id="view-today" class="view" data-view="today"></section>
+    <section id="view-week" class="view" data-view="week" hidden></section>
+    <section id="view-month" class="view" data-view="month" hidden></section>
+    <section id="view-settings" class="view" data-view="settings" hidden></section>
+  </main>
+
+  <nav class="tabbar" aria-label="Nawigacja">
+    <button class="tab" data-tab="today" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.8 4.5c2.2 0 3.6 1.2 5.2 3 1.6-1.8 3-3 5.2-3 3.8 0 5.9 3.9 4.4 7.3C19.5 16.4 12 21 12 21z"/></svg>
+      <span>Dziś</span>
+    </button>
+    <button class="tab" data-tab="week">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l5-6 4 3 5-7 4 5" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Tydzień</span>
+    </button>
+    <button class="tab" data-tab="month">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="12" width="4" height="9" rx="1.5"/><rect x="10" y="6" width="4" height="15" rx="1.5"/><rect x="17" y="9" width="4" height="12" rx="1.5"/></svg>
+      <span>Miesiąc</span>
+    </button>
+    <button class="tab" data-tab="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm8.6 4.9l1.9 1.5-2 3.4-2.3-.9a7.6 7.6 0 01-2.1 1.2L15.8 21h-4l-.4-2.4a7.6 7.6 0 01-2.1-1.2l-2.3.9-2-3.4 1.9-1.5a7.7 7.7 0 010-2.4L5 9.5l2-3.4 2.3.9a7.6 7.6 0 012.1-1.2L11.8 3h4l.4 2.4a7.6 7.6 0 012.1 1.2l2.3-.9 2 3.4-1.9 1.5a7.7 7.7 0 010 2.4z" transform="translate(-1.8 0)"/></svg>
+      <span>Ustawienia</span>
+    </button>
+  </nav>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>
