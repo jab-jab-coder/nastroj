@@ -92,7 +92,9 @@ const eui = { survey: null, stmt: null, editAct: null };
 
 function energyInit() {
   // jednorazowa kopia danych sprzed aktualizacji (na wszelki wypadek)
-  if (!localStorage.getItem(KEY_SCHEMA)) {
+  let fresh = false;
+  try { fresh = !localStorage.getItem(KEY_SCHEMA); } catch { /* pamięć niedostępna */ }
+  if (fresh) {
     try {
       const raw = localStorage.getItem(KEY_ENTRIES);
       if (raw && raw !== '{}') {
@@ -847,7 +849,8 @@ function energyClick(act, el) {
       return true;
     }
     case 'backup-dl': {
-      const raw = localStorage.getItem(KEY_BACKUP);
+      let raw = null;
+      try { raw = localStorage.getItem(KEY_BACKUP); } catch { /* ignore */ }
       if (raw) download('nastroj-kopia-sprzed-aktualizacji.json', JSON.stringify(JSON.parse(raw), null, 2), 'application/json');
       return true;
     }
@@ -899,7 +902,7 @@ function energyCounts() {
   return {
     logs: Object.values(elog).reduce((n, l) => n + l.length, 0),
     acts: acts.length, surveys: surveys.length,
-    hasBackup: !!localStorage.getItem(KEY_BACKUP),
+    hasBackup: (() => { try { return !!localStorage.getItem(KEY_BACKUP); } catch { return false; } })(),
   };
 }
 
@@ -962,7 +965,7 @@ function energyImport(data) {
 
 function energyWipe() {
   acts = []; elog = {}; plans = {}; surveys = []; strategies = [];
-  for (const k of [KEY_ACTS, KEY_ELOG, KEY_PLAN, KEY_SURV, KEY_STRAT]) localStorage.removeItem(k);
+  for (const k of [KEY_ACTS, KEY_ELOG, KEY_PLAN, KEY_SURV, KEY_STRAT]) { try { localStorage.removeItem(k); } catch { /* ignore */ } }
 }
 
 /* ---------- pasek salda na ekranie „Dziś” ---------- */
