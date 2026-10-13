@@ -18,6 +18,9 @@ const STATE_CACHE = 'nastroj-state';
 const DEFAULT_SETTINGS = {
   times: { morning: '09:00', afternoon: '14:00', evening: '21:00' },
   notify: false,
+  carry: 0.5,          // przeniesienie salda energii na następny dzień
+  autModule: false,    // samoocena wypalenia autystycznego
+  lowSensory: false,   // tryb niskiej stymulacji
 };
 
 /* ---------- utils ---------- */
@@ -38,12 +41,21 @@ const round1 = v => (v == null ? '–' : (Math.round(v * 10) / 10).toLocaleStrin
 const avg = arr => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const MOODS = [
+  null,
+  ['🆘', 'Myśli i próby sb'],
+  ['😭', 'Prawie jedynka'],
+  ['😣', 'Chujowo, ale stabilnie'],
+  ['😕', 'Źle albo słabawo'],
+  ['😐', 'Jako-tako ok'],
+  ['🙂', 'Dobrze'],
+  ['😎', 'Spoko loko'],
+  ['😄', 'Bardzo dobrze'],
+  ['🤩', 'Super lub zajebiście'],
+  ['🚀', 'Zajebiście euforycznie'],
+];
 function mood(v) {
-  if (v <= 2) return ['😢', 'Bardzo źle'];
-  if (v <= 4) return ['😕', 'Słabo'];
-  if (v <= 6) return ['😐', 'Tak sobie'];
-  if (v <= 8) return ['🙂', 'Dobrze'];
-  return ['😄', 'Świetnie'];
+  return MOODS[Math.max(1, Math.min(10, Math.round(v)))];
 }
 
 function load(k, def) {
@@ -69,8 +81,9 @@ let settings = { ...DEFAULT_SETTINGS, ...load(KEY_SETTINGS, {}) };
 settings.times = { ...DEFAULT_SETTINGS.times, ...(settings.times || {}) };
 
 const getEntry = (k, s) => entries[k]?.[s] ?? null;
-function setEntry(k, s, v) {
-  (entries[k] ||= {})[s] = { v, t: Date.now() };
+function setEntry(k, s, v, e) {
+  // „e” (energia 1–10) jest opcjonalne — stare wpisy { v, t } działają bez zmian
+  (entries[k] ||= {})[s] = e == null ? { v, t: Date.now() } : { v, t: Date.now(), e };
   store(KEY_ENTRIES, entries);
   syncState();
 }
@@ -128,6 +141,7 @@ function renderToday() {
       </div>
       <button class="icon-btn" data-act="day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
     </header>
+    ${saldoChipHtml()}
     <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
     <p class="lead">${msg}</p>
     ${SLOTS.map(s => slotCard(s, key, s.id === cur)).join('')}
@@ -138,8 +152,10 @@ function slotCard(s, key, isNow) {
   const e = getEntry(key, s.id);
   const dk = `${key}|${s.id}`;
   const v = ui.drafts[dk] ?? e?.v ?? 5;
+  const en = ui.drafts[`${dk}|e`] ?? e?.e ?? 5;
   const [emo, label] = mood(v);
-  const dirty = ui.drafts[dk] != null && ui.drafts[dk] !== e?.v;
+  const dirty = (ui.drafts[dk] != null && ui.drafts[dk] !== e?.v)
+    || (ui.drafts[`${dk}|e`] != null && ui.drafts[`${dk}|e`] !== e?.e);
   const sub = e ? `Zapisano o ${hhmm(e.t)}` : `około ${settings.times[s.id]}`;
   const badge = e ? '<span class="check" aria-label="Zapisano">✓</span>'
     : isNow ? '<span class="pill">Teraz</span>' : '';
@@ -156,9 +172,16 @@ function slotCard(s, key, isNow) {
         <span class="val">${v}</span>
         <span class="lbl">${label}</span>
       </div>
-      <input type="range" min="1" max="10" step="1" value="${v}" style="--p:${((v - 1) / 9) * 100}%"
+      <input type="range" min="1" max="10" step="1" value="${v}" data-kind="mood" style="--p:${((v - 1) / 9) * 100}%"
              aria-label="Samopoczucie: ${s.label}, skala 1–10">
-      <div class="scale"><span>1 · bardzo źle</span><span>10 · świetnie</span></div>
+      <div class="scale"><span>1 · myśli i próby sb</span><span>10 · euforycznie</span></div>
+      <div class="energy-row">
+        <span class="en-lbl">⚡ Energia</span>
+        <span class="en-val">${en}${e && e.e == null && ui.drafts[`${dk}|e`] == null ? '<small> ?</small>' : ''}</span>
+      </div>
+      <input type="range" class="en" min="1" max="10" step="1" value="${en}" data-kind="energy" style="--p:${((en - 1) / 9) * 100}%"
+             aria-label="Energia: ${s.label}, skala 1–10">
+      <div class="scale"><span>1 · pusta bateria</span><span>10 · pełna</span></div>
       <div class="actions">
         ${e ? '<button class="btn ghost" data-act="del">Usuń</button>' : ''}
         <button class="btn primary" data-act="save" ${e && !dirty ? 'disabled' : ''}>${btn}</button>
@@ -171,15 +194,22 @@ function onSlider(input) {
   const { key, slot } = card.dataset;
   const v = Number(input.value);
   const e = getEntry(key, slot);
-  ui.drafts[`${key}|${slot}`] = v;
-  const [emo, label] = mood(v);
   input.style.setProperty('--p', `${((v - 1) / 9) * 100}%`);
-  $('.emo', card).textContent = emo;
-  $('.val', card).textContent = v;
-  $('.lbl', card).textContent = label;
+  if (input.dataset.kind === 'energy') {
+    ui.drafts[`${key}|${slot}|e`] = v;
+    $('.en-val', card).textContent = v;
+  } else {
+    ui.drafts[`${key}|${slot}`] = v;
+    const [emo, label] = mood(v);
+    $('.emo', card).textContent = emo;
+    $('.val', card).textContent = v;
+    $('.lbl', card).textContent = label;
+  }
   const btn = $('[data-act="save"]', card);
   if (e) {
-    const dirty = v !== e.v;
+    const mv = Number($('input[data-kind="mood"]', card).value);
+    const ev = Number($('input[data-kind="energy"]', card).value);
+    const dirty = mv !== e.v || ev !== e.e;
     btn.disabled = !dirty;
     btn.textContent = dirty ? 'Zaktualizuj' : 'Zapisano ✓';
   }
@@ -422,6 +452,7 @@ function renderMonth() {
 function renderSettings() {
   const notifSupported = 'Notification' in window && 'serviceWorker' in navigator;
   const total = Object.values(entries).reduce((n, e) => n + Object.keys(e).length, 0);
+  const ec = energyCounts();
   $('#view-settings').innerHTML = `
     <header class="head"><span></span><div><div class="eyebrow">Aplikacja</div><h1>Ustawienia</h1></div><span></span></header>
     <p class="lead">Pory ocen i przypomnienia</p>
@@ -447,6 +478,8 @@ function renderSettings() {
       <p class="note">Android może wstrzymywać aplikacje webowe w tle, więc powiadomienia z aplikacji działają najlepiej, gdy jest zainstalowana i często używana. Najpewniejsze są przypomnienia w kalendarzu — plik .ics dodaje 3 codzienne alarmy z linkiem do aplikacji.</p>
     </div>
 
+    ${energySettingsHtml()}
+
     ${installPrompt ? `
     <div class="card">
       <h3>Instalacja</h3>
@@ -455,13 +488,15 @@ function renderSettings() {
 
     <div class="card">
       <h3>Dane</h3>
-      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu (${total} ${total === 1 ? 'wpis' : 'wpisów'}). Rób czasem kopię zapasową.</p>
+      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu: ${total} ocen nastroju, ${ec.logs} operacji energii, ${ec.acts} czynności, ${ec.surveys} wyników badań. Rób czasem kopię zapasową.</p>
       <div class="stack">
         <button class="btn soft block" data-act="export">Eksportuj kopię (JSON)</button>
         <button class="btn soft block" data-act="import">Importuj kopię</button>
+        ${ec.hasBackup ? '<button class="btn soft block" data-act="backup-dl">Pobierz kopię sprzed aktualizacji</button>' : ''}
         <button class="btn danger block" data-act="wipe">Usuń wszystkie dane</button>
       </div>
       <input type="file" id="import-file" accept="application/json,.json" hidden>
+      <p class="note">Import dodaje dane z pliku do obecnych (nic nie usuwa). Przyjmuje kopie z obu wersji aplikacji.</p>
     </div>
     <p class="footer">Nastrój · działa offline</p>
   `;
@@ -470,7 +505,7 @@ function renderSettings() {
 /* =========================================================
    Nawigacja i zdarzenia
    ========================================================= */
-const renderers = { today: renderToday, week: renderWeek, month: renderMonth, settings: renderSettings };
+const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings };
 
 function show(view) {
   ui.view = view;
@@ -504,9 +539,11 @@ document.addEventListener('click', async ev => {
 
     case 'save': {
       const { key, slot } = card.dataset;
-      const v = Number($('input[type=range]', card).value);
-      setEntry(key, slot, v);
+      const v = Number($('input[data-kind="mood"]', card).value);
+      const en = Number($('input[data-kind="energy"]', card).value);
+      setEntry(key, slot, v, en);
       delete ui.drafts[`${key}|${slot}`];
+      delete ui.drafts[`${key}|${slot}|e`];
       renderToday();
       toast(`${mood(v)[0]} Zapisano: ${SLOTS.find(s => s.id === slot).label.toLowerCase()} — ${v}/10`);
       break;
@@ -516,6 +553,7 @@ document.addEventListener('click', async ev => {
       if (confirm('Usunąć tę ocenę?')) {
         delEntry(key, slot);
         delete ui.drafts[`${key}|${slot}`];
+        delete ui.drafts[`${key}|${slot}|e`];
         renderToday();
       }
       break;
@@ -528,15 +566,18 @@ document.addEventListener('click', async ev => {
     case 'export': exportData(); break;
     case 'import': $('#import-file').click(); break;
     case 'wipe':
-      if (confirm('Na pewno usunąć wszystkie oceny? Tej operacji nie można cofnąć.')) {
-        entries = {}; store(KEY_ENTRIES, entries); syncState(); renderSettings(); toast('Dane usunięte');
+      if (confirm('Na pewno usunąć wszystkie dane (oceny i energię)? Tej operacji nie można cofnąć. Najpierw zrób eksport kopii.')) {
+        entries = {}; store(KEY_ENTRIES, entries); energyWipe(); syncState(); renderSettings(); toast('Dane usunięte');
       }
       break;
+    default:
+      energyClick(act, el);
   }
 });
 
 document.addEventListener('input', ev => {
   if (ev.target.matches('.slot input[type=range]')) onSlider(ev.target);
+  else if (ev.target.id === 'af-def') { /* bez akcji — wartość czytana przy zapisie */ }
 });
 
 document.addEventListener('change', async ev => {
@@ -552,6 +593,8 @@ document.addEventListener('change', async ev => {
   } else if (t.id === 'import-file' && t.files[0]) {
     importData(t.files[0]);
     t.value = '';
+  } else {
+    energyChange(t);
   }
 });
 
@@ -564,7 +607,7 @@ function download(name, content, type) {
 }
 
 function exportData() {
-  const payload = { app: 'nastroj', version: 1, exportedAt: new Date().toISOString(), settings, entries };
+  const payload = { app: 'nastroj', version: 2, exportedAt: new Date().toISOString(), settings, entries, ...energyExport() };
   download(`nastroj-${dkey(new Date())}.json`, JSON.stringify(payload, null, 2), 'application/json');
 }
 
@@ -579,12 +622,16 @@ async function importData(file) {
       for (const s of SLOTS) {
         const e = day[s.id];
         if (e && Number.isInteger(e.v) && e.v >= 1 && e.v <= 10) {
-          (entries[k] ||= {})[s.id] = { v: e.v, t: Number(e.t) || Date.now() }; n++;
+          const rec = { v: e.v, t: Number(e.t) || Date.now() };
+          if (Number.isInteger(e.e) && e.e >= 1 && e.e <= 10) rec.e = e.e;
+          (entries[k] ||= {})[s.id] = rec; n++;
         }
       }
     }
-    store(KEY_ENTRIES, entries); syncState(); renderSettings();
-    toast(`Zaimportowano ${n} ocen`);
+    store(KEY_ENTRIES, entries);
+    const en = energyImport(data);   // pliki z wersji 1 nie mają tych pól — wtedy nic się nie dzieje
+    syncState(); renderSettings();
+    toast(`Zaimportowano: ${n} ocen${en.logs || en.acts ? `, ${en.logs} operacji energii, ${en.acts} czynności` : ''}${en.surveys ? `, ${en.surveys} badań` : ''}`);
   } catch {
     toast('Nieprawidłowy plik kopii');
   }
@@ -718,6 +765,7 @@ if ('serviceWorker' in navigator) {
 }
 navigator.storage?.persist?.().catch(() => {});
 
+energyInit();
 show('today');
 syncState();
 checkReminders();
