@@ -14,7 +14,7 @@ const AVG_COLOR = '#c2185b';
 const KEY_ENTRIES = 'nastroj.entries.v1';
 const KEY_SETTINGS = 'nastroj.settings.v1';
 const KEY_NOTIFIED = 'nastroj.notified.v1';
-const KEY_COMPL = 'nastroj.compliment.v1';   // który komplement pokazać następny
+const KEY_COMPL = 'nastroj.compliment.v1';   // indeks ostatnio pokazanego komplementu
 const STATE_CACHE = 'nastroj-state';
 const DEFAULT_SETTINGS = {
   times: { morning: '09:00', afternoon: '14:00', evening: '21:00' },
@@ -606,10 +606,12 @@ let complTimer;
 function showCompliment() {
   const list = (typeof KOMPLEMENTY !== 'undefined' && Array.isArray(KOMPLEMENTY) && KOMPLEMENTY.length)
     ? KOMPLEMENTY : [['💗', 'Jesteś super']];
-  let i = Number(load(KEY_COMPL, 0)) || 0;
-  if (i < 0 || i >= list.length) i = 0;
+  // losowy, ale nie ten sam co ostatnio
+  const last = Number(load(KEY_COMPL, -1));
+  let i = Math.floor(Math.random() * list.length);
+  if (list.length > 1 && i === last) i = (i + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
   const [emo, txt] = list[i];
-  try { localStorage.setItem(KEY_COMPL, JSON.stringify((i + 1) % list.length)); } catch { /* ignore */ }
+  try { localStorage.setItem(KEY_COMPL, JSON.stringify(i)); } catch { /* ignore */ }
   const el = $('#compliment');
   el.innerHTML = `<span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
     <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i>`;

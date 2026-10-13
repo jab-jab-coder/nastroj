@@ -1,7 +1,7 @@
 /* =========================================================
    Słownik komplementów — Nastrój
    Każda linia: ['emotka', 'Tekst komplementu'],
-   Kolejność na liście = kolejność wyświetlania (potem od początku).
+   Komplementy wyświetlają się losowo (nigdy ten sam dwa razy z rzędu).
    Dopisz nową linię przed zamykającym nawiasem ] i pamiętaj o przecinku.
    ========================================================= */
 const KOMPLEMENTY = [
@@ -15,4 +15,14 @@ const KOMPLEMENTY = [
   ['😎', 'Klasa sama w sobie'],
   ['💖', 'Świat jest lepszy z Tobą'],
   ['🍀', 'Masz dobre serce'],
+  ['☀️', 'Rozjaśniasz każdy dzień'],
+  ['💪', 'Dajesz radę, serio'],
+  ['🦄', 'Nie ma drugiej takiej osoby jak Ty'],
+  ['🎉', 'Z Tobą zawsze jest fajniej'],
+  ['🌻', 'Masz piękny uśmiech'],
+  ['🧠', 'Masz łeb na karku'],
+  ['🫶', 'Liczysz się'],
+  ['✨', 'Błyszczysz, nawet jak nie widzisz'],
+  ['🐱', 'Masz w sobie więcej słodyczy niż kotek'],
+  ['🏆', 'Mistrzostwo świata w byciu sobą'],
 ];
