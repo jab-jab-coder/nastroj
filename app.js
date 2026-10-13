@@ -529,6 +529,12 @@ function renderSettings() {
       <input type="file" id="import-file" accept="application/json,.json" hidden>
       <p class="note">Import dodaje dane z pliku do obecnych (nic nie usuwa). Przyjmuje kopie z obu wersji aplikacji.</p>
     </div>
+    <div class="card about">
+      <h3>O aplikacji</h3>
+      <p>Witamy w aplikacji <b>»Nastrój«</b> napisanej przez Jacka, by wspierać swe samopoczucie.</p>
+      <p>Jeżeli masz jakieś uwagi, napisz na <a href="mailto:jacekbrzeski9+nastroj@gmail.com">jacekbrzeski9+nastroj@gmail.com</a>.</p>
+      <p>Dziękuję za korzystanie z tej aplikacji! 💗</p>
+    </div>
     <p class="footer">Nastrój · działa offline</p>
   `;
 }
