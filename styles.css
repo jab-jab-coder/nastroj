@@ -417,3 +417,6 @@ body.locked { overflow: hidden; }
   .stat { box-shadow: none; border: 1px solid #ccc; }
   .tbl { border: 1px solid #ccc; }
 }
+
+.support { margin: 0 0 8px; padding: 8px 12px; border-radius: 12px; background: var(--bg); font-size: 13px; line-height: 1.45; color: var(--ink); }
+.support b { color: var(--rose-deep); white-space: nowrap; }

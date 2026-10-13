@@ -41,13 +41,24 @@ const round1 = v => (v == null ? '–' : (Math.round(v * 10) / 10).toLocaleStrin
 const avg = arr => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const MOODS = [
+  null,
+  ['🆘', 'Myśli i próby sb'],
+  ['😭', 'Prawie jedynka'],
+  ['😣', 'Chujowo, ale stabilnie'],
+  ['😕', 'Źle albo słabawo'],
+  ['😐', 'Jako-tako ok'],
+  ['🙂', 'Dobrze'],
+  ['😎', 'Spoko loko'],
+  ['😄', 'Bardzo dobrze'],
+  ['🤩', 'Super lub zajebiście'],
+  ['🚀', 'Zajebiście euforycznie'],
+];
 function mood(v) {
-  if (v <= 2) return ['😢', 'Bardzo źle'];
-  if (v <= 4) return ['😕', 'Słabo'];
-  if (v <= 6) return ['😐', 'Tak sobie'];
-  if (v <= 8) return ['🙂', 'Dobrze'];
-  return ['😄', 'Świetnie'];
+  return MOODS[Math.max(1, Math.min(10, Math.round(v)))];
 }
+// przy 1–2 pokazujemy dyskretnie numery wsparcia
+const supportHtml = v => `<p class="support" ${v <= 2 ? '' : 'hidden'}>Jeśli jest Ci bardzo ciężko: <b>116 123</b> · <b>800 70 2222</b> (całą dobę) · <b>112</b></p>`;
 
 function load(k, def) {
   try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch { return def; }
@@ -163,9 +174,10 @@ function slotCard(s, key, isNow) {
         <span class="val">${v}</span>
         <span class="lbl">${label}</span>
       </div>
+      ${supportHtml(v)}
       <input type="range" min="1" max="10" step="1" value="${v}" data-kind="mood" style="--p:${((v - 1) / 9) * 100}%"
              aria-label="Samopoczucie: ${s.label}, skala 1–10">
-      <div class="scale"><span>1 · bardzo źle</span><span>10 · świetnie</span></div>
+      <div class="scale"><span>1 · myśli i próby sb</span><span>10 · euforycznie</span></div>
       <div class="energy-row">
         <span class="en-lbl">⚡ Energia</span>
         <span class="en-val">${en}${e && e.e == null && ui.drafts[`${dk}|e`] == null ? '<small> ?</small>' : ''}</span>
@@ -195,6 +207,7 @@ function onSlider(input) {
     $('.emo', card).textContent = emo;
     $('.val', card).textContent = v;
     $('.lbl', card).textContent = label;
+    $('.support', card).hidden = v > 2;
   }
   const btn = $('[data-act="save"]', card);
   if (e) {
