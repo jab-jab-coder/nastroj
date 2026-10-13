@@ -14,6 +14,7 @@ const AVG_COLOR = '#c2185b';
 const KEY_ENTRIES = 'nastroj.entries.v1';
 const KEY_SETTINGS = 'nastroj.settings.v1';
 const KEY_NOTIFIED = 'nastroj.notified.v1';
+const KEY_COMPL = 'nastroj.compliment.v1';   // który komplement pokazać następny
 const STATE_CACHE = 'nastroj-state';
 const DEFAULT_SETTINGS = {
   times: { morning: '09:00', afternoon: '14:00', evening: '21:00' },
@@ -559,6 +560,8 @@ document.addEventListener('click', async ev => {
       break;
     }
 
+    case 'compliment': showCompliment(); break;
+    case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
     case 'install':
       if (installPrompt) { installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; renderSettings(); }
@@ -597,6 +600,29 @@ document.addEventListener('change', async ev => {
     energyChange(t);
   }
 });
+
+/* ---------- komplementy (lista w komplementy.js) ---------- */
+let complTimer;
+function showCompliment() {
+  const list = (typeof KOMPLEMENTY !== 'undefined' && Array.isArray(KOMPLEMENTY) && KOMPLEMENTY.length)
+    ? KOMPLEMENTY : [['💗', 'Jesteś super']];
+  let i = Number(load(KEY_COMPL, 0)) || 0;
+  if (i < 0 || i >= list.length) i = 0;
+  const [emo, txt] = list[i];
+  try { localStorage.setItem(KEY_COMPL, JSON.stringify((i + 1) % list.length)); } catch { /* ignore */ }
+  const el = $('#compliment');
+  el.innerHTML = `<span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
+    <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i>`;
+  el.hidden = false;
+  clearTimeout(complTimer);
+  complTimer = setTimeout(hideCompliment, 10000);
+}
+function hideCompliment() {
+  clearTimeout(complTimer);
+  const el = $('#compliment');
+  el.hidden = true;
+  el.innerHTML = '';
+}
 
 /* ---------- eksport / import ---------- */
 function download(name, content, type) {

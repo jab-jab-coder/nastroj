@@ -1,10 +1,11 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v2';
+const VERSION = 'nastroj-v3';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
   './index.html',
   './styles.css',
+  './komplementy.js',
   './energy.js',
   './app.js',
   './manifest.webmanifest',
