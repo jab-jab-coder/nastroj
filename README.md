@@ -9,6 +9,7 @@ Aplikacja do oceny samopoczucia 3× dziennie (rano, popołudnie, wieczór) w ska
 | `index.html` | szkielet, nawigacja dolna |
 | `styles.css` | różowy motyw, suwak, karty, wykresy |
 | `app.js` | logika: wpisy, wykresy SVG, statystyki, ustawienia, przypomnienia, eksport/import |
+| `energy.js` | moduł „Energia”: konto energii (energy accounting), saldo, plan, rankingi, badania, wyciąg |
 | `sw.js` | service worker: cache offline, powiadomienia (periodic background sync) |
 | `manifest.webmanifest` | metadane instalacji (nazwa, kolory, ikony) |
 | `icons/` | ikony 192/512, maskable, badge powiadomień |
@@ -20,7 +21,11 @@ Aplikacja do oceny samopoczucia 3× dziennie (rano, popołudnie, wieczór) w ska
 - **Miesiąc** — słupki średniej dziennej + trend (średnia krocząca 7 dni), te same statystyki.
 - **Ustawienia** — godziny trzech pór, powiadomienia, plik `.ics` z codziennymi alarmami do kalendarza, eksport/import kopii JSON, usuwanie danych.
 
-Dane: `localStorage` przeglądarki, tylko na urządzeniu. Format: `{ "YYYY-MM-DD": { "morning": { "v": 7, "t": <timestamp> }, ... } }`.
+- **Energia** (v2) — konto energii wg metody *Energy Accounting* (M. Toudal, T. Attwood): własna lista wypłat i wpłat (1–100), zapis jednym dotknięciem, saldo dnia z przeniesieniem (domyślnie 50%), status zielony/żółty/czerwony, budżet na jutro z prognozą, rankingi z 30 dni i „słabnące wpłaty”, własne strategie, tryb regeneracji z telefonami pomocowymi, cotygodniowa skala CBI (wypalenie osobiste), opcjonalna comiesięczna samoocena wypalenia autystycznego, wyciąg miesięczny (druk/PDF, CSV).
+- Suwak **energii 1–10** przy każdej ocenie nastroju; tryb **niskiej stymulacji** w ustawieniach.
+
+Dane: `localStorage` przeglądarki, tylko na urządzeniu. Format ocen (bez zmian od v1, pole `e` opcjonalne): `{ "YYYY-MM-DD": { "morning": { "v": 7, "t": <timestamp>, "e": 4 }, ... } }`.
+Nowe klucze v2: `nastroj.activities.v1`, `nastroj.energy.v1`, `nastroj.plan.v1`, `nastroj.surveys.v1`, `nastroj.strategies.v1`. Przy pierwszym uruchomieniu v2 aplikacja zapisuje kopię starych ocen w `nastroj.backup.pre-v2` (do pobrania w Ustawieniach). Eksport ma `version: 2`; import przyjmuje pliki z wersji 1 i 2 i tylko dopisuje dane.
 
 ## Uruchomienie lokalne
 
