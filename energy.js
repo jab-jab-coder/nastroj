@@ -405,10 +405,6 @@ function recoveryHtml(st) {
         <ul class="plain">${tomorrow.map(p => `<li>${esc(p.a.name)} (−${learned(p.a.id)}) <button class="link" data-act="plan-del" data-id="${p.id}">usuń z planu</button></li>`).join('')}</ul>` : ''}
       ${st.level === 2 ? `
         <div class="help">
-          <p><b>Jeśli jest Ci bardzo ciężko, nie zostawaj z tym sam(a).</b></p>
-          <p>☎️ <a href="tel:116123">116 123</a> — telefon zaufania dla dorosłych<br>
-             ☎️ <a href="tel:800702222">800 70 2222</a> — Centrum Wsparcia (całą dobę)<br>
-             🚨 <a href="tel:112">112</a> — w nagłym zagrożeniu</p>
           <button class="btn soft block" data-act="share">Wyślij podsumowanie zaufanej osobie</button>
         </div>` : ''}
     </section>`;

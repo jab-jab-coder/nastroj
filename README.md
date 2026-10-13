@@ -21,7 +21,7 @@ Aplikacja do oceny samopoczucia 3× dziennie (rano, popołudnie, wieczór) w ska
 - **Miesiąc** — słupki średniej dziennej + trend (średnia krocząca 7 dni), te same statystyki.
 - **Ustawienia** — godziny trzech pór, powiadomienia, plik `.ics` z codziennymi alarmami do kalendarza, eksport/import kopii JSON, usuwanie danych.
 
-- **Energia** (v2) — konto energii wg metody *Energy Accounting* (M. Toudal, T. Attwood): własna lista wypłat i wpłat (1–100), zapis jednym dotknięciem, saldo dnia z przeniesieniem (domyślnie 50%), status zielony/żółty/czerwony, budżet na jutro z prognozą, rankingi z 30 dni i „słabnące wpłaty”, własne strategie, tryb regeneracji z telefonami pomocowymi, cotygodniowa skala CBI (wypalenie osobiste), opcjonalna comiesięczna samoocena wypalenia autystycznego, wyciąg miesięczny (druk/PDF, CSV).
+- **Energia** (v2) — konto energii wg metody *Energy Accounting* (M. Toudal, T. Attwood): własna lista wypłat i wpłat (1–100), zapis jednym dotknięciem, saldo dnia z przeniesieniem (domyślnie 50%), status zielony/żółty/czerwony, budżet na jutro z prognozą, rankingi z 30 dni i „słabnące wpłaty”, własne strategie, tryb regeneracji, cotygodniowa skala CBI (wypalenie osobiste), opcjonalna comiesięczna samoocena wypalenia autystycznego, wyciąg miesięczny (druk/PDF, CSV).
 - Suwak **energii 1–10** przy każdej ocenie nastroju; tryb **niskiej stymulacji** w ustawieniach.
 
 Dane: `localStorage` przeglądarki, tylko na urządzeniu. Format ocen (bez zmian od v1, pole `e` opcjonalne): `{ "YYYY-MM-DD": { "morning": { "v": 7, "t": <timestamp>, "e": 4 }, ... } }`.
