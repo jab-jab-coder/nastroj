@@ -9,6 +9,7 @@ Aplikacja do oceny samopoczucia 3× dziennie (rano, popołudnie, wieczór) w ska
 | `index.html` | szkielet, nawigacja dolna |
 | `styles.css` | różowy motyw, suwak, karty, wykresy |
 | `app.js` | logika: wpisy, wykresy SVG, statystyki, ustawienia, przypomnienia, eksport/import |
+| `komplementy.js` | słownik komplementów (emotka + tekst) — tu dopisujesz nowe |
 | `energy.js` | moduł „Energia”: konto energii (energy accounting), saldo, plan, rankingi, badania, wyciąg |
 | `sw.js` | service worker: cache offline, powiadomienia (periodic background sync) |
 | `manifest.webmanifest` | metadane instalacji (nazwa, kolory, ikony) |
