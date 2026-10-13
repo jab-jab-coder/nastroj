@@ -101,11 +101,19 @@ function dayValues(k) {
 }
 const dayAvg = k => avg(dayValues(k));
 
+// Aktywna pora dnia (pozostałe karty zwijamy):
+//   rano       — od północy do godziny „rano” + 2 h
+//   popołudnie — godzina „popołudnie” ± 2 h
+//   wieczór    — godzina „wieczór” ± 2 h (i dalej do północy)
+// W przerwach między oknami aktywna jest najbliższa nadchodząca pora.
+const WINDOW = 120;
 function currentSlot() {
   const m = nowMinutes();
-  let cur = SLOTS[0].id;
-  for (const s of SLOTS) if (m >= minutesOf(settings.times[s.id]) - 60) cur = s.id;
-  return cur;
+  const t = Object.fromEntries(SLOTS.map(s => [s.id, minutesOf(settings.times[s.id])]));
+  if (m <= t.morning + WINDOW) return 'morning';
+  if (Math.abs(m - t.afternoon) <= WINDOW) return 'afternoon';
+  if (Math.abs(m - t.evening) <= WINDOW || m > t.evening) return 'evening';
+  return m < t.afternoon ? 'afternoon' : 'evening';
 }
 
 /* ---------- UI state ---------- */
@@ -118,6 +126,8 @@ const ui = {
   drafts: {},          // niezapisane wartości suwaków: "YYYY-MM-DD|slot" -> v
   selWeek: null,       // zaznaczony dzień na wykresie tygodniowym
   selMonth: null,
+  open: {},            // ręcznie rozwinięte zwinięte karty: "YYYY-MM-DD|slot" -> true
+  active: null,        // ostatnio wyliczona aktywna pora (do odświeżania o pełnej minucie)
 };
 let installPrompt = null;
 
@@ -129,6 +139,7 @@ function renderToday() {
   const isToday = key === dkey(new Date());
   const filled = dayValues(key).length;
   const cur = isToday ? currentSlot() : null;
+  ui.active = cur;
   const msg = filled === 3 ? 'Wszystkie oceny zapisane — brawo! 💗'
     : filled === 0 ? (isToday ? 'Jak się dziś czujesz?' : 'Brak wpisów tego dnia')
     : `Zapisano ${filled} z 3 ocen`;
@@ -145,11 +156,29 @@ function renderToday() {
     ${saldoChipHtml()}
     <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
     <p class="lead">${msg}</p>
-    ${SLOTS.map(s => slotCard(s, key, s.id === cur)).join('')}
+    ${SLOTS.map(s => (isToday && s.id !== cur && !ui.open[`${key}|${s.id}`])
+      ? slotCompact(s, key)
+      : slotCard(s, key, s.id === cur, isToday && s.id !== cur)).join('')}
   `;
 }
 
-function slotCard(s, key, isNow) {
+// Zwinięta karta: intensywna z wartościami, jeśli jest wpis; wyblakła bez wartości, jeśli nie ma
+function slotCompact(s, key) {
+  const e = getEntry(key, s.id);
+  const vals = e
+    ? `<span class="c-vals"><span class="c-m">${mood(e.v)[0]} <b>${e.v}</b></span><span class="c-e">⚡ <b>${e.e ?? '–'}</b></span></span>`
+    : `<span class="c-vals c-none">brak wpisu</span>`;
+  return `
+    <button class="card slot-compact ${e ? 'filled' : 'empty'}" data-act="slot-open" data-key="${key}" data-slot="${s.id}"
+            aria-label="${s.label}: ${e ? `nastrój ${e.v}, energia ${e.e ?? 'brak'}` : 'brak wpisu'}. Rozwiń">
+      <span class="slot-icon" aria-hidden="true">${s.icon}</span>
+      <span class="c-name">${s.label}<small>${e ? `o ${hhmm(e.t)}` : `około ${settings.times[s.id]}`}</small></span>
+      ${vals}
+      <span class="c-chev" aria-hidden="true">⌄</span>
+    </button>`;
+}
+
+function slotCard(s, key, isNow, collapsible = false) {
   const e = getEntry(key, s.id);
   const dk = `${key}|${s.id}`;
   const v = ui.drafts[dk] ?? e?.v ?? 5;
@@ -167,6 +196,7 @@ function slotCard(s, key, isNow) {
         <span class="slot-icon" aria-hidden="true">${s.icon}</span>
         <div><h2>${s.label}</h2><small>${sub}</small></div>
         ${badge}
+        ${collapsible ? `<button class="c-close" data-act="slot-close" aria-label="Zwiń">⌃</button>` : ''}
       </div>
       <div class="mood" aria-live="polite">
         <span class="emo" aria-hidden="true">${emo}</span>
@@ -560,6 +590,8 @@ document.addEventListener('click', async ev => {
       break;
     }
 
+    case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
+    case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
     case 'compliment': showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
@@ -743,6 +775,8 @@ async function syncState() {
 
 // Sprawdzanie przypomnień, gdy aplikacja działa (także w tle, dopóki system jej nie uśpi)
 async function checkReminders() {
+  if (ui.view === 'today' && dkey(ui.day) === dkey(new Date()) && ui.active && currentSlot() !== ui.active
+      && document.visibilityState === 'visible') renderToday();
   if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
   const k = dkey(new Date());
   const m = nowMinutes();
