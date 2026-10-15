@@ -25,32 +25,33 @@ const CATS = {
 };
 const CHIPS = [[10, 'mała'], [25, 'średnia'], [50, 'duża'], [80, 'ogromna']];
 
+// [typ, nazwa, kategoria, wartość domyślna, stały identyfikator (tpl — m.in. dla komplementów)]
 const TEMPLATES = [
   // wypłaty
-  ['w', 'Spotkanie towarzyskie', 'spol', 30],
-  ['w', 'Rozmowa telefoniczna', 'spol', 15],
-  ['w', 'Spotkanie w pracy / online', 'spol', 20],
-  ['w', 'Maskowanie (udawanie, dopasowywanie się)', 'spol', 30],
-  ['w', 'Zakupy w markecie', 'sens', 25],
-  ['w', 'Dojazd komunikacją', 'sens', 20],
-  ['w', 'Hałas, tłum, jaskrawe światło', 'sens', 30],
-  ['w', 'Praca w biurze / open space', 'sens', 35],
-  ['w', 'Nieoczekiwana zmiana planów', 'emoc', 25],
-  ['w', 'Konflikt / trudna rozmowa', 'emoc', 40],
-  ['w', 'Sprawy urzędowe, formularze', 'pozn', 25],
-  ['w', 'Sprzątanie, obowiązki domowe', 'fiz', 15],
-  ['w', 'Słaby sen', 'fiz', 30],
+  ['w', 'Spotkanie towarzyskie', 'spol', 30, 'spotkanie'],
+  ['w', 'Rozmowa telefoniczna', 'spol', 15, 'telefon'],
+  ['w', 'Spotkanie w pracy / online', 'spol', 20, 'spotkanie-praca'],
+  ['w', 'Maskowanie (udawanie, dopasowywanie się)', 'spol', 30, 'maskowanie'],
+  ['w', 'Zakupy w markecie', 'sens', 25, 'zakupy'],
+  ['w', 'Dojazd komunikacją', 'sens', 20, 'dojazd'],
+  ['w', 'Hałas, tłum, jaskrawe światło', 'sens', 30, 'bodzce'],
+  ['w', 'Praca w biurze / open space', 'sens', 35, 'biuro'],
+  ['w', 'Nieoczekiwana zmiana planów', 'emoc', 25, 'zmiana-planow'],
+  ['w', 'Konflikt / trudna rozmowa', 'emoc', 40, 'konflikt'],
+  ['w', 'Sprawy urzędowe, formularze', 'pozn', 25, 'urzad'],
+  ['w', 'Sprzątanie, obowiązki domowe', 'fiz', 15, 'sprzatanie'],
+  ['w', 'Słaby sen', 'fiz', 30, 'slaby-sen'],
   // wpłaty
-  ['d', 'Czas ze swoim zainteresowaniem', 'pozn', 30],
-  ['d', 'Spacer w lesie / na zewnątrz', 'fiz', 25],
-  ['d', 'Cisza, przyciemniony pokój', 'sens', 20],
-  ['d', 'Słuchawki i ulubiona muzyka', 'sens', 15],
-  ['d', 'Drzemka', 'fiz', 20],
-  ['d', 'Czas ze zwierzęciem', 'emoc', 15],
-  ['d', 'Ulubiony serial / gra', 'pozn', 15],
-  ['d', 'Czas sam(a) bez planu', 'spol', 25],
-  ['d', 'Dobry sen', 'fiz', 30],
-  ['d', 'Ruch, sport', 'fiz', 20],
+  ['d', 'Czas ze swoim zainteresowaniem', 'pozn', 30, 'zainteresowanie'],
+  ['d', 'Spacer w lesie / na zewnątrz', 'fiz', 25, 'spacer'],
+  ['d', 'Cisza, przyciemniony pokój', 'sens', 20, 'cisza'],
+  ['d', 'Słuchawki i ulubiona muzyka', 'sens', 15, 'muzyka'],
+  ['d', 'Drzemka', 'fiz', 20, 'drzemka'],
+  ['d', 'Czas ze zwierzęciem', 'emoc', 15, 'zwierze'],
+  ['d', 'Ulubiony serial / gra', 'pozn', 15, 'serial-gra'],
+  ['d', 'Czas sam(a) bez planu', 'spol', 25, 'czas-sam'],
+  ['d', 'Dobry sen', 'fiz', 30, 'dobry-sen'],
+  ['d', 'Ruch, sport', 'fiz', 20, 'ruch'],
 ];
 
 const FREQ = [['Zawsze', 100], ['Często', 75], ['Czasami', 50], ['Rzadko', 25], ['Nigdy / prawie nigdy', 0]];
@@ -114,8 +115,21 @@ function energyInit() {
   if (!Array.isArray(acts)) acts = [];
   if (!Array.isArray(surveys)) surveys = [];
   if (!Array.isArray(strategies)) strategies = [];
+  linkTemplates();
   applyCalm();
 }
+
+// Czynności utworzone przed dodaniem pola tpl: dopasuj do szablonu po nazwie i typie (jednorazowo)
+function linkTemplates() {
+  let changed = false;
+  for (const a of acts) {
+    if (a.tpl) continue;
+    const t = TEMPLATES.find(x => x[0] === a.kind && x[1] === a.name);
+    if (t) { a.tpl = t[4]; changed = true; }
+  }
+  if (changed) saveActs();
+}
+const isTpl = v => typeof v === 'string' && TEMPLATES.some(t => t[4] === v);
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const actById = id => acts.find(a => a.id === id);
@@ -765,7 +779,7 @@ function energyClick(act, el) {
     case 'e-setup': {
       const picked = [...document.querySelectorAll('[data-tpl]')].filter(c => c.checked).map(c => TEMPLATES[Number(c.dataset.tpl)]);
       if (!picked.length) { toast('Wybierz przynajmniej jedną czynność'); return true; }
-      acts = picked.map(([kind, name, cat, def]) => ({ id: uid(), name, kind, cat, def, archived: false }));
+      acts = picked.map(([kind, name, cat, def, tpl]) => ({ id: uid(), name, kind, cat, def, archived: false, tpl }));
       saveActs(); renderEnergy(); window.scrollTo({ top: 0 });
       toast('Konto energii gotowe');
       return true;
@@ -834,7 +848,11 @@ function energyClick(act, el) {
       if (!name) { toast('Podaj nazwę'); return true; }
       const kind = $('#af-kind').value, cat = $('#af-cat').value;
       const a = actById(el.dataset.id);
-      if (a) Object.assign(a, { name, kind, cat, def });
+      if (a) {
+        // zmiana typu (wpłata ↔ wypłata) zrywa powiązanie z szablonem
+        if (a.kind !== kind) delete a.tpl;
+        Object.assign(a, { name, kind, cat, def });
+      }
       else acts.push({ id: uid(), name, kind, cat, def, archived: false });
       saveActs(); eui.editAct = null; rerender(); toast('Zapisano czynność');
       return true;
@@ -913,11 +931,13 @@ function energyImport(data) {
     for (const a of data.activities) {
       if (!a || typeof a.id !== 'string' || typeof a.name !== 'string' || !['w', 'd'].includes(a.kind)) continue;
       const clean = { id: a.id, name: a.name.slice(0, 60), kind: a.kind, cat: CATS[a.cat] ? a.cat : 'emoc', def: Math.max(1, Math.min(100, Number(a.def) || 25)), archived: !!a.archived };
+      if (isTpl(a.tpl)) clean.tpl = a.tpl;
       const i = acts.findIndex(x => x.id === a.id);
       if (i >= 0) acts[i] = clean; else acts.push(clean);
       n.acts++;
     }
     saveActs();
+    linkTemplates();   // kopie sprzed pola tpl
   }
   if (data.energy && typeof data.energy === 'object') {
     for (const [k, list] of Object.entries(data.energy)) {
@@ -962,6 +982,14 @@ function energyImport(data) {
 function energyWipe() {
   acts = []; elog = {}; plans = {}; surveys = []; strategies = [];
   for (const k of [KEY_ACTS, KEY_ELOG, KEY_PLAN, KEY_SURV, KEY_STRAT]) { try { localStorage.removeItem(k); } catch { /* ignore */ } }
+}
+
+/* ---------- dzisiejsze czynności (dla losowania komplementów) ---------- */
+function todayActivities() {
+  return (elog[todayKey()] || []).map(x => {
+    const a = actById(x.a);
+    return { tpl: a?.tpl ?? null, kind: x.k, cat: a?.cat ?? null, t: x.t, v: x.v };
+  });
 }
 
 /* ---------- pasek salda na ekranie „Dziś” ---------- */
