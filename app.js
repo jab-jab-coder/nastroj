@@ -599,7 +599,7 @@ document.addEventListener('click', async ev => {
 
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
-    case 'compliment': showCompliment(); break;
+    case 'compliment': popFab(el); showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
     case 'install':
@@ -699,6 +699,14 @@ function pickCompliment(now = Date.now(), rnd = Math.random) {
   }
   store(KEY_COMPL2, { recent: [c[1], ...recent.filter(x => x !== c[1])].slice(0, COMPL.recent) });
   return c;
+}
+
+// Animacja przycisku komplementu (klasa .pop, restart przy kolejnym dotknięciu).
+function popFab(btn) {
+  btn.classList.remove('pop');
+  void btn.offsetWidth;
+  btn.classList.add('pop');
+  btn.addEventListener('animationend', () => btn.classList.remove('pop'), { once: true });
 }
 
 let complTimer;
