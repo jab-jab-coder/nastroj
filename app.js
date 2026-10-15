@@ -718,8 +718,9 @@ let complTimer;
 function showCompliment() {
   const [emo, txt] = pickCompliment();
   const el = $('#compliment');
-  el.innerHTML = `<span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
-    <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i>`;
+  el.innerHTML = `<div class="c-bubble"><span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
+    <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i></div>
+    <i class="c-tail" aria-hidden="true"></i><img class="c-uni" src="icons/jednorozec.svg" alt="" width="120" height="120">`;
   el.hidden = false;
   clearTimeout(complTimer);
   complTimer = setTimeout(hideCompliment, 10000);
