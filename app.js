@@ -599,7 +599,7 @@ document.addEventListener('click', async ev => {
 
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
-    case 'compliment': showCompliment(); break;
+    case 'compliment': popFab(el); showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
     case 'install':
@@ -642,16 +642,19 @@ document.addEventListener('change', async ev => {
 
 /* ---------- komplementy (listy w komplementy.js) ---------- */
 // Losowanie dwuetapowe:
-//   1. wybór źródła: komplementy ogólne (stała waga) albo czynność zapisana dziś
-//      (waga maleje z czasem od zapisu; przy wypłatach rośnie z wartością wypłaty),
+//   1. wybór źródła: komplementy ogólne albo czynność zapisana dziś. Gdy są dziś czynności
+//      z komplementami, ogólne dostają stały udział (generalShare), a reszta dzieli się między
+//      czynności według wag (waga maleje z czasem od zapisu; przy wypłatach rośnie z wartością),
 //   2. równomierny wybór komplementu w źródle, z pominięciem 5 ostatnio pokazanych.
 const COMPL = {
   recent: 5,              // ile ostatnich komplementów się nie powtarza
-  general: 1,             // waga komplementów ogólnych
+  general: 1,             // waga komplementów ogólnych, gdy nie ma dziś czynności z komplementami
+  generalShare: 0.45,     // udział komplementów ogólnych, gdy są czynności (0,45 → 45% ogólne, 55% tematyczne)
   act: 4,                 // waga świeżo zapisanej czynności
   halfLife: 3 * 3600e3,   // co 3 h waga czynności spada o połowę
   wdRef: 25,              // wypłata o tej wartości ma mnożnik ×1
   wdMin: 0.4, wdMax: 3,   // zakres mnożnika wypłaty (10 → ×0,4, 80 → ×3)
+  winkChance: 1 / 3,      // szansa, że jednorożiec w dymku mrugnie
 };
 const FALLBACK_COMPL = [['💗', 'Jesteś super']];
 const validCompl = list => (Array.isArray(list) ? list.filter(c => Array.isArray(c) && typeof c[1] === 'string' && c[1]) : []);
@@ -687,6 +690,9 @@ function pickCompliment(now = Date.now(), rnd = Math.random) {
   const pool = sources
     .map(s => ({ ...s, list: s.list.filter(c => !recent.includes(c[1])) }))
     .filter(s => s.list.length && s.w > 0);
+  const gen = pool.find(s => s.key === 'ogolne');
+  const themed = pool.reduce((sum, s) => sum + (s === gen ? 0 : s.w), 0);
+  if (gen && themed > 0) gen.w = themed * COMPL.generalShare / (1 - COMPL.generalShare);
   let c;
   if (pool.length) {
     let r = rnd() * pool.reduce((sum, s) => sum + s.w, 0);
@@ -701,12 +707,29 @@ function pickCompliment(now = Date.now(), rnd = Math.random) {
   return c;
 }
 
+// Animacja przycisku komplementu (klasa .pop, restart przy kolejnym dotknięciu).
+function popFab(btn) {
+  btn.classList.remove('pop');
+  void btn.offsetWidth;
+  btn.classList.add('pop');
+  btn.addEventListener('animationend', () => btn.classList.remove('pop'), { once: true });
+}
+
+// Jednorożec w dymku wstawiany inline (nie <img>), żeby losowo wyłączać mrugnięcie klasą .no-wink.
+let UNI_SVG = null;
+fetch('icons/jednorozec.svg').then(r => (r.ok ? r.text() : null)).then(t => { UNI_SVG = t; }).catch(() => {});
+function uniMarkup() {
+  if (!UNI_SVG) return '<img class="c-uni" src="icons/jednorozec.svg" alt="" width="120" height="120">';
+  return `<span class="c-uni${Math.random() < COMPL.winkChance ? '' : ' no-wink'}" aria-hidden="true">${UNI_SVG}</span>`;
+}
+
 let complTimer;
 function showCompliment() {
   const [emo, txt] = pickCompliment();
   const el = $('#compliment');
-  el.innerHTML = `<span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
-    <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i>`;
+  el.innerHTML = `<div class="c-bubble"><span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
+    <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i></div>
+    <i class="c-tail" aria-hidden="true"></i>${uniMarkup()}`;
   el.hidden = false;
   clearTimeout(complTimer);
   complTimer = setTimeout(hideCompliment, 10000);

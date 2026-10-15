@@ -1,5 +1,5 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v6';
+const VERSION = 'nastroj-v7';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
@@ -12,6 +12,7 @@ const SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/badge-96.png',
+  './icons/jednorozec.svg',
 ];
 
 self.addEventListener('install', e => {
