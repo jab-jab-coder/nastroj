@@ -732,7 +732,7 @@ function showCompliment() {
     <i class="c-tail" aria-hidden="true"></i>${uniMarkup()}`;
   el.hidden = false;
   clearTimeout(complTimer);
-  complTimer = setTimeout(hideCompliment, 10000);
+  complTimer = setTimeout(hideCompliment, 19000);  // = długość animacji .c-bar (styles.css)
 }
 function hideCompliment() {
   clearTimeout(complTimer);
