@@ -495,16 +495,16 @@ body.locked { overflow: hidden; }
 }
 #compliment .c-emo { font-size: 48px; line-height: 1; flex: none; }
 #compliment p { flex: 1; margin: 0; font-size: 22px; font-weight: 800; color: var(--rose-deep); line-height: 1.3; text-wrap: balance; }
-/* pasek czasu 19 s, rośnie od prawej; kolory = 3 pierwsze barwy tęczowej obwódki dymka:
-   1. #ffadad przez 4 s → 2. #ffd6a5 przez 7 s → 3. #fdffb6 przez 8 s; wcześniejsze odcinki zostają */
+/* pasek czasu 9 s, rośnie od prawej; kolory = 3 pierwsze barwy tęczowej obwódki dymka:
+   1. #ffadad → 2. #ffd6a5 → 3. #fdffb6, każdy po 3 s; wcześniejsze odcinki zostają */
 #compliment .c-bar {
   position: absolute; left: 0; bottom: 0; height: 8px; width: 100%;
   background: linear-gradient(90deg,
-    #fdffb6 0 42.1053%,           /* 8/19, ostatni od prawej */
-    #ffd6a5 42.1053% 78.9474%,    /* 7/19 */
-    #ffadad 78.9474% 100%);       /* 4/19, pierwszy przy prawej krawędzi */
+    #fdffb6 0 33.3333%,           /* 3/9, ostatni od prawej */
+    #ffd6a5 33.3333% 66.6667%,    /* 3/9 */
+    #ffadad 66.6667% 100%);       /* 3/9, pierwszy przy prawej krawędzi */
   clip-path: inset(0 0 0 100%);
-  animation: compl-bar 19s linear forwards;
+  animation: compl-bar 9s linear forwards;
 }
 @keyframes compl-in { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes compl-bar { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
