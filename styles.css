@@ -487,18 +487,19 @@ body.locked { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { #compliment .c-uni { animation: none; } }
 #compliment .c-emo { font-size: 48px; line-height: 1; flex: none; }
 #compliment p { flex: 1; margin: 0; font-size: 22px; font-weight: 800; color: var(--rose-deep); line-height: 1.3; text-wrap: balance; }
-/* pasek czasu 19 s: niebieski 4 s → pomarańczowy 7 s → zielony 8 s; odcinki zostają, pasek rośnie od lewej */
+/* pasek czasu 19 s, rośnie od prawej; kolory = 3 pierwsze barwy tęczowej obwódki dymka:
+   1. #ffadad przez 4 s → 2. #ffd6a5 przez 7 s → 3. #fdffb6 przez 8 s; wcześniejsze odcinki zostają */
 #compliment .c-bar {
   position: absolute; left: 0; bottom: 0; height: 8px; width: 100%;
   background: linear-gradient(90deg,
-    #2196f3 0 21.0526%,           /*  4/19 */
-    #ff9800 21.0526% 57.8947%,    /* 11/19 */
-    #4caf50 57.8947% 100%);
-  clip-path: inset(0 100% 0 0);
+    #fdffb6 0 42.1053%,           /* 8/19, ostatni od prawej */
+    #ffd6a5 42.1053% 78.9474%,    /* 7/19 */
+    #ffadad 78.9474% 100%);       /* 4/19, pierwszy przy prawej krawędzi */
+  clip-path: inset(0 0 0 100%);
   animation: compl-bar 19s linear forwards;
 }
 @keyframes compl-in { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
-@keyframes compl-bar { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes compl-bar { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
 @media print { .fab, #compliment { display: none !important; } }
 
 /* ---------- zwinięte karty pór dnia ---------- */
