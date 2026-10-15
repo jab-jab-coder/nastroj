@@ -485,6 +485,14 @@ body.locked { overflow: hidden; }
 #compliment .c-uni svg { display: block; width: 100%; height: 100%; }
 @keyframes uni-in { from { opacity: 0; transform: translateY(24px) scale(.6); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { #compliment .c-uni { animation: none; } }
+/* przycisk zamknięcia: 90% wysokości dymka, przy prawej krawędzi */
+#compliment .c-bubble { padding-right: 76px; }
+#compliment .c-bubble .x {
+  position: absolute; right: 10px; top: 5%; bottom: 5%;
+  width: 56px; height: auto; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56px; line-height: 1; padding: 0;
+}
 #compliment .c-emo { font-size: 48px; line-height: 1; flex: none; }
 #compliment p { flex: 1; margin: 0; font-size: 22px; font-weight: 800; color: var(--rose-deep); line-height: 1.3; text-wrap: balance; }
 /* pasek czasu 19 s, rośnie od prawej; kolory = 3 pierwsze barwy tęczowej obwódki dymka:
