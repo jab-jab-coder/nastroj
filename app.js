@@ -642,12 +642,14 @@ document.addEventListener('change', async ev => {
 
 /* ---------- komplementy (listy w komplementy.js) ---------- */
 // Losowanie dwuetapowe:
-//   1. wybór źródła: komplementy ogólne (stała waga) albo czynność zapisana dziś
-//      (waga maleje z czasem od zapisu; przy wypłatach rośnie z wartością wypłaty),
+//   1. wybór źródła: komplementy ogólne albo czynność zapisana dziś. Gdy są dziś czynności
+//      z komplementami, ogólne dostają stały udział (generalShare), a reszta dzieli się między
+//      czynności według wag (waga maleje z czasem od zapisu; przy wypłatach rośnie z wartością),
 //   2. równomierny wybór komplementu w źródle, z pominięciem 5 ostatnio pokazanych.
 const COMPL = {
   recent: 5,              // ile ostatnich komplementów się nie powtarza
-  general: 1,             // waga komplementów ogólnych
+  general: 1,             // waga komplementów ogólnych, gdy nie ma dziś czynności z komplementami
+  generalShare: 0.45,     // udział komplementów ogólnych, gdy są czynności (0,45 → 45% ogólne, 55% tematyczne)
   act: 4,                 // waga świeżo zapisanej czynności
   halfLife: 3 * 3600e3,   // co 3 h waga czynności spada o połowę
   wdRef: 25,              // wypłata o tej wartości ma mnożnik ×1
@@ -687,6 +689,9 @@ function pickCompliment(now = Date.now(), rnd = Math.random) {
   const pool = sources
     .map(s => ({ ...s, list: s.list.filter(c => !recent.includes(c[1])) }))
     .filter(s => s.list.length && s.w > 0);
+  const gen = pool.find(s => s.key === 'ogolne');
+  const themed = pool.reduce((sum, s) => sum + (s === gen ? 0 : s.w), 0);
+  if (gen && themed > 0) gen.w = themed * COMPL.generalShare / (1 - COMPL.generalShare);
   let c;
   if (pool.length) {
     let r = rnd() * pool.reduce((sum, s) => sum + s.w, 0);
