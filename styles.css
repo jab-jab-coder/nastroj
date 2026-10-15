@@ -485,11 +485,29 @@ body.locked { overflow: hidden; }
 #compliment .c-uni svg { display: block; width: 100%; height: 100%; }
 @keyframes uni-in { from { opacity: 0; transform: translateY(24px) scale(.6); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { #compliment .c-uni { animation: none; } }
+/* przycisk zamknięcia: 90% wysokości dymka, przy prawej krawędzi */
+#compliment .c-bubble { padding-right: 76px; }
+#compliment .c-bubble .x {
+  position: absolute; right: 10px; top: 5%; bottom: 5%;
+  width: 56px; height: auto; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56px; line-height: 1; padding: 0;
+}
 #compliment .c-emo { font-size: 48px; line-height: 1; flex: none; }
 #compliment p { flex: 1; margin: 0; font-size: 22px; font-weight: 800; color: var(--rose-deep); line-height: 1.3; text-wrap: balance; }
-#compliment .c-bar { position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: var(--rose); animation: compl-bar 10s linear forwards; }
+/* pasek czasu 9 s, rośnie od prawej; kolory = 3 pierwsze barwy tęczowej obwódki dymka:
+   1. #ffadad → 2. #ffd6a5 → 3. #fdffb6, każdy po 3 s; wcześniejsze odcinki zostają */
+#compliment .c-bar {
+  position: absolute; left: 0; bottom: 0; height: 8px; width: 100%;
+  background: linear-gradient(90deg,
+    #fdffb6 0 33.3333%,           /* 3/9, ostatni od prawej */
+    #ffd6a5 33.3333% 66.6667%,    /* 3/9 */
+    #ffadad 66.6667% 100%);       /* 3/9, pierwszy przy prawej krawędzi */
+  clip-path: inset(0 0 0 100%);
+  animation: compl-bar 9s linear forwards;
+}
 @keyframes compl-in { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
-@keyframes compl-bar { from { width: 100%; } to { width: 0; } }
+@keyframes compl-bar { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
 @media print { .fab, #compliment { display: none !important; } }
 
 /* ---------- zwinięte karty pór dnia ---------- */
