@@ -594,11 +594,44 @@ function renderSettings() {
 }
 
 /* =========================================================
+   Widok: Stoper (podwójne dotknięcie „Ustawienia”)
+   Nic nie zapisuje — stan tylko w pamięci.
+   ========================================================= */
+const stopwatch = { start: 0, timer: null };
+
+function swText() {
+  const sec = Math.floor((Date.now() - stopwatch.start) / 1000);
+  return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+}
+function swTick() {
+  const el = $('#sw-time');
+  if (el) el.textContent = swText();
+}
+function stopwatchStop() {
+  clearInterval(stopwatch.timer);
+  stopwatch.timer = null;
+}
+function renderStopwatch() {
+  stopwatchStop();
+  stopwatch.start = Date.now();
+  $('#view-stopwatch').innerHTML = `
+    <div class="stopwatch">
+      <div class="sw-time" id="sw-time" role="timer" aria-live="off">00:00</div>
+      <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>`;
+  stopwatch.timer = setInterval(swTick, 250);
+}
+
+/* =========================================================
    Nawigacja i zdarzenia
    ========================================================= */
-const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings };
+const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings, stopwatch: renderStopwatch };
 
 function show(view) {
+  if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
+  document.body.classList.toggle('sw-on', view === 'stopwatch');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
   document.querySelectorAll('.tab').forEach(t => {
@@ -611,7 +644,15 @@ const rerender = () => renderers[ui.view]();
 
 document.addEventListener('click', async ev => {
   const tab = ev.target.closest('.tab');
-  if (tab) { show(tab.dataset.tab); return; }
+  if (tab) {
+    // Podwójne dotknięcie „Ustawienia” (≤ 400 ms) → stoper
+    if (tab.dataset.tab === 'settings') {
+      const now = Date.now();
+      if (now - (ui.settingsTap || 0) < 400) { ui.settingsTap = 0; show('stopwatch'); return; }
+      ui.settingsTap = now;
+    } else ui.settingsTap = 0;
+    show(tab.dataset.tab); return;
+  }
 
   const el = ev.target.closest('[data-act]');
   if (!el) return;
@@ -652,6 +693,7 @@ document.addEventListener('click', async ev => {
 
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
+    case 'sw-back': show('today'); break;
     case 'compliment': popFab(el); showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;

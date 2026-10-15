@@ -545,3 +545,24 @@ body.locked { overflow: hidden; }
 .about p:last-child { margin-bottom: 0; }
 .about b { color: var(--rose-deep); }
 .about a { color: var(--rose-deep); font-weight: 700; overflow-wrap: anywhere; }
+
+/* =========================================================
+   Stoper (podwójne dotknięcie „Ustawienia”)
+   ========================================================= */
+body.sw-on .tabbar, body.sw-on .fab, body.sw-on #compliment { display: none !important; }
+.stopwatch {
+  min-height: calc(100vh - 220px);
+  display: grid; place-content: center; justify-items: center; gap: 36px;
+}
+.sw-time {
+  font-size: clamp(72px, 26vw, 128px); font-weight: 800; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; color: var(--rose-deep); line-height: 1;
+}
+.sw-back {
+  width: 72px; height: 72px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--card); box-shadow: var(--shadow); color: var(--rose-deep);
+  display: grid; place-items: center;
+}
+.sw-back svg { width: 34px; height: 34px; stroke: currentColor; }
+.sw-back:active { transform: scale(.94); }
+.sw-back:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 2px; }
