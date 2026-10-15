@@ -654,6 +654,7 @@ const COMPL = {
   halfLife: 3 * 3600e3,   // co 3 h waga czynności spada o połowę
   wdRef: 25,              // wypłata o tej wartości ma mnożnik ×1
   wdMin: 0.4, wdMax: 3,   // zakres mnożnika wypłaty (10 → ×0,4, 80 → ×3)
+  winkChance: 1 / 3,      // szansa, że jednorożiec w dymku mrugnie
 };
 const FALLBACK_COMPL = [['💗', 'Jesteś super']];
 const validCompl = list => (Array.isArray(list) ? list.filter(c => Array.isArray(c) && typeof c[1] === 'string' && c[1]) : []);
@@ -714,13 +715,21 @@ function popFab(btn) {
   btn.addEventListener('animationend', () => btn.classList.remove('pop'), { once: true });
 }
 
+// Jednorożec w dymku wstawiany inline (nie <img>), żeby losowo wyłączać mrugnięcie klasą .no-wink.
+let UNI_SVG = null;
+fetch('icons/jednorozec.svg').then(r => (r.ok ? r.text() : null)).then(t => { UNI_SVG = t; }).catch(() => {});
+function uniMarkup() {
+  if (!UNI_SVG) return '<img class="c-uni" src="icons/jednorozec.svg" alt="" width="120" height="120">';
+  return `<span class="c-uni${Math.random() < COMPL.winkChance ? '' : ' no-wink'}" aria-hidden="true">${UNI_SVG}</span>`;
+}
+
 let complTimer;
 function showCompliment() {
   const [emo, txt] = pickCompliment();
   const el = $('#compliment');
   el.innerHTML = `<div class="c-bubble"><span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
     <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i></div>
-    <i class="c-tail" aria-hidden="true"></i><img class="c-uni" src="icons/jednorozec.svg" alt="" width="120" height="120">`;
+    <i class="c-tail" aria-hidden="true"></i>${uniMarkup()}`;
   el.hidden = false;
   clearTimeout(complTimer);
   complTimer = setTimeout(hideCompliment, 10000);

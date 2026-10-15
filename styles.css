@@ -477,10 +477,12 @@ body.locked { overflow: hidden; }
   background: var(--card); clip-path: polygon(7px 0, 27px 0, 17px 14px);
 }
 #compliment .c-uni {
+  display: block;
   width: 120px; height: 120px; margin-top: 2px;
   filter: drop-shadow(0 6px 12px rgba(194, 24, 91, .25));
   animation: uni-in .45s cubic-bezier(.34, 1.56, .64, 1) .1s both;
 }
+#compliment .c-uni svg { display: block; width: 100%; height: 100%; }
 @keyframes uni-in { from { opacity: 0; transform: translateY(24px) scale(.6); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { #compliment .c-uni { animation: none; } }
 #compliment .c-emo { font-size: 48px; line-height: 1; flex: none; }
