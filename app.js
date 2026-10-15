@@ -14,7 +14,8 @@ const AVG_COLOR = '#c2185b';
 const KEY_ENTRIES = 'nastroj.entries.v1';
 const KEY_SETTINGS = 'nastroj.settings.v1';
 const KEY_NOTIFIED = 'nastroj.notified.v1';
-const KEY_COMPL = 'nastroj.compliment.v1';   // indeks ostatnio pokazanego komplementu
+const KEY_COMPL = 'nastroj.compliment.v1';   // (nieużywany od v6) indeks ostatnio pokazanego komplementu
+const KEY_COMPL2 = 'nastroj.compliment.v2';  // { recent: [tekst, …] } — ostatnio pokazane komplementy
 const STATE_CACHE = 'nastroj-state';
 const DEFAULT_SETTINGS = {
   times: { morning: '09:00', afternoon: '14:00', evening: '21:00' },
@@ -639,17 +640,70 @@ document.addEventListener('change', async ev => {
   }
 });
 
-/* ---------- komplementy (lista w komplementy.js) ---------- */
+/* ---------- komplementy (listy w komplementy.js) ---------- */
+// Losowanie dwuetapowe:
+//   1. wybór źródła: komplementy ogólne (stała waga) albo czynność zapisana dziś
+//      (waga maleje z czasem od zapisu; przy wypłatach rośnie z wartością wypłaty),
+//   2. równomierny wybór komplementu w źródle, z pominięciem 5 ostatnio pokazanych.
+const COMPL = {
+  recent: 5,              // ile ostatnich komplementów się nie powtarza
+  general: 1,             // waga komplementów ogólnych
+  act: 4,                 // waga świeżo zapisanej czynności
+  halfLife: 3 * 3600e3,   // co 3 h waga czynności spada o połowę
+  wdRef: 25,              // wypłata o tej wartości ma mnożnik ×1
+  wdMin: 0.4, wdMax: 3,   // zakres mnożnika wypłaty (10 → ×0,4, 80 → ×3)
+};
+const FALLBACK_COMPL = [['💗', 'Jesteś super']];
+const validCompl = list => (Array.isArray(list) ? list.filter(c => Array.isArray(c) && typeof c[1] === 'string' && c[1]) : []);
+
+function recentCompliments() {
+  const r = load(KEY_COMPL2, {})?.recent;
+  return Array.isArray(r) ? r.filter(x => typeof x === 'string') : [];
+}
+
+// Źródła z dzisiejszych czynności: komplementy do szablonu, a gdy ich brak — do typu i kategorii.
+// Kilka wpisów tego samego źródła liczy się raz, z największą wagą.
+function complimentSources(now) {
+  const byTpl = typeof KOMPLEMENTY_CZYNNOSCI === 'object' && KOMPLEMENTY_CZYNNOSCI ? KOMPLEMENTY_CZYNNOSCI : {};
+  const byCat = typeof KOMPLEMENTY_KATEGORIE === 'object' && KOMPLEMENTY_KATEGORIE ? KOMPLEMENTY_KATEGORIE : {};
+  const groups = new Map();
+  for (const x of todayActivities()) {
+    let key = null, list = [];
+    if (x.tpl) { list = validCompl(byTpl[x.tpl]); key = `tpl:${x.tpl}`; }
+    if (!list.length && x.cat) { list = validCompl(byCat[`${x.kind}.${x.cat}`]); key = `cat:${x.kind}.${x.cat}`; }
+    if (!list.length) continue;
+    let w = COMPL.act * 0.5 ** (Math.max(0, now - x.t) / COMPL.halfLife);
+    if (x.kind === 'w') w *= Math.max(COMPL.wdMin, Math.min(COMPL.wdMax, (Number(x.v) || COMPL.wdRef) / COMPL.wdRef));
+    const g = groups.get(key);
+    if (!g || w > g.w) groups.set(key, { key, w, list });
+  }
+  return [...groups.values()];
+}
+
+function pickCompliment(now = Date.now(), rnd = Math.random) {
+  const general = validCompl(typeof KOMPLEMENTY !== 'undefined' ? KOMPLEMENTY : null);
+  const sources = [{ key: 'ogolne', w: COMPL.general, list: general.length ? general : FALLBACK_COMPL }, ...complimentSources(now)];
+  const recent = recentCompliments();
+  const pool = sources
+    .map(s => ({ ...s, list: s.list.filter(c => !recent.includes(c[1])) }))
+    .filter(s => s.list.length && s.w > 0);
+  let c;
+  if (pool.length) {
+    let r = rnd() * pool.reduce((sum, s) => sum + s.w, 0);
+    const src = pool.find(s => (r -= s.w) < 0) || pool[pool.length - 1];
+    c = src.list[Math.floor(rnd() * src.list.length)];
+  } else {
+    // wszystko było niedawno (bardzo krótkie listy) — najdawniej pokazany
+    const all = sources.flatMap(s => s.list);
+    c = all.reduce((best, x) => (recent.indexOf(x[1]) > recent.indexOf(best[1]) ? x : best));
+  }
+  store(KEY_COMPL2, { recent: [c[1], ...recent.filter(x => x !== c[1])].slice(0, COMPL.recent) });
+  return c;
+}
+
 let complTimer;
 function showCompliment() {
-  const list = (typeof KOMPLEMENTY !== 'undefined' && Array.isArray(KOMPLEMENTY) && KOMPLEMENTY.length)
-    ? KOMPLEMENTY : [['💗', 'Jesteś super']];
-  // losowy, ale nie ten sam co ostatnio
-  const last = Number(load(KEY_COMPL, -1));
-  let i = Math.floor(Math.random() * list.length);
-  if (list.length > 1 && i === last) i = (i + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length;
-  const [emo, txt] = list[i];
-  try { localStorage.setItem(KEY_COMPL, JSON.stringify(i)); } catch { /* ignore */ }
+  const [emo, txt] = pickCompliment();
   const el = $('#compliment');
   el.innerHTML = `<span class="c-emo" aria-hidden="true">${esc(emo)}</span><p>${esc(txt)}</p>
     <button class="x" data-act="compl-close" aria-label="Zamknij komplement">×</button><i class="c-bar" aria-hidden="true"></i>`;
