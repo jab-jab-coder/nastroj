@@ -166,6 +166,14 @@ input[type=range]::-moz-range-thumb {
 .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .legend i.line { width: 18px; height: 3px; border-radius: 2px; }
 
+.chart-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 6px 2px; }
+.chart-title h3 { margin: 0; display: inline-flex; align-items: center; gap: 8px; letter-spacing: .01em; }
+.chart-title h3 i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.chart-title span { font-size: 12px; color: var(--ink-soft); }
+.chart-sep { height: 1px; background: var(--line); margin: 14px 6px 12px; }
+.detail .drow { margin-top: 3px; }
+.detail .drow i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: 2px; }
+.detail .drow.en b { color: #1d6b45; }
 .detail { margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--bg); font-size: 14px; min-height: 42px; }
 .detail b { color: var(--rose-deep); }
 .detail .muted { color: var(--ink-soft); }
