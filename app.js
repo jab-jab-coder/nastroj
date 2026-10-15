@@ -249,16 +249,42 @@ function onSlider(input) {
 
 /* =========================================================
    Wykresy (czyste SVG, bez zewnętrznych bibliotek)
+   Dwie serie o tej samej geometrii osi X: samopoczucie (v) i energia (e).
    ========================================================= */
-const W = 360, H = 230, L = 30, R = 12, T = 14, B = 36;
-const IW = W - L - R, IH = H - T - B;
-const yOf = v => T + IH * (10 - v) / 9;
+const W = 360, L = 30, R = 12, T = 14, B = 36;
+const IW = W - L - R;
 
-function gridSvg() {
+// Wykres energii jest niższy — drugorzędny względem samopoczucia, ale z tą samą osią X.
+const CHART_H = { mood: 230, energy: 170 };
+
+// Paleta: samopoczucie w różach (jak dotąd), energia w zieleniach — pory od jasnej do ciemnej.
+const SERIES = {
+  mood: {
+    field: 'v', slots: SLOTS.map(s => s.color), avg: AVG_COLOR, bar: SLOTS[1].color, trend: SLOTS[2].color,
+    name: 'samopoczucia',
+  },
+  energy: {
+    field: 'e', slots: ['#8fd3a4', '#3fa36b', '#1d6b45'], avg: '#2e7d4f', bar: '#3fa36b', trend: '#1d6b45',
+    name: 'energii',
+  },
+};
+
+const seriesValues = (k, kind) => {
+  const e = entries[k], f = SERIES[kind].field;
+  return e ? SLOTS.map(s => e[s.id]?.[f]).filter(v => v != null) : [];
+};
+const seriesAvg = (k, kind) => avg(seriesValues(k, kind));
+
+function geom(kind) {
+  const H = CHART_H[kind], IH = H - T - B;
+  return { H, IH, yOf: v => T + IH * (10 - v) / 9 };
+}
+
+function gridSvg(g) {
   let s = '';
   for (const v of [1, 4, 7, 10]) {
-    s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${yOf(v)}" y2="${yOf(v)}"/>`;
-    s += `<text x="${L - 8}" y="${yOf(v) + 4}" text-anchor="end">${v}</text>`;
+    s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${g.yOf(v)}" y2="${g.yOf(v)}"/>`;
+    s += `<text x="${L - 8}" y="${g.yOf(v) + 4}" text-anchor="end">${v}</text>`;
   }
   return s;
 }
@@ -274,28 +300,29 @@ function segments(points) {
 }
 const pathOf = seg => seg.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
 
-function weekChart(days) {
+function weekChart(days, kind = 'mood') {
+  const S = SERIES[kind], g = geom(kind), { H, IH, yOf } = g;
   const todayK = dkey(new Date());
   const colW = IW / 7;
   const xOf = i => L + colW * (i + 0.5);
   const keys = days.map(dkey);
-  const any = keys.some(k => dayValues(k).length);
-  let s = gridSvg();
+  const any = keys.some(k => seriesValues(k, kind).length);
+  let s = gridSvg(g);
 
   keys.forEach((k, i) => {
     s += `<rect class="hit ${ui.selWeek === k ? 'sel' : ''}" x="${L + colW * i}" y="${T - 6}" width="${colW}" height="${IH + 12}" rx="10" data-act="pick-week" data-day="${k}"/>`;
   });
 
-  const avgPts = keys.map((k, i) => { const a = dayAvg(k); return a == null ? null : [xOf(i), yOf(a)]; });
+  const avgPts = keys.map((k, i) => { const a = seriesAvg(k, kind); return a == null ? null : [xOf(i), yOf(a)]; });
   for (const seg of segments(avgPts)) {
-    if (seg.length > 1) s += `<path d="${pathOf(seg)}" fill="none" stroke="${AVG_COLOR}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".55" pointer-events="none"/>`;
+    if (seg.length > 1) s += `<path d="${pathOf(seg)}" fill="none" stroke="${S.avg}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".55" pointer-events="none"/>`;
   }
 
   const off = [-9, 0, 9];
   keys.forEach((k, i) => {
     SLOTS.forEach((sl, j) => {
-      const e = getEntry(k, sl.id);
-      if (e) s += `<circle cx="${xOf(i) + off[j]}" cy="${yOf(e.v)}" r="5" fill="${sl.color}" stroke="#fff" stroke-width="1.5" pointer-events="none"/>`;
+      const val = getEntry(k, sl.id)?.[S.field];
+      if (val != null) s += `<circle cx="${xOf(i) + off[j]}" cy="${yOf(val)}" r="5" fill="${S.slots[j]}" stroke="#fff" stroke-width="1.5" pointer-events="none"/>`;
     });
   });
 
@@ -307,18 +334,19 @@ function weekChart(days) {
   });
 
   if (!any) s += `<text class="empty" x="${L + IW / 2}" y="${T + IH / 2}" text-anchor="middle">Brak wpisów w tym tygodniu</text>`;
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wykres samopoczucia w tygodniu">${s}</svg>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wykres ${S.name} w tygodniu">${s}</svg>`;
 }
 
-function monthChart(first) {
+function monthChart(first, kind = 'mood') {
+  const S = SERIES[kind], g = geom(kind), { H, IH, yOf } = g;
   const n = daysInMonth(first);
   const todayK = dkey(new Date());
   const colW = IW / n;
   const xOf = i => L + colW * (i + 0.5);
   const days = [...Array(n)].map((_, i) => addDays(first, i));
   const keys = days.map(dkey);
-  const avgs = keys.map(dayAvg);
-  let s = gridSvg();
+  const avgs = keys.map(k => seriesAvg(k, kind));
+  let s = gridSvg(g);
 
   keys.forEach((k, i) => {
     s += `<rect class="hit ${ui.selMonth === k ? 'sel' : ''}" x="${L + colW * i}" y="${T - 6}" width="${colW}" height="${IH + 12}" rx="4" data-act="pick-month" data-day="${k}"/>`;
@@ -329,7 +357,7 @@ function monthChart(first) {
     if (a == null) return;
     const y = yOf(a), h = yOf(1) - y + 4;
     const op = 0.35 + 0.65 * (a - 1) / 9;
-    s += `<rect x="${xOf(i) - bw / 2}" y="${y}" width="${bw}" height="${Math.max(h, 4)}" rx="${Math.min(4, bw / 2)}" fill="${SLOTS[1].color}" fill-opacity="${op.toFixed(2)}" pointer-events="none"/>`;
+    s += `<rect x="${xOf(i) - bw / 2}" y="${y}" width="${bw}" height="${Math.max(h, 4)}" rx="${Math.min(4, bw / 2)}" fill="${S.bar}" fill-opacity="${op.toFixed(2)}" pointer-events="none"/>`;
   });
 
   // średnia krocząca z 7 dni (gdy w oknie są co najmniej 2 dni z danymi)
@@ -339,7 +367,7 @@ function monthChart(first) {
     return (w.length >= 2 && avgs[i] != null) ? [xOf(i), yOf(avg(w))] : null;
   });
   for (const seg of segments(ma)) {
-    if (seg.length > 1) s += `<path d="${pathOf(seg)}" fill="none" stroke="${SLOTS[2].color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
+    if (seg.length > 1) s += `<path d="${pathOf(seg)}" fill="none" stroke="${S.trend}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
   }
 
   days.forEach((d, i) => {
@@ -350,7 +378,12 @@ function monthChart(first) {
   });
 
   if (!avgs.some(a => a != null)) s += `<text class="empty" x="${L + IW / 2}" y="${T + IH / 2}" text-anchor="middle">Brak wpisów w tym miesiącu</text>`;
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wykres średniego samopoczucia w miesiącu">${s}</svg>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wykres średniego poziomu ${S.name} w miesiącu">${s}</svg>`;
+}
+
+// Nagłówek sekcji wykresu: kolorowa kropka + tytuł (+ opcjonalny podpis po prawej).
+function chartTitle(text, color, note = '') {
+  return `<div class="chart-title"><h3><i style="background:${color}"></i>${text}</h3>${note ? `<span>${note}</span>` : ''}</div>`;
 }
 
 function statsFor(days) {
@@ -376,10 +409,15 @@ function statsFor(days) {
 function detailHtml(k) {
   if (!k) return '<span class="muted">Dotknij dnia na wykresie, aby zobaczyć szczegóły.</span>';
   const d = parseKey(k);
-  const parts = SLOTS.map(s => { const e = getEntry(k, s.id); return `${s.label}: <b>${e ? e.v : '–'}</b>`; });
-  const a = dayAvg(k);
-  return `<b>${esc(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' }))}</b><br>
-          ${parts.join(' · ')}${a != null ? ` · średnia <b>${round1(a)}</b>` : ''}`;
+  const row = kind => {
+    const f = SERIES[kind].field;
+    const parts = SLOTS.map(s => { const v = getEntry(k, s.id)?.[f]; return `${s.label}:&nbsp;<b>${v ?? '–'}</b>`; });
+    const a = seriesAvg(k, kind);
+    return `${parts.join(' · ')}${a != null ? ` · średnia&nbsp;<b>${round1(a)}</b>` : ''}`;
+  };
+  return `<b>${esc(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' }))}</b>
+          <div class="drow"><i style="background:${AVG_COLOR}"></i>${row('mood')}</div>
+          <div class="drow en"><i style="background:${SERIES.energy.avg}"></i>${row('energy')}</div>`;
 }
 
 function deltaHtml(d) {
@@ -394,10 +432,18 @@ function slotAvgHtml(per) {
   </div>`;
 }
 
-function legendHtml(extra) {
+function legendHtml(extra, colors = SLOTS.map(s => s.color)) {
   return `<div class="legend">
-    ${SLOTS.map(s => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}
+    ${SLOTS.map((s, i) => `<span><i style="background:${colors[i]}"></i>${s.label}</span>`).join('')}
     ${extra}
+  </div>`;
+}
+
+function monthLegendHtml(kind) {
+  const S = SERIES[kind];
+  return `<div class="legend">
+    <span><i style="background:${S.bar}"></i>średnia dnia</span>
+    <span><i class="line" style="background:${S.trend}"></i>trend (7 dni)</span>
   </div>`;
 }
 
@@ -428,8 +474,13 @@ function renderWeek() {
       <div class="stat"><div class="n">${st.best ? esc(fmt(st.best.d, { weekday: 'short' }).replace('.', '')) : '–'}</div><div class="t">najlepszy dzień</div></div>
     </div>
     <div class="card chart-card">
-      ${weekChart(days)}
+      ${chartTitle('Samopoczucie', AVG_COLOR)}
+      ${weekChart(days, 'mood')}
       ${legendHtml(`<span><i class="line" style="background:${AVG_COLOR};opacity:.55"></i>średnia dnia</span>`)}
+      <div class="chart-sep"></div>
+      ${chartTitle('Energia', SERIES.energy.avg, 'odczuwana, 1–10')}
+      ${weekChart(days, 'energy')}
+      ${legendHtml(`<span><i class="line" style="background:${SERIES.energy.avg};opacity:.55"></i>średnia dnia</span>`, SERIES.energy.slots)}
       <div class="detail" id="week-detail">${detailHtml(ui.selWeek)}</div>
     </div>
     <div class="card"><h3>Średnio o porach dnia</h3>${slotAvgHtml(st.per)}</div>
@@ -467,11 +518,13 @@ function renderMonth() {
       <div class="stat"><div class="n">${st.best ? st.best.d.getDate() : '–'}</div><div class="t">najlepszy dzień</div></div>
     </div>
     <div class="card chart-card">
-      ${monthChart(first)}
-      <div class="legend">
-        <span><i style="background:${SLOTS[1].color}"></i>średnia dnia</span>
-        <span><i class="line" style="background:${SLOTS[2].color}"></i>trend (7 dni)</span>
-      </div>
+      ${chartTitle('Samopoczucie', AVG_COLOR)}
+      ${monthChart(first, 'mood')}
+      ${monthLegendHtml('mood')}
+      <div class="chart-sep"></div>
+      ${chartTitle('Energia', SERIES.energy.avg, 'odczuwana, 1–10')}
+      ${monthChart(first, 'energy')}
+      ${monthLegendHtml('energy')}
       <div class="detail" id="month-detail">${detailHtml(ui.selMonth)}</div>
     </div>
     <div class="card"><h3>Średnio o porach dnia</h3>${slotAvgHtml(st.per)}</div>
