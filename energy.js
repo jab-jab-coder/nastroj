@@ -17,6 +17,7 @@ const KEY_ELOG = 'nastroj.energy.v1';
 const KEY_PLAN = 'nastroj.plan.v1';
 const KEY_SURV = 'nastroj.surveys.v1';
 const KEY_STRAT = 'nastroj.strategies.v1';
+const KEY_RECS = 'nastroj.records.v1';     // rekordy stopera: [{ s: sekundy, t: kiedy (ms), v?: ostatni nastrój, e?: ostatnia energia }]
 const KEY_SCHEMA = 'nastroj.schema';
 const KEY_BACKUP = 'nastroj.backup.pre-v2';
 
@@ -88,7 +89,7 @@ const SURVEYS = {
 };
 
 /* ---------- stan ---------- */
-let acts = [], elog = {}, plans = {}, surveys = [], strategies = [];
+let acts = [], elog = {}, plans = {}, surveys = [], strategies = [], records = [];
 const eui = { survey: null, stmt: null, editAct: null };
 
 function energyInit() {
@@ -112,6 +113,8 @@ function energyInit() {
   plans = load(KEY_PLAN, {});
   surveys = load(KEY_SURV, []);
   strategies = load(KEY_STRAT, []);
+  records = load(KEY_RECS, []);
+  if (!Array.isArray(records)) records = [];
   if (!Array.isArray(acts)) acts = [];
   if (!Array.isArray(surveys)) surveys = [];
   if (!Array.isArray(strategies)) strategies = [];
@@ -915,14 +918,14 @@ function energySettingsHtml() {
 function energyCounts() {
   return {
     logs: Object.values(elog).reduce((n, l) => n + l.length, 0),
-    acts: acts.length, surveys: surveys.length,
+    acts: acts.length, surveys: surveys.length, records: records.length,
     hasBackup: (() => { try { return !!localStorage.getItem(KEY_BACKUP); } catch { return false; } })(),
   };
 }
 
 /* ---------- eksport / import (wersja 2) ---------- */
 function energyExport() {
-  return { activities: acts, energy: elog, plans, surveys, strategies };
+  return { activities: acts, energy: elog, plans, surveys, strategies, records };
 }
 
 function energyImport(data) {
@@ -976,12 +979,31 @@ function energyImport(data) {
     for (const s of data.strategies) if (typeof s === 'string' && s.trim() && !strategies.includes(s)) strategies.push(s.slice(0, 120));
     saveStrat();
   }
+  if (Array.isArray(data.records)) {
+    for (const r of data.records) {
+      const s = Math.floor(Number(r?.s)), t = Number(r?.t);
+      if (!Number.isFinite(s) || s < 0 || !Number.isFinite(t) || records.some(y => y.t === t)) continue;
+      const rec = { s, t };
+      if (Number.isInteger(r.v) && r.v >= 1 && r.v <= 10) rec.v = r.v;
+      if (Number.isInteger(r.e) && r.e >= 1 && r.e <= 10) rec.e = r.e;
+      records.push(rec);
+      n.records = (n.records || 0) + 1;
+    }
+    saveRecs();
+  }
   return n;
+}
+function saveRecs() { store(KEY_RECS, records); }
+// Zapis wyniku stopera; zwraca miejsce w rankingu wszech czasów (1 = najdłuższy czas, remisy dzielą miejsce)
+function recordAdd(rec) {
+  records.push(rec);
+  saveRecs();
+  return 1 + records.filter(r => r.s > rec.s).length;
 }
 
 function energyWipe() {
-  acts = []; elog = {}; plans = {}; surveys = []; strategies = [];
-  for (const k of [KEY_ACTS, KEY_ELOG, KEY_PLAN, KEY_SURV, KEY_STRAT]) { try { localStorage.removeItem(k); } catch { /* ignore */ } }
+  acts = []; elog = {}; plans = {}; surveys = []; strategies = []; records = [];
+  for (const k of [KEY_ACTS, KEY_ELOG, KEY_PLAN, KEY_SURV, KEY_STRAT, KEY_RECS]) { try { localStorage.removeItem(k); } catch { /* ignore */ } }
 }
 
 /* ---------- dzisiejsze czynności (dla losowania komplementów) ---------- */

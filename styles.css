@@ -586,11 +586,12 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
   font-size: clamp(72px, 26vw, 128px); font-weight: 800; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; color: var(--rose-deep); line-height: 1;
 }
+.sw-actions { display: flex; gap: 18px; justify-content: center; }
 .sw-back {
-  width: 72px; height: 72px; border-radius: 50%; border: 0; cursor: pointer;
+  width: 68px; height: 68px; border-radius: 50%; border: 0; cursor: pointer;
   background: var(--card); box-shadow: var(--shadow); color: var(--rose-deep);
   display: grid; place-items: center;
 }
-.sw-back svg { width: 34px; height: 34px; stroke: currentColor; }
+.sw-back svg { width: 32px; height: 32px; stroke: currentColor; }
 .sw-back:active { transform: scale(.94); }
 .sw-back:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 2px; }

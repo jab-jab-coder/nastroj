@@ -573,7 +573,7 @@ function renderSettings() {
 
     <div class="card">
       <h3>Dane</h3>
-      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu: ${total} ocen nastroju, ${ec.logs} operacji energii, ${ec.acts} czynności, ${ec.surveys} wyników badań. Rób czasem kopię zapasową.</p>
+      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu: ${total} ocen nastroju, ${ec.logs} operacji energii, ${ec.acts} czynności, ${ec.surveys} wyników badań${ec.records ? `, ${ec.records} rekordów stopera` : ''}. Rób czasem kopię zapasową.</p>
       <div class="stack">
         <button class="btn soft block" data-act="export">Eksportuj kopię (JSON)</button>
         <button class="btn soft block" data-act="import">Importuj kopię</button>
@@ -639,11 +639,43 @@ async function swMountUni() {
   }
 }
 
+function swSeconds() { return Math.max(0, Math.floor((Date.now() - stopwatch.start) / 1000)); }
+
+// Ostatnia zapisana ocena nastroju (v) i energii (e) — niezależnie, wg czasu zapisu
+function lastMeasures() {
+  let v = null, vt = -1, e = null, et = -1;
+  for (const day of Object.values(entries)) {
+    for (const x of Object.values(day || {})) {
+      if (!x || !Number.isFinite(x.t)) continue;
+      if (Number.isInteger(x.v) && x.t > vt) { v = x.v; vt = x.t; }
+      if (Number.isInteger(x.e) && x.t > et) { e = x.e; et = x.t; }
+    }
+  }
+  return { v, e };
+}
+
+function swSaveRecord() {
+  const rec = { s: swSeconds(), t: Date.now() };
+  const { v, e } = lastMeasures();
+  if (v != null) rec.v = v;
+  if (e != null) rec.e = e;
+  const place = recordAdd(rec);
+  swSay(place === 1 ? '🏆' : '🎉', `To Twój ${place} wynik wszechczasów!`);
+}
+
+function swRestart() {
+  stopwatch.start = Date.now();
+  swTick();
+}
+
 // Komplement w dymku pod główką — dymek siedzi w grupie .rw-lean, więc kołysze się razem z jednorożcem.
 function swCompliment() {
-  const lean = $('#sw-uni .rw-lean');
-  if (!lean) return;
   const [emo, txt] = pickCompliment();
+  swSay(emo, txt);
+}
+function swSay(emo, txt) {
+  const lean = $('#sw-uni .rw-lean');
+  if (!lean) { toast(`${emo} ${txt}`); return; }   // awaryjnie, gdy grafika jest zwykłym obrazkiem
   $('#sw-say')?.remove();
   const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
   fo.id = 'sw-say';
@@ -664,9 +696,17 @@ function renderStopwatch() {
     <div class="stopwatch">
       <div class="sw-time" id="sw-time" role="timer" aria-live="off">00:00</div>
       <div class="sw-uni" id="sw-uni"></div>
-      <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <div class="sw-actions">
+        <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="sw-back" data-act="sw-save" aria-label="Zapisz wynik na liście rekordów">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 6.5h10M10 12h10M10 17.5h10"/></g><circle cx="5" cy="6.5" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="12" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="17.5" r="1.7" stroke="none" fill="currentColor"/></svg>
+        </button>
+        <button class="sw-back" data-act="sw-restart" aria-label="Zacznij od nowa bez zapisu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 3.5v4.2h4.2"/></g></svg>
+        </button>
+      </div>
     </div>`;
   stopwatch.timer = setInterval(swTick, 250);
   swMountUni();
@@ -743,6 +783,8 @@ document.addEventListener('click', async ev => {
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
     case 'sw-back': show('today'); break;
     case 'uni-compl': swCompliment(); break;
+    case 'sw-save': swSaveRecord(); break;
+    case 'sw-restart': swRestart(); break;
     case 'compliment': popFab(el); showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
@@ -922,7 +964,7 @@ async function importData(file) {
     store(KEY_ENTRIES, entries);
     const en = energyImport(data);   // pliki z wersji 1 nie mają tych pól — wtedy nic się nie dzieje
     syncState(); renderSettings();
-    toast(`Zaimportowano: ${n} ocen${en.logs || en.acts ? `, ${en.logs} operacji energii, ${en.acts} czynności` : ''}${en.surveys ? `, ${en.surveys} badań` : ''}`);
+    toast(`Zaimportowano: ${n} ocen${en.logs || en.acts ? `, ${en.logs} operacji energii, ${en.acts} czynności` : ''}${en.surveys ? `, ${en.surveys} badań` : ''}${en.records ? `, ${en.records} rekordów stopera` : ''}`);
   } catch {
     toast('Nieprawidłowy plik kopii');
   }
