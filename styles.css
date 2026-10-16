@@ -551,8 +551,8 @@ body.locked { overflow: hidden; }
 .oddech-stage { display: grid; place-items: center; gap: 28px; min-height: 60vh; align-content: center; }
 .oddech-uni { display: block; width: min(70vw, 260px); height: auto; aspect-ratio: 1; }
 .oddech-uni svg { display: block; width: 100%; height: 100%; }
-/* na Oddechu iskierki przy rogu stoją w miejscu (bez migotania) */
-.oddech-stage .uni-sparkle { animation: none; transform: none; opacity: 1; }
+/* na Oddechu bez iskierek przy rogu */
+.oddech-stage .uni-sparkle { display: none; }
 /* na Oddechu zwykły uśmiech znika, widać tylko minę bieżącej fazy */
 .oddech-stage .uni-smile { opacity: 0; }
 .oddech-stage.ph-in   .uni-m-in,
