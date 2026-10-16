@@ -232,6 +232,7 @@ input[type=time] {
   display: grid; justify-items: center; gap: 2px;
   padding: 8px 0 6px; border-radius: 18px;
   color: var(--ink-soft); font-size: 11px; font-weight: 700;
+  touch-action: manipulation;  /* bez zoomu przy szybkim wielokrotnym dotknięciu (Oddech) */
 }
 .tab svg { width: 24px; height: 24px; fill: currentColor; stroke: currentColor; }
 .tab[data-tab="today"] svg, .tab[data-tab="month"] svg, .tab[data-tab="settings"] svg { stroke: none; }
@@ -545,3 +546,7 @@ body.locked { overflow: hidden; }
 .about p:last-child { margin-bottom: 0; }
 .about b { color: var(--rose-deep); }
 .about a { color: var(--rose-deep); font-weight: 700; overflow-wrap: anywhere; }
+
+/* ---------- Oddech ---------- */
+.oddech-stage { display: grid; place-items: center; min-height: 60vh; }
+.oddech-uni { width: min(70vw, 260px); height: auto; }

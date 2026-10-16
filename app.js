@@ -593,25 +593,52 @@ function renderSettings() {
   `;
 }
 
+/* ---------- Oddech (ukryty ekran: 3× dotknięcie zakładki Energia) ---------- */
+// Szkielet — funkcjonalność dochodzi w kolejnych krokach.
+function renderOddech() {
+  $('#view-oddech').innerHTML = `
+    <header class="head">
+      <button class="icon-btn" data-act="oddech-back" aria-label="Wróć do Energii">‹</button>
+      <div><div class="eyebrow">Chwila dla siebie</div><h1>Oddech</h1></div>
+      <span></span>
+    </header>
+    <div class="oddech-stage">
+      <img class="oddech-uni" src="icons/jednorozec.svg" alt="" width="220" height="220">
+    </div>
+  `;
+}
+
 /* =========================================================
    Nawigacja i zdarzenia
    ========================================================= */
-const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings };
+const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings, oddech: renderOddech };
 
 function show(view) {
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
+  const tabFor = view === 'oddech' ? 'energy' : view;  // Oddech podświetla zakładkę Energia
   document.querySelectorAll('.tab').forEach(t => {
-    if (t.dataset.tab === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
   renderers[view]();
   window.scrollTo({ top: 0 });
 }
 const rerender = () => renderers[ui.view]();
+const TRIPLE_MS = 450;               // maks. odstęp między dotknięciami przy potrójnym kliknięciu
+let tapEnergy = { n: 0, last: 0 };
 
 document.addEventListener('click', async ev => {
   const tab = ev.target.closest('.tab');
-  if (tab) { show(tab.dataset.tab); return; }
+  if (tab) {
+    // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
+    if (tab.dataset.tab === 'energy') {
+      const now = Date.now();
+      tapEnergy = now - tapEnergy.last < TRIPLE_MS ? { n: tapEnergy.n + 1, last: now } : { n: 1, last: now };
+      if (tapEnergy.n >= 3) { tapEnergy = { n: 0, last: 0 }; show('oddech'); return; }
+    }
+    show(tab.dataset.tab);
+    return;
+  }
 
   const el = ev.target.closest('[data-act]');
   if (!el) return;
@@ -619,6 +646,7 @@ document.addEventListener('click', async ev => {
   const card = el.closest('.slot');
 
   switch (act) {
+    case 'oddech-back': show('energy'); break;
     case 'day-prev': ui.day = addDays(ui.day, -1); renderToday(); break;
     case 'day-next': if (ui.day < today0()) { ui.day = addDays(ui.day, 1); renderToday(); } break;
     case 'week-prev': ui.week = addDays(ui.week, -7); ui.selWeek = null; renderWeek(); break;
