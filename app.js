@@ -85,8 +85,12 @@ settings.times = { ...DEFAULT_SETTINGS.times, ...(settings.times || {}) };
 
 const getEntry = (k, s) => entries[k]?.[s] ?? null;
 function setEntry(k, s, v, e) {
-  // „e” (energia 1–10) jest opcjonalne — stare wpisy { v, t } działają bez zmian
-  (entries[k] ||= {})[s] = e == null ? { v, t: Date.now() } : { v, t: Date.now(), e };
+  // „v” (nastrój) i „e” (energia 1–10) są opcjonalne — zapisujemy tylko to, co użytkownik ustawił.
+  // Stare wpisy { v, t } działają bez zmian; nowe mogą być też { e, t } (tylko energia).
+  const rec = { t: Date.now() };
+  if (v != null) rec.v = v;
+  if (e != null) rec.e = e;
+  (entries[k] ||= {})[s] = rec;
   store(KEY_ENTRIES, entries);
   syncState();
 }
@@ -102,6 +106,15 @@ function dayValues(k) {
   return e ? SLOTS.map(s => e[s.id]?.v).filter(v => v != null) : [];
 }
 const dayAvg = k => avg(dayValues(k));
+
+// Ostatnia zapisana wartość danego pola ('v' nastrój, 'e' energia) — punkt startowy suwaka
+function lastValue(f) {
+  let best = null, bt = -Infinity;
+  for (const day of Object.values(entries)) for (const r of Object.values(day || {})) {
+    if (r && Number.isInteger(r[f]) && (r.t || 0) > bt) { best = r[f]; bt = r.t || 0; }
+  }
+  return best;
+}
 
 // Aktywna pora dnia (pozostałe karty zwijamy):
 //   rano       — od północy do godziny „rano” + 2 h
@@ -139,7 +152,7 @@ let installPrompt = null;
 function renderToday() {
   const key = dkey(ui.day);
   const isToday = key === dkey(new Date());
-  const filled = dayValues(key).length;
+  const filled = SLOTS.filter(s => getEntry(key, s.id)).length;
   const cur = isToday ? currentSlot() : null;
   ui.active = cur;
   const msg = filled === 3 ? 'Wszystkie oceny zapisane — brawo! 💗'
@@ -168,11 +181,11 @@ function renderToday() {
 function slotCompact(s, key) {
   const e = getEntry(key, s.id);
   const vals = e
-    ? `<span class="c-vals"><span class="c-m">${mood(e.v)[0]} <b>${e.v}</b></span><span class="c-e">⚡ <b>${e.e ?? '–'}</b></span></span>`
+    ? `<span class="c-vals"><span class="c-m">${e.v != null ? `${mood(e.v)[0]} <b>${e.v}</b>` : '<b>–</b>'}</span><span class="c-e">⚡ <b>${e.e ?? '–'}</b></span></span>`
     : `<span class="c-vals c-none">brak wpisu</span>`;
   return `
     <button class="card slot-compact ${e ? 'filled' : 'empty'}" data-act="slot-open" data-key="${key}" data-slot="${s.id}"
-            aria-label="${s.label}: ${e ? `nastrój ${e.v}, energia ${e.e ?? 'brak'}` : 'brak wpisu'}. Rozwiń">
+            aria-label="${s.label}: ${e ? `nastrój ${e.v ?? 'brak'}, energia ${e.e ?? 'brak'}` : 'brak wpisu'}. Rozwiń">
       <span class="slot-icon" aria-hidden="true">${s.icon}</span>
       <span class="c-name">${s.label}<small>${e ? `o ${hhmm(e.t)}` : `około ${settings.times[s.id]}`}</small></span>
       ${vals}
@@ -183,11 +196,16 @@ function slotCompact(s, key) {
 function slotCard(s, key, isNow, collapsible = false) {
   const e = getEntry(key, s.id);
   const dk = `${key}|${s.id}`;
-  const v = ui.drafts[dk] ?? e?.v ?? 5;
-  const en = ui.drafts[`${dk}|e`] ?? e?.e ?? 5;
+  // Szary (idle) = wartość domyślna, której użytkownik nie ustawił: brak w wpisie i brak szkicu.
+  // Domyślnie: ostatni pomiar danej kategorii, a gdy go nie ma — 5.
+  const idleM = ui.drafts[dk] == null && e?.v == null;
+  const idleE = ui.drafts[`${dk}|e`] == null && e?.e == null;
+  const v = ui.drafts[dk] ?? e?.v ?? lastValue('v') ?? 5;
+  const en = ui.drafts[`${dk}|e`] ?? e?.e ?? lastValue('e') ?? 5;
   const [emo, label] = mood(v);
   const dirty = (ui.drafts[dk] != null && ui.drafts[dk] !== e?.v)
     || (ui.drafts[`${dk}|e`] != null && ui.drafts[`${dk}|e`] !== e?.e);
+  const im = idleM ? ' idle' : '', ie = idleE ? ' idle' : '';
   const sub = e ? `Zapisano o ${hhmm(e.t)}` : `około ${settings.times[s.id]}`;
   const badge = e ? '<span class="check" aria-label="Zapisano">✓</span>'
     : isNow ? '<span class="pill">Teraz</span>' : '';
@@ -201,18 +219,18 @@ function slotCard(s, key, isNow, collapsible = false) {
         ${collapsible ? `<button class="c-close" data-act="slot-close" aria-label="Zwiń">⌃</button>` : ''}
       </div>
       <div class="mood" aria-live="polite">
-        <span class="emo" aria-hidden="true">${emo}</span>
-        <span class="val">${v}</span>
+        <span class="emo${im}" aria-hidden="true">${emo}</span>
+        <span class="val${im}">${v}</span>
         <span class="lbl">${label}</span>
       </div>
-      <input type="range" min="1" max="10" step="1" value="${v}" data-kind="mood" style="--p:${((v - 1) / 9) * 100}%"
+      <input type="range" class="${im.trim()}" min="1" max="10" step="1" value="${v}" data-kind="mood" style="--p:${((v - 1) / 9) * 100}%"
              aria-label="Samopoczucie: ${s.label}, skala 1–10">
       <div class="scale"><span>1 · myśli i próby sb</span><span>10 · euforycznie</span></div>
       <div class="energy-row">
         <span class="en-lbl">⚡ Energia</span>
-        <span class="en-val">${en}${e && e.e == null && ui.drafts[`${dk}|e`] == null ? '<small> ?</small>' : ''}</span>
+        <span class="en-val${ie}">${en}</span>
       </div>
-      <input type="range" class="en" min="1" max="10" step="1" value="${en}" data-kind="energy" style="--p:${((en - 1) / 9) * 100}%"
+      <input type="range" class="en${ie}" min="1" max="10" step="1" value="${en}" data-kind="energy" style="--p:${((en - 1) / 9) * 100}%"
              aria-label="Energia: ${s.label}, skala 1–10">
       <div class="scale"><span>1 · pusta bateria</span><span>10 · pełna</span></div>
       <div class="actions">
@@ -228,21 +246,24 @@ function onSlider(input) {
   const v = Number(input.value);
   const e = getEntry(key, slot);
   input.style.setProperty('--p', `${((v - 1) / 9) * 100}%`);
+  input.classList.remove('idle');   // dotknięty suwak staje się aktywny (różowy)
   if (input.dataset.kind === 'energy') {
     ui.drafts[`${key}|${slot}|e`] = v;
-    $('.en-val', card).textContent = v;
+    const ev = $('.en-val', card);
+    ev.textContent = v; ev.classList.remove('idle');
   } else {
     ui.drafts[`${key}|${slot}`] = v;
     const [emo, label] = mood(v);
     $('.emo', card).textContent = emo;
     $('.val', card).textContent = v;
     $('.lbl', card).textContent = label;
+    $('.emo', card).classList.remove('idle');
+    $('.val', card).classList.remove('idle');
   }
   const btn = $('[data-act="save"]', card);
   if (e) {
-    const mv = Number($('input[data-kind="mood"]', card).value);
-    const ev = Number($('input[data-kind="energy"]', card).value);
-    const dirty = mv !== e.v || ev !== e.e;
+    const dm = ui.drafts[`${key}|${slot}`], de = ui.drafts[`${key}|${slot}|e`];
+    const dirty = (dm != null && dm !== e.v) || (de != null && de !== e.e);
     btn.disabled = !dirty;
     btn.textContent = dirty ? 'Zaktualizuj' : 'Zapisano ✓';
   }
@@ -394,7 +415,7 @@ function statsFor(days) {
   let best = null, worst = null;
   for (const d of past) {
     const k = dkey(d);
-    for (const sl of SLOTS) { const e = getEntry(k, sl.id); if (e) { vals.push(e.v); per[sl.id].push(e.v); } }
+    for (const sl of SLOTS) { const e = getEntry(k, sl.id); if (e?.v != null) { vals.push(e.v); per[sl.id].push(e.v); } }
     const a = dayAvg(k);
     if (a != null) {
       if (!best || a > best.a) best = { d, a };
@@ -935,13 +956,25 @@ document.addEventListener('click', async ev => {
 
     case 'save': {
       const { key, slot } = card.dataset;
-      const v = Number($('input[data-kind="mood"]', card).value);
-      const en = Number($('input[data-kind="energy"]', card).value);
+      const dk = `${key}|${slot}`;
+      const e = getEntry(key, slot);
+      const dm = ui.drafts[dk], de = ui.drafts[`${dk}|e`];
+      if (dm == null && de == null && !e) {
+        // Nic nie ruszone: pierwsze „Zapisz” tylko aktywuje (różowi) obie wartości domyślne, nie zapisuje.
+        ui.drafts[dk] = Number($('input[data-kind="mood"]', card).value);
+        ui.drafts[`${dk}|e`] = Number($('input[data-kind="energy"]', card).value);
+        renderToday();
+        break;
+      }
+      // Zapisujemy tylko kategorie ustawione przez użytkownika (szkic) albo już zapisane wcześniej.
+      const v = dm ?? e?.v ?? null;
+      const en = de ?? e?.e ?? null;
       setEntry(key, slot, v, en);
-      delete ui.drafts[`${key}|${slot}`];
-      delete ui.drafts[`${key}|${slot}|e`];
+      delete ui.drafts[dk];
+      delete ui.drafts[`${dk}|e`];
       renderToday();
-      toast(`${mood(v)[0]} Zapisano: ${SLOTS.find(s => s.id === slot).label.toLowerCase()} — ${v}/10`);
+      const what = v != null ? `${v}/10` : `energia ${en}/10`;
+      toast(`${v != null ? mood(v)[0] : '⚡'} Zapisano: ${SLOTS.find(s => s.id === slot).label.toLowerCase()} — ${what}`);
       break;
     }
     case 'del': {
@@ -1131,9 +1164,13 @@ async function importData(file) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || typeof day !== 'object') continue;
       for (const s of SLOTS) {
         const e = day[s.id];
-        if (e && Number.isInteger(e.v) && e.v >= 1 && e.v <= 10) {
-          const rec = { v: e.v, t: Number(e.t) || Date.now() };
-          if (Number.isInteger(e.e) && e.e >= 1 && e.e <= 10) rec.e = e.e;
+        if (!e) continue;
+        const okV = Number.isInteger(e.v) && e.v >= 1 && e.v <= 10;
+        const okE = Number.isInteger(e.e) && e.e >= 1 && e.e <= 10;
+        if (okV || okE) {   // wpis może mieć sam nastrój, samą energię albo oba
+          const rec = { t: Number(e.t) || Date.now() };
+          if (okV) rec.v = e.v;
+          if (okE) rec.e = e.e;
           (entries[k] ||= {})[s.id] = rec; n++;
         }
       }

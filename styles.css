@@ -267,6 +267,18 @@ input[type=range].en::-webkit-slider-thumb { border-color: var(--c-evening); }
 input[type=range].en::-moz-range-progress { background: linear-gradient(90deg, #d8b4c8, var(--c-evening)); }
 input[type=range].en::-moz-range-thumb { border-color: var(--c-evening); }
 
+/* ---------- wartość domyślna, jeszcze nieustawiona (szara) ---------- */
+:root { --idle: #b3a7ad; --idle-soft: #ddd5d9; --idle-track: #eeeaec; }
+.val.idle, .en-val.idle { color: var(--idle); }
+.emo.idle { filter: grayscale(1); opacity: .55; }
+input[type=range].idle::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--idle-soft) 0%, var(--idle) var(--p), var(--idle-track) var(--p));
+}
+input[type=range].idle::-webkit-slider-thumb { border-color: var(--idle); box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
+input[type=range].idle::-moz-range-track { background: var(--idle-track); }
+input[type=range].idle::-moz-range-progress { background: linear-gradient(90deg, var(--idle-soft), var(--idle)); }
+input[type=range].idle::-moz-range-thumb { border-color: var(--idle); box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
+
 .saldo-chip {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: 100%; margin: 10px 0 4px; padding: 10px 14px; min-height: 44px;
