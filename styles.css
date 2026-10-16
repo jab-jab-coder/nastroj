@@ -596,6 +596,14 @@ body.locked { overflow: hidden; }
 .oddech-secs b[data-ph="out"]  { background: #fdffb6; }
 .oddech-secs b.on { animation: odd-num .35s cubic-bezier(.34, 1.56, .64, 1); }
 @keyframes odd-num { from { transform: scale(.6); } to { transform: none; } }
+.oddech-sound {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--rose-deep); cursor: pointer;
+  box-shadow: var(--shadow); touch-action: manipulation;
+}
+.oddech-sound svg { width: 26px; height: 26px; }
+.oddech-sound.off { color: var(--ink-soft); }
+.oddech-sound:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 2px; }
 .oddech-bar i.run { animation: compl-bar 19s linear forwards; }
 @media (prefers-reduced-motion: reduce) {
   .oddech-stage .uni-m-in, .oddech-stage .uni-m-out, .oddech-stage .uni-puff, .oddech-secs b.on { animation: none !important; }

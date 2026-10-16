@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   carry: 0.5,          // przeniesienie salda energii na następny dzień
   autModule: false,    // samoocena wypalenia autystycznego
   lowSensory: false,   // tryb niskiej stymulacji
+  oddechSound: true,   // kliknięcie przy zmianie fazy na ekranie Oddech
 };
 
 /* ---------- utils ---------- */
@@ -603,9 +604,44 @@ const ODDECH = [
 ];
 let oddechTimer = null;
 let oddechTick = null;                          // licznik sekund bieżącej fazy
+let oddechAudio = null;                         // AudioContext (tworzony przy dotknięciu — wymóg przeglądarek)
+
+// Krótkie „klik” syntezowane w Web Audio (bez pliku dźwiękowego).
+function oddechClick() {
+  if (!settings.oddechSound || !oddechAudio) return;
+  try {
+    const ctx = oddechAudio, t = ctx.currentTime;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1400, t);
+    osc.frequency.exponentialRampToValueAtTime(600, t + 0.04);
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.07);
+  } catch { /* brak dźwięku — trudno */ }
+}
+function oddechAudioInit() {
+  try {
+    oddechAudio = oddechAudio || new (window.AudioContext || window.webkitAudioContext)();
+    if (oddechAudio.state === 'suspended') oddechAudio.resume();
+  } catch { oddechAudio = null; }
+}
+const SPEAKER_SVG = on => `<svg viewBox="0 0 24 24" aria-hidden="true">
+  <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  ${on
+    ? '<path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    : '<path d="M3 3l18 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'}
+</svg>`;
+function oddechSoundBtn() {
+  const on = settings.oddechSound;
+  return `<button class="oddech-sound${on ? '' : ' off'}" data-act="oddech-sound" aria-pressed="${on ? 'false' : 'true'}"
+    aria-label="${on ? 'Wycisz kliknięcia' : 'Włącz kliknięcia'}">${SPEAKER_SVG(on)}</button>`;
+}
 
 function renderOddech() {
   oddechStop();
+  oddechAudioInit();                            // render woła się z obsługi dotknięcia, więc dźwięk jest dozwolony
   const uni = UNI_SVG
     ? `<span class="oddech-uni no-wink" aria-hidden="true">${UNI_SVG}</span>`
     : '<img class="oddech-uni" src="icons/jednorozec.svg" alt="" width="220" height="220">';
@@ -621,6 +657,7 @@ function renderOddech() {
         <div class="oddech-bar"><i></i></div>
         <div class="oddech-secs">${ODDECH.slice().reverse().map(p => `<b data-ph="${p.id}"></b>`).join('')}</div>
       </div>
+      ${oddechSoundBtn()}
     </div>
   `;
   if (!UNI_SVG) {
@@ -638,6 +675,7 @@ function oddechPhase(i) {
   stage.classList.remove(...ODDECH.map(p => `ph-${p.id}`));
   void stage.offsetWidth;                       // restart animacji min
   stage.classList.add(`ph-${ph.id}`);
+  oddechClick();                                // dźwięk przy każdej zmianie koloru
   if (i === 0) {                                // nowy cykl → pasek i liczniki od zera
     const bar = $('.oddech-bar i', stage);
     bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
@@ -694,6 +732,12 @@ document.addEventListener('click', async ev => {
 
   switch (act) {
     case 'oddech-back': show('energy'); break;
+    case 'oddech-sound':
+      settings.oddechSound = !settings.oddechSound;
+      store(KEY_SETTINGS, settings);
+      if (settings.oddechSound) oddechAudioInit();
+      el.outerHTML = oddechSoundBtn();          // bez przerysowania ekranu, cykl biegnie dalej
+      break;
     case 'day-prev': ui.day = addDays(ui.day, -1); renderToday(); break;
     case 'day-next': if (ui.day < today0()) { ui.day = addDays(ui.day, 1); renderToday(); } break;
     case 'week-prev': ui.week = addDays(ui.week, -7); ui.selWeek = null; renderWeek(); break;
