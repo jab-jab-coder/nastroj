@@ -589,8 +589,7 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 }
 /* odliczanie −00:10 … −00:01 — mocniejszy, jaskrawy kolor */
 .sw-time.sw-lead { color: #ff1a75; text-shadow: 0 0 18px rgba(255, 26, 117, .35); }
-.sw-back:disabled { opacity: .35; cursor: default; box-shadow: none; }
-.sw-back:disabled:active { transform: none; }
+
 .sw-actions { display: flex; gap: 18px; justify-content: center; }
 .sw-back {
   width: 68px; height: 68px; border-radius: 50%; border: 0; cursor: pointer;

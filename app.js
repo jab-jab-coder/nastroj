@@ -600,6 +600,18 @@ function renderSettings() {
 const stopwatch = { start: 0, timer: null, svg: null, sayTimer: null };
 const SW_LEAD = 10;   // odliczanie przed startem: −00:10 … −00:01, potem 00:00 i dalej
 
+// Środkowy przycisk: w trakcie odliczania „start od zera”, potem „zapisz wynik”
+const SW_MID = {
+  zero: {
+    label: 'Pomiń odliczanie i startuj od 00:00',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.2v13.6L16 12z" stroke="none" fill="currentColor"/><path d="M18.5 5.5v13" fill="none" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  },
+  save: {
+    label: 'Zapisz wynik na liście rekordów',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 6.5h10M10 12h10M10 17.5h10"/></g><circle cx="5" cy="6.5" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="12" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="17.5" r="1.7" stroke="none" fill="currentColor"/></svg>',
+  },
+};
+
 // start = chwila, w której stoper pokaże 00:00 (10 s po wejściu / restarcie / zapisie)
 function swReset() { stopwatch.start = Date.now() + SW_LEAD * 1000; }
 function swCounting() { return Date.now() < stopwatch.start; }
@@ -615,8 +627,17 @@ function swTick() {
   const neg = swCounting();
   el.textContent = swText();
   el.classList.toggle('sw-lead', neg);
-  const save = $('[data-act="sw-save"]');
-  if (save) save.disabled = neg;   // w trakcie odliczania nie ma czego zapisać
+  const mid = $('#sw-mid'), want = neg ? 'sw-zero' : 'sw-save';
+  if (mid && mid.dataset.act !== want) {
+    const m = SW_MID[neg ? 'zero' : 'save'];
+    mid.dataset.act = want;
+    mid.setAttribute('aria-label', m.label);
+    mid.innerHTML = m.icon;
+  }
+}
+function swZero() {
+  stopwatch.start = Date.now();   // od razu 00:00 i liczy dalej
+  swTick();
 }
 function stopwatchStop() {
   clearInterval(stopwatch.timer);
@@ -714,9 +735,7 @@ function renderStopwatch() {
         <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <button class="sw-back" data-act="sw-save" aria-label="Zapisz wynik na liście rekordów" disabled>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 6.5h10M10 12h10M10 17.5h10"/></g><circle cx="5" cy="6.5" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="12" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="17.5" r="1.7" stroke="none" fill="currentColor"/></svg>
-        </button>
+        <button class="sw-back" id="sw-mid" data-act="sw-zero" aria-label="${SW_MID.zero.label}">${SW_MID.zero.icon}</button>
         <button class="sw-back" data-act="sw-restart" aria-label="Zacznij od nowa bez zapisu">
           <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 3.5v4.2h4.2"/></g></svg>
         </button>
@@ -798,6 +817,7 @@ document.addEventListener('click', async ev => {
     case 'sw-back': show('today'); break;
     case 'uni-compl': swCompliment(); break;
     case 'sw-save': swSaveRecord(); break;
+    case 'sw-zero': swZero(); break;
     case 'sw-restart': swRestart(); break;
     case 'compliment': popFab(el); showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
