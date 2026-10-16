@@ -617,6 +617,7 @@ function renderStopwatch() {
   $('#view-stopwatch').innerHTML = `
     <div class="stopwatch">
       <div class="sw-time" id="sw-time" role="timer" aria-live="off">00:00</div>
+      <img class="sw-uni" src="icons/rownowaznia.svg" alt="Jednorożec balansuje na równoważni" width="200" height="228">
       <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>

@@ -552,8 +552,9 @@ body.locked { overflow: hidden; }
 body.sw-on .tabbar, body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .stopwatch {
   min-height: calc(100vh - 220px);
-  display: grid; place-content: center; justify-items: center; gap: 36px;
+  display: grid; place-content: center; justify-items: center; gap: 24px;
 }
+.sw-uni { width: min(66vw, 250px); height: auto; display: block; }
 .sw-time {
   font-size: clamp(72px, 26vw, 128px); font-weight: 800; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; color: var(--rose-deep); line-height: 1;
