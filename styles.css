@@ -568,8 +568,9 @@ body.locked { overflow: hidden; }
 
 /* pasek 19 s (4+7+8), rośnie od prawej; odcinki w kolejności od prawej:
    #ffadad 4/19 → #ffd6a5 7/19 → #fdffb6 8/19 (jak w pasku komplementu) */
+.oddech-meter { width: min(80vw, 320px); display: grid; gap: 8px; }
 .oddech-bar {
-  width: min(80vw, 320px); height: 14px; border-radius: 999px; overflow: hidden;
+  width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
   background: var(--track); border: 1px solid var(--line);
 }
 .oddech-bar i {
@@ -580,7 +581,20 @@ body.locked { overflow: hidden; }
     #ffadad 78.9474% 100%);       /* 4/19 — wdech, przy prawej krawędzi */
   clip-path: inset(0 0 0 100%);
 }
+/* liczniki sekund pod środkiem odcinków (kolumny = proporcje 8:7:4, od lewej wydech, bezdech, wdech) */
+.oddech-secs { display: grid; grid-template-columns: 8fr 7fr 4fr; justify-items: center; min-height: 36px; }
+.oddech-secs b {
+  display: grid; place-items: center; min-width: 36px; height: 36px; border-radius: 50%;
+  font-size: 20px; font-weight: 900; color: var(--ink); font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line); visibility: hidden;
+}
+.oddech-secs b:not(:empty) { visibility: visible; }
+.oddech-secs b[data-ph="in"]   { background: #ffadad; }
+.oddech-secs b[data-ph="hold"] { background: #ffd6a5; }
+.oddech-secs b[data-ph="out"]  { background: #fdffb6; }
+.oddech-secs b.on { animation: odd-num .35s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes odd-num { from { transform: scale(.6); } to { transform: none; } }
 .oddech-bar i.run { animation: compl-bar 19s linear forwards; }
 @media (prefers-reduced-motion: reduce) {
-  .oddech-stage .uni-m-in, .oddech-stage .uni-m-out, .oddech-stage .uni-puff { animation: none !important; }
+  .oddech-stage .uni-m-in, .oddech-stage .uni-m-out, .oddech-stage .uni-puff, .oddech-secs b.on { animation: none !important; }
 }

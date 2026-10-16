@@ -602,6 +602,7 @@ const ODDECH = [
   { id: 'out',  s: 8 },
 ];
 let oddechTimer = null;
+let oddechTick = null;                          // licznik sekund bieżącej fazy
 
 function renderOddech() {
   oddechStop();
@@ -616,7 +617,10 @@ function renderOddech() {
     </header>
     <div class="oddech-stage" id="oddech-stage">
       ${uni}
-      <div class="oddech-bar" aria-hidden="true"><i></i></div>
+      <div class="oddech-meter" aria-hidden="true">
+        <div class="oddech-bar"><i></i></div>
+        <div class="oddech-secs">${ODDECH.slice().reverse().map(p => `<b data-ph="${p.id}"></b>`).join('')}</div>
+      </div>
     </div>
   `;
   if (!UNI_SVG) {
@@ -634,13 +638,21 @@ function oddechPhase(i) {
   stage.classList.remove(...ODDECH.map(p => `ph-${p.id}`));
   void stage.offsetWidth;                       // restart animacji min
   stage.classList.add(`ph-${ph.id}`);
-  if (i === 0) {                                // nowy cykl → pasek od zera
+  if (i === 0) {                                // nowy cykl → pasek i liczniki od zera
     const bar = $('.oddech-bar i', stage);
     bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
+    stage.querySelectorAll('.oddech-secs b').forEach(b => { b.textContent = ''; b.classList.remove('on'); });
   }
+  // licznik pod odcinkiem fazy: 1 na starcie, potem +1 co sekundę; ostatnia liczba zostaje
+  const num = $(`.oddech-secs b[data-ph="${ph.id}"]`, stage);
+  let n = 1;
+  const put = () => { num.textContent = n; num.classList.remove('on'); void num.offsetWidth; num.classList.add('on'); };
+  put();
+  clearInterval(oddechTick);
+  oddechTick = setInterval(() => { if (++n > ph.s) return clearInterval(oddechTick); put(); }, 1000);
   oddechTimer = setTimeout(() => oddechPhase((i + 1) % ODDECH.length), ph.s * 1000);
 }
-function oddechStop() { clearTimeout(oddechTimer); oddechTimer = null; }
+function oddechStop() { clearTimeout(oddechTimer); clearInterval(oddechTick); oddechTimer = oddechTick = null; }
 
 /* =========================================================
    Nawigacja i zdarzenia
