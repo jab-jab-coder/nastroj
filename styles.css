@@ -548,5 +548,39 @@ body.locked { overflow: hidden; }
 .about a { color: var(--rose-deep); font-weight: 700; overflow-wrap: anywhere; }
 
 /* ---------- Oddech ---------- */
-.oddech-stage { display: grid; place-items: center; min-height: 60vh; }
-.oddech-uni { width: min(70vw, 260px); height: auto; }
+.oddech-stage { display: grid; place-items: center; gap: 28px; min-height: 60vh; align-content: center; }
+.oddech-uni { display: block; width: min(70vw, 260px); height: auto; aspect-ratio: 1; }
+.oddech-uni svg { display: block; width: 100%; height: 100%; }
+/* na Oddechu zwykły uśmiech znika, widać tylko minę bieżącej fazy */
+.oddech-stage .uni-smile { opacity: 0; }
+.oddech-stage.ph-in   .uni-m-in,
+.oddech-stage.ph-hold .uni-m-hold,
+.oddech-stage.ph-out  .uni-m-out { opacity: 1; }
+.oddech-stage .uni-m-in, .oddech-stage .uni-m-out { transform-box: fill-box; transform-origin: center; }
+.oddech-stage.ph-in  .uni-m-in  { animation: odd-in 4s ease-out both; }   /* usta otwierają się do wdechu */
+.oddech-stage.ph-out .uni-m-out { animation: odd-out 8s ease-in both; }   /* ściągnięte usta, powoli maleją */
+.oddech-stage.ph-out .uni-puff  { transform-box: fill-box; transform-origin: center; animation: odd-puff 2s ease-out infinite; }
+.oddech-stage.ph-out .uni-p2 { animation-delay: .66s; }
+.oddech-stage.ph-out .uni-p3 { animation-delay: 1.33s; }
+@keyframes odd-in   { from { transform: scale(.45); } to { transform: scale(1.15); } }
+@keyframes odd-out  { from { transform: scale(1.1); } to { transform: scale(.8); } }
+@keyframes odd-puff { from { opacity: .9; transform: translate(0, 0) scale(.6); } to { opacity: 0; transform: translate(0, 12px) scale(1.8); } }
+
+/* pasek 19 s (4+7+8), rośnie od prawej; odcinki w kolejności od prawej:
+   #ffadad 4/19 → #ffd6a5 7/19 → #fdffb6 8/19 (jak w pasku komplementu) */
+.oddech-bar {
+  width: min(80vw, 320px); height: 14px; border-radius: 999px; overflow: hidden;
+  background: var(--track); border: 1px solid var(--line);
+}
+.oddech-bar i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg,
+    #fdffb6 0 42.1053%,           /* 8/19 — wydech */
+    #ffd6a5 42.1053% 78.9474%,    /* 7/19 — bezdech */
+    #ffadad 78.9474% 100%);       /* 4/19 — wdech, przy prawej krawędzi */
+  clip-path: inset(0 0 0 100%);
+}
+.oddech-bar i.run { animation: compl-bar 19s linear forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .oddech-stage .uni-m-in, .oddech-stage .uni-m-out, .oddech-stage .uni-puff { animation: none !important; }
+}

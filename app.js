@@ -594,19 +594,53 @@ function renderSettings() {
 }
 
 /* ---------- Oddech (ukryty ekran: 3× dotknięcie zakładki Energia) ---------- */
-// Szkielet — funkcjonalność dochodzi w kolejnych krokach.
+// Oddech 4-7-8 w pętli: wdech 4 s, bezdech 7 s, wydech 8 s.
+// Pasek rośnie od prawej; odcinki = 3 pierwsze kolory tęczy, szerokość proporcjonalna do czasu fazy.
+const ODDECH = [
+  { id: 'in',   s: 4 },
+  { id: 'hold', s: 7 },
+  { id: 'out',  s: 8 },
+];
+let oddechTimer = null;
+
 function renderOddech() {
+  oddechStop();
+  const uni = UNI_SVG
+    ? `<span class="oddech-uni no-wink" aria-hidden="true">${UNI_SVG}</span>`
+    : '<img class="oddech-uni" src="icons/jednorozec.svg" alt="" width="220" height="220">';
   $('#view-oddech').innerHTML = `
     <header class="head">
       <button class="icon-btn" data-act="oddech-back" aria-label="Wróć do Energii">‹</button>
       <div><div class="eyebrow">Chwila dla siebie</div><h1>Oddech</h1></div>
       <span></span>
     </header>
-    <div class="oddech-stage">
-      <img class="oddech-uni" src="icons/jednorozec.svg" alt="" width="220" height="220">
+    <div class="oddech-stage" id="oddech-stage">
+      ${uni}
+      <div class="oddech-bar" aria-hidden="true"><i></i></div>
     </div>
   `;
+  if (!UNI_SVG) {
+    // SVG jeszcze się nie wczytało — dociągnij i przerysuj (inline potrzebny do zmiany min)
+    fetch('icons/jednorozec.svg').then(r => (r.ok ? r.text() : null))
+      .then(t => { if (t) { UNI_SVG = t; if (ui.view === 'oddech') renderOddech(); } }).catch(() => {});
+  }
+  oddechPhase(0);
 }
+
+function oddechPhase(i) {
+  const stage = $('#oddech-stage');
+  if (!stage || ui.view !== 'oddech') return oddechStop();
+  const ph = ODDECH[i];
+  stage.classList.remove(...ODDECH.map(p => `ph-${p.id}`));
+  void stage.offsetWidth;                       // restart animacji min
+  stage.classList.add(`ph-${ph.id}`);
+  if (i === 0) {                                // nowy cykl → pasek od zera
+    const bar = $('.oddech-bar i', stage);
+    bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
+  }
+  oddechTimer = setTimeout(() => oddechPhase((i + 1) % ODDECH.length), ph.s * 1000);
+}
+function oddechStop() { clearTimeout(oddechTimer); oddechTimer = null; }
 
 /* =========================================================
    Nawigacja i zdarzenia
@@ -614,6 +648,7 @@ function renderOddech() {
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings, oddech: renderOddech };
 
 function show(view) {
+  if (view !== 'oddech') oddechStop();
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
   const tabFor = view === 'oddech' ? 'energy' : view;  // Oddech podświetla zakładkę Energia
