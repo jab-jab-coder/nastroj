@@ -194,8 +194,10 @@
         </g>
       </g>
 
-      <!-- głowa: ta sama co w ikonce komplementów (skala 0.62) -->
+      <!-- głowa: ta sama co w ikonce komplementów (skala 0.62); dotknięcie → komplement (app.js) -->
+      <g class="rw-head" data-act="uni-compl">
       <g transform="translate(69 16) scale(.62)">
+        <circle cx="50" cy="45" r="40" fill="transparent"/>
         <g stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
           <circle cx="26" cy="71" r="8"  fill="#ffadad"/>
           <circle cx="22" cy="57" r="9"  fill="#ffd6a5"/>
@@ -229,6 +231,7 @@
           </g>
         </g>
         <path class="rw-wink-close" d="M57.5 51.5 Q62 55 66.5 51.5" fill="none" stroke="#3b2438" stroke-width="2" stroke-linecap="round"/>
+      </g>
       </g>
     </g>
   </g>

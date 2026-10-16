@@ -597,7 +597,7 @@ function renderSettings() {
    Widok: Stoper (podwójne dotknięcie „Ustawienia”)
    Nic nie zapisuje — stan tylko w pamięci.
    ========================================================= */
-const stopwatch = { start: 0, timer: null };
+const stopwatch = { start: 0, timer: null, svg: null, sayTimer: null };
 
 function swText() {
   const sec = Math.floor((Date.now() - stopwatch.start) / 1000);
@@ -610,6 +610,52 @@ function swTick() {
 function stopwatchStop() {
   clearInterval(stopwatch.timer);
   stopwatch.timer = null;
+  clearTimeout(stopwatch.sayTimer);
+}
+
+// Jednorożec na równoważni wstawiany inline (nie <img>), żeby dało się dotknąć jego główki.
+// Plik jest w cache service workera, więc działa też offline; gdyby fetch zawiódł — zwykły obrazek.
+const SW_UNI = 'icons/rownowaznia.svg';
+async function swMountUni() {
+  const box = $('#sw-uni');
+  if (!box) return;
+  try {
+    if (!stopwatch.svg) {
+      const r = await fetch(SW_UNI);
+      if (!r.ok) throw new Error(r.status);
+      stopwatch.svg = await r.text();
+    }
+    if (!box.isConnected) return;
+    box.innerHTML = stopwatch.svg.replace(/^[\s\S]*?(?=<svg)/, '');
+    $('svg', box)?.removeAttribute('role');  // role="img" ukryłaby klikalną główkę przed czytnikami ekranu
+    const head = $('.rw-head', box);
+    if (head) {
+      head.setAttribute('tabindex', '0');
+      head.setAttribute('role', 'button');
+      head.setAttribute('aria-label', 'Pokaż komplement');
+    }
+  } catch {
+    box.innerHTML = `<img src="${SW_UNI}" alt="Jednorożec balansuje na równoważni" width="200" height="228">`;
+  }
+}
+
+// Komplement w dymku pod główką — dymek siedzi w grupie .rw-lean, więc kołysze się razem z jednorożcem.
+function swCompliment() {
+  const lean = $('#sw-uni .rw-lean');
+  if (!lean) return;
+  const [emo, txt] = pickCompliment();
+  $('#sw-say')?.remove();
+  const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+  fo.id = 'sw-say';
+  Object.entries({ x: 14, y: 66, width: 172, height: 120 }).forEach(([k, v]) => fo.setAttribute(k, v));
+  const div = document.createElement('div');
+  div.className = 'sw-say';
+  div.setAttribute('role', 'status');
+  div.innerHTML = `<p><span aria-hidden="true">${esc(emo)}</span> ${esc(txt)}</p>`;
+  fo.appendChild(div);
+  lean.appendChild(fo);
+  clearTimeout(stopwatch.sayTimer);
+  stopwatch.sayTimer = setTimeout(() => $('#sw-say')?.remove(), 9000);
 }
 function renderStopwatch() {
   stopwatchStop();
@@ -617,12 +663,13 @@ function renderStopwatch() {
   $('#view-stopwatch').innerHTML = `
     <div class="stopwatch">
       <div class="sw-time" id="sw-time" role="timer" aria-live="off">00:00</div>
-      <img class="sw-uni" src="icons/rownowaznia.svg" alt="Jednorożec balansuje na równoważni" width="200" height="228">
+      <div class="sw-uni" id="sw-uni"></div>
       <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>`;
   stopwatch.timer = setInterval(swTick, 250);
+  swMountUni();
 }
 
 /* =========================================================
@@ -695,6 +742,7 @@ document.addEventListener('click', async ev => {
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
     case 'sw-back': show('today'); break;
+    case 'uni-compl': swCompliment(); break;
     case 'compliment': popFab(el); showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
@@ -711,6 +759,10 @@ document.addEventListener('click', async ev => {
     default:
       energyClick(act, el);
   }
+});
+
+document.addEventListener('keydown', ev => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest?.('.rw-head')) { ev.preventDefault(); swCompliment(); }
 });
 
 document.addEventListener('input', ev => {
