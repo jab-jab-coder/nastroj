@@ -573,7 +573,7 @@ function renderSettings() {
 
     <div class="card">
       <h3>Dane</h3>
-      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu: ${total} ocen nastroju, ${ec.logs} operacji energii, ${ec.acts} czynności, ${ec.surveys} wyników badań. Rób czasem kopię zapasową.</p>
+      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu: ${total} ocen nastroju, ${ec.logs} operacji energii, ${ec.acts} czynności, ${ec.surveys} wyników badań${ec.records ? `, ${ec.records} rekordów stopera` : ''}. Rób czasem kopię zapasową.</p>
       <div class="stack">
         <button class="btn soft block" data-act="export">Eksportuj kopię (JSON)</button>
         <button class="btn soft block" data-act="import">Importuj kopię</button>
@@ -594,11 +594,191 @@ function renderSettings() {
 }
 
 /* =========================================================
+   Widok: Stoper (podwójne dotknięcie „Ustawienia”)
+   Nic nie zapisuje — stan tylko w pamięci.
+   ========================================================= */
+const stopwatch = { start: 0, timer: null, svg: null, sayTimer: null };
+const SW_LEAD = 10;   // odliczanie przed startem: −00:10 … −00:01, potem 00:00 i dalej
+
+// Środkowy przycisk: w trakcie odliczania „start od zera”, potem „zapisz wynik”
+const SW_MID = {
+  zero: {
+    label: 'Pomiń odliczanie i startuj od 00:00',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.2v13.6L16 12z" stroke="none" fill="currentColor"/><path d="M18.5 5.5v13" fill="none" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  },
+  save: {
+    label: 'Zapisz wynik na liście rekordów',
+    icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 6.5h10M10 12h10M10 17.5h10"/></g><circle cx="5" cy="6.5" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="12" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="17.5" r="1.7" stroke="none" fill="currentColor"/></svg>',
+  },
+};
+
+// start = chwila, w której stoper pokaże 00:00 (10 s po wejściu / restarcie / zapisie)
+function swReset() { stopwatch.start = Date.now() + SW_LEAD * 1000; }
+function swCounting() { return Date.now() < stopwatch.start; }
+function swText() {
+  const ms = Date.now() - stopwatch.start;
+  const neg = ms < 0;
+  const sec = neg ? Math.ceil(-ms / 1000) : Math.floor(ms / 1000);
+  return `${neg ? '−' : ''}${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+}
+function swTick() {
+  const el = $('#sw-time');
+  if (!el) return;
+  const neg = swCounting();
+  el.textContent = swText();
+  el.classList.toggle('sw-lead', neg);
+  const mid = $('#sw-mid'), want = neg ? 'sw-zero' : 'sw-save';
+  if (mid && mid.dataset.act !== want) {
+    const m = SW_MID[neg ? 'zero' : 'save'];
+    mid.dataset.act = want;
+    mid.setAttribute('aria-label', m.label);
+    mid.innerHTML = m.icon;
+  }
+}
+function swZero() {
+  stopwatch.start = Date.now();   // od razu 00:00 i liczy dalej
+  swTick();
+}
+function stopwatchStop() {
+  clearInterval(stopwatch.timer);
+  stopwatch.timer = null;
+  clearTimeout(stopwatch.sayTimer);
+}
+
+// Jednorożec na równoważni wstawiany inline (nie <img>), żeby dało się dotknąć jego główki.
+// Plik jest w cache service workera, więc działa też offline; gdyby fetch zawiódł — zwykły obrazek.
+const SW_UNI = 'icons/rownowaznia.svg';
+async function swMountUni() {
+  const box = $('#sw-uni');
+  if (!box) return;
+  try {
+    if (!stopwatch.svg) {
+      const r = await fetch(SW_UNI);
+      if (!r.ok) throw new Error(r.status);
+      stopwatch.svg = await r.text();
+    }
+    if (!box.isConnected) return;
+    box.innerHTML = stopwatch.svg.replace(/^[\s\S]*?(?=<svg)/, '');
+    $('svg', box)?.removeAttribute('role');  // role="img" ukryłaby klikalną główkę przed czytnikami ekranu
+    const head = $('.rw-head', box);
+    if (head) {
+      head.setAttribute('tabindex', '0');
+      head.setAttribute('role', 'button');
+      head.setAttribute('aria-label', 'Pokaż komplement');
+    }
+  } catch {
+    box.innerHTML = `<img src="${SW_UNI}" alt="Jednorożec balansuje na równoważni" width="200" height="228">`;
+  }
+}
+
+function swSeconds() { return Math.max(0, Math.floor((Date.now() - stopwatch.start) / 1000)); }
+
+// Ostatnia zapisana ocena nastroju (v) i energii (e) — niezależnie, wg czasu zapisu
+function lastMeasures() {
+  let v = null, vt = -1, e = null, et = -1;
+  for (const day of Object.values(entries)) {
+    for (const x of Object.values(day || {})) {
+      if (!x || !Number.isFinite(x.t)) continue;
+      if (Number.isInteger(x.v) && x.t > vt) { v = x.v; vt = x.t; }
+      if (Number.isInteger(x.e) && x.t > et) { e = x.e; et = x.t; }
+    }
+  }
+  return { v, e };
+}
+
+function swSaveRecord() {
+  if (swCounting()) return;
+  const rec = { s: swSeconds(), t: Date.now() };
+  const { v, e } = lastMeasures();
+  if (v != null) rec.v = v;
+  if (e != null) rec.e = e;
+  const place = recordAdd(rec);
+  swSay(place === 1 ? '🏆' : '🎉', `To Twój ${place} wynik wszechczasów!`);
+  swRenderTop(rec.t);
+  swReset();   // po zapisie od nowa: −00:10
+  swTick();
+}
+
+// Top 5 wyników wszech czasów: najdłuższy czas wyżej, przy remisie wcześniejszy wynik wyżej (miejsce wspólne)
+function swRenderTop(freshT) {
+  const box = $('#sw-top');
+  if (!box) return;
+  const top = [...records].sort((a, b) => b.s - a.s || a.t - b.t).slice(0, 5);
+  const mmss = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const rows = top.map(r => {
+    const d = new Date(r.t);
+    const place = 1 + records.filter(x => x.s > r.s).length;
+    const m = r.v != null ? `${mood(r.v)[0]} <b>${r.v}</b>` : '<span class="na">–</span>';
+    const e = r.e != null ? `<b>${r.e}</b>` : '<span class="na">–</span>';
+    return `<li class="sw-row${r.t === freshT ? ' fresh' : ''}${place === 1 ? ' first' : ''}">
+      <span class="sw-rank" aria-label="Miejsce ${place}">${place}</span>
+      <span class="sw-res">${mmss(r.s)}</span>
+      <span class="sw-when">${esc(fmt(d, { day: '2-digit', month: '2-digit', year: 'numeric' }))}<small>${esc(fmt(d, { weekday: 'long' }))}</small></span>
+      <span class="sw-meas"><span title="Ostatnie samopoczucie">${m}</span><span title="Ostatnia energia">⚡ ${e}</span></span>
+    </li>`;
+  }).join('');
+  box.innerHTML = `<h3 id="sw-top-h">Top 5 wyników wszechczasów</h3>
+    ${top.length ? `<ol class="sw-list">${rows}</ol>`
+      : '<p class="note sw-empty">Jeszcze nic tu nie ma. Gdy stoper ruszy, zapisz wynik środkowym przyciskiem.</p>'}`;
+}
+
+function swRestart() {
+  swReset();
+  swTick();
+}
+
+// Komplement w dymku pod główką — dymek siedzi w grupie .rw-lean, więc kołysze się razem z jednorożcem.
+function swCompliment() {
+  const [emo, txt] = pickCompliment();
+  swSay(emo, txt);
+}
+function swSay(emo, txt) {
+  const lean = $('#sw-uni .rw-lean');
+  if (!lean) { toast(`${emo} ${txt}`); return; }   // awaryjnie, gdy grafika jest zwykłym obrazkiem
+  $('#sw-say')?.remove();
+  const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+  fo.id = 'sw-say';
+  Object.entries({ x: 14, y: 66, width: 172, height: 120 }).forEach(([k, v]) => fo.setAttribute(k, v));
+  const div = document.createElement('div');
+  div.className = 'sw-say';
+  div.setAttribute('role', 'status');
+  div.innerHTML = `<p><span aria-hidden="true">${esc(emo)}</span> ${esc(txt)}</p>`;
+  fo.appendChild(div);
+  lean.appendChild(fo);
+  clearTimeout(stopwatch.sayTimer);
+  stopwatch.sayTimer = setTimeout(() => $('#sw-say')?.remove(), 9000);
+}
+function renderStopwatch() {
+  stopwatchStop();
+  swReset();
+  $('#view-stopwatch').innerHTML = `
+    <div class="stopwatch">
+      <div class="sw-time sw-lead" id="sw-time" role="timer" aria-live="off">${swText()}</div>
+      <div class="sw-uni" id="sw-uni"></div>
+      <div class="sw-actions">
+        <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="sw-back" id="sw-mid" data-act="sw-zero" aria-label="${SW_MID.zero.label}">${SW_MID.zero.icon}</button>
+        <button class="sw-back" data-act="sw-restart" aria-label="Zacznij od nowa bez zapisu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 3.5v4.2h4.2"/></g></svg>
+        </button>
+      </div>
+      <section class="card sw-top" id="sw-top" aria-labelledby="sw-top-h"></section>
+    </div>`;
+  stopwatch.timer = setInterval(swTick, 200);
+  swMountUni();
+  swRenderTop();
+}
+
+/* =========================================================
    Nawigacja i zdarzenia
    ========================================================= */
-const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings };
+const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings, stopwatch: renderStopwatch };
 
 function show(view) {
+  if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
+  document.body.classList.toggle('sw-on', view === 'stopwatch');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
   document.querySelectorAll('.tab').forEach(t => {
@@ -611,7 +791,15 @@ const rerender = () => renderers[ui.view]();
 
 document.addEventListener('click', async ev => {
   const tab = ev.target.closest('.tab');
-  if (tab) { show(tab.dataset.tab); return; }
+  if (tab) {
+    // Podwójne dotknięcie „Ustawienia” (≤ 400 ms) → stoper
+    if (tab.dataset.tab === 'settings') {
+      const now = Date.now();
+      if (now - (ui.settingsTap || 0) < 400) { ui.settingsTap = 0; show('stopwatch'); return; }
+      ui.settingsTap = now;
+    } else ui.settingsTap = 0;
+    show(tab.dataset.tab); return;
+  }
 
   const el = ev.target.closest('[data-act]');
   if (!el) return;
@@ -652,6 +840,11 @@ document.addEventListener('click', async ev => {
 
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
+    case 'sw-back': show('today'); break;
+    case 'uni-compl': swCompliment(); break;
+    case 'sw-save': swSaveRecord(); break;
+    case 'sw-zero': swZero(); break;
+    case 'sw-restart': swRestart(); break;
     case 'compliment': popFab(el); showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
@@ -668,6 +861,10 @@ document.addEventListener('click', async ev => {
     default:
       energyClick(act, el);
   }
+});
+
+document.addEventListener('keydown', ev => {
+  if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest?.('.rw-head')) { ev.preventDefault(); swCompliment(); }
 });
 
 document.addEventListener('input', ev => {
@@ -827,7 +1024,7 @@ async function importData(file) {
     store(KEY_ENTRIES, entries);
     const en = energyImport(data);   // pliki z wersji 1 nie mają tych pól — wtedy nic się nie dzieje
     syncState(); renderSettings();
-    toast(`Zaimportowano: ${n} ocen${en.logs || en.acts ? `, ${en.logs} operacji energii, ${en.acts} czynności` : ''}${en.surveys ? `, ${en.surveys} badań` : ''}`);
+    toast(`Zaimportowano: ${n} ocen${en.logs || en.acts ? `, ${en.logs} operacji energii, ${en.acts} czynności` : ''}${en.surveys ? `, ${en.surveys} badań` : ''}${en.records ? `, ${en.records} rekordów stopera` : ''}`);
   } catch {
     toast('Nieprawidłowy plik kopii');
   }

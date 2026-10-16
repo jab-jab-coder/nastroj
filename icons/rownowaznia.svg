@@ -1,0 +1,242 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 228" width="200" height="228" role="img" aria-label="Jednorożec balansuje na równoważni">
+  <title>Jednorożec balansuje na równoważni</title>
+  <defs>
+    <linearGradient id="rw-horn" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#f9c74f"/>
+      <stop offset="1" stop-color="#ffe8a3"/>
+    </linearGradient>
+    <linearGradient id="rw-dome" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#111"/>
+      <stop offset=".38" stop-color="#3a3a3a"/>
+      <stop offset="1" stop-color="#0d0d0d"/>
+    </linearGradient>
+    <linearGradient id="rw-ply" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d9b48e"/>
+      <stop offset=".5" stop-color="#f0d8bb"/>
+      <stop offset="1" stop-color="#d4ad86"/>
+    </linearGradient>
+    <style>
+      /* Cała pętla = 20 s; ta sama klatka na 0% i 100%, więc powtórka jest niewidoczna.
+         Wahnięcie 1: w lewo (ok. 2–8 s), wahnięcie 2: w prawo (ok. 12–18 s). */
+      .rw-rock  { transform-box: view-box; transform-origin: 100px 216px; animation: rw-rock 20s ease-in-out infinite; }
+      .rw-lean  { transform-box: view-box; transform-origin: 100px 158px; animation: rw-lean 20s ease-in-out infinite; }
+      .rw-armL  { transform-box: view-box; transform-origin: 84px 86px;  animation: rw-armL 20s ease-in-out infinite; }
+      .rw-armR  { transform-box: view-box; transform-origin: 116px 86px; animation: rw-armR 20s ease-in-out infinite; }
+      .rw-shadow{ transform-box: view-box; transform-origin: 100px 219px; animation: rw-shadow 20s ease-in-out infinite; }
+      .rw-smile { animation: rw-smile 20s linear infinite; }
+      .rw-oh    { opacity: 0; animation: rw-oh 20s linear infinite; }
+      .rw-wink-open  { transform-box: fill-box; transform-origin: center; animation: rw-wink 20s ease-in-out infinite; }
+      .rw-wink-close { opacity: 0; animation: rw-wink-arc 20s ease-in-out infinite; }
+      .rw-sparkle    { transform-box: fill-box; transform-origin: center; animation: rw-twinkle 2s ease-in-out infinite; }
+      .rw-sparkle.rw-s2 { animation-delay: 1s; }
+
+      @keyframes rw-rock {
+        0%, 10%  { transform: rotate(0deg); }
+        16%      { transform: rotate(-9deg); }
+        21%      { transform: rotate(-9.5deg); }
+        27%      { transform: rotate(3deg); }
+        32%      { transform: rotate(-1.5deg); }
+        37%      { transform: rotate(.5deg); }
+        42%, 60% { transform: rotate(0deg); }
+        66%      { transform: rotate(9deg); }
+        71%      { transform: rotate(9.5deg); }
+        77%      { transform: rotate(-3deg); }
+        82%      { transform: rotate(1.5deg); }
+        87%      { transform: rotate(-.5deg); }
+        92%, 100% { transform: rotate(0deg); }
+      }
+      @keyframes rw-lean {
+        0%, 10%  { transform: rotate(0deg); }
+        16%      { transform: rotate(4deg); }
+        21%      { transform: rotate(6deg); }
+        27%      { transform: rotate(-2deg); }
+        32%      { transform: rotate(1deg); }
+        37%, 60% { transform: rotate(0deg); }
+        66%      { transform: rotate(-4deg); }
+        71%      { transform: rotate(-6deg); }
+        77%      { transform: rotate(2deg); }
+        82%      { transform: rotate(-1deg); }
+        87%, 100% { transform: rotate(0deg); }
+      }
+      @keyframes rw-armR {
+        0%, 10%  { transform: rotate(0deg); }
+        16%      { transform: rotate(-65deg); }
+        19%      { transform: rotate(-45deg); }
+        22%      { transform: rotate(-70deg); }
+        27%      { transform: rotate(-10deg); }
+        33%, 60% { transform: rotate(0deg); }
+        66%      { transform: rotate(15deg); }
+        71%      { transform: rotate(8deg); }
+        77%, 100% { transform: rotate(0deg); }
+      }
+      @keyframes rw-armL {
+        0%, 10%  { transform: rotate(0deg); }
+        16%      { transform: rotate(-15deg); }
+        21%      { transform: rotate(-8deg); }
+        27%, 60% { transform: rotate(0deg); }
+        66%      { transform: rotate(65deg); }
+        69%      { transform: rotate(45deg); }
+        72%      { transform: rotate(70deg); }
+        77%      { transform: rotate(10deg); }
+        83%, 100% { transform: rotate(0deg); }
+      }
+      @keyframes rw-shadow {
+        0%, 10%, 42%, 60%, 92%, 100% { transform: translateX(0) scaleX(1); }
+        16%, 21% { transform: translateX(-6px) scaleX(1.08); }
+        66%, 71% { transform: translateX(6px) scaleX(1.08); }
+        27%, 77% { transform: translateX(0) scaleX(.97); }
+      }
+      /* buzia „o” w trakcie wahnięć, uśmiech w spokoju */
+      @keyframes rw-smile {
+        0%, 13%, 30.5%, 63%, 80.5%, 100% { opacity: 1; }
+        13.5%, 30%, 63.5%, 80% { opacity: 0; }
+      }
+      @keyframes rw-oh {
+        0%, 13%, 30.5%, 63%, 80.5%, 100% { opacity: 0; }
+        13.5%, 30%, 63.5%, 80% { opacity: 1; }
+      }
+      /* mrugnięcie z ulgą po pierwszym wahnięciu (ok. 9 s) */
+      @keyframes rw-wink {
+        0%, 44%, 50%, 100% { transform: scaleY(1); opacity: 1; }
+        45%, 49%           { transform: scaleY(.1); opacity: 0; }
+      }
+      @keyframes rw-wink-arc {
+        0%, 44.5%, 49.5%, 100% { opacity: 0; }
+        45%, 49%               { opacity: 1; }
+      }
+      @keyframes rw-twinkle {
+        0%, 100% { transform: scale(.4) rotate(0deg); opacity: .2; }
+        50%      { transform: scale(1) rotate(45deg); opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .rw-rock, .rw-lean, .rw-armL, .rw-armR, .rw-shadow, .rw-smile, .rw-oh,
+        .rw-wink-open, .rw-wink-close, .rw-sparkle { animation: none; }
+      }
+    </style>
+  </defs>
+
+  <!-- cień na podłodze -->
+  <ellipse class="rw-shadow" cx="100" cy="219" rx="46" ry="4.5" fill="#c2185b" opacity=".14"/>
+
+  <g class="rw-rock">
+    <!-- ===== Równoważnia ===== -->
+    <!-- czarna kopuła pod spodem, z żebrami -->
+    <path d="M60 170 A40 46 0 0 0 140 170 Z" fill="url(#rw-dome)"/>
+    <g fill="none" stroke="#4a4a4a" stroke-width="1.1" stroke-linecap="round">
+      <path d="M70 182 Q82 206 100 215"/>
+      <path d="M80 186 Q88 207 100 215"/>
+      <path d="M90 188 Q94 208 100 215"/>
+      <path d="M100 189 L100 215"/>
+      <path d="M110 188 Q106 208 100 215"/>
+      <path d="M120 186 Q112 207 100 215"/>
+      <path d="M130 182 Q118 206 100 215"/>
+    </g>
+
+    <!-- krawędź ze sklejki (warstwy) -->
+    <path d="M20 160 A80 30 0 0 0 180 160 L180 170 A80 30 0 0 1 20 170 Z" fill="url(#rw-ply)" stroke="#b8916b" stroke-width=".8"/>
+    <g fill="none" stroke="#c49d76" stroke-width=".6" opacity=".9">
+      <path d="M20.3 162.5 A80 30 0 0 0 179.7 162.5"/>
+      <path d="M20.3 165 A80 30 0 0 0 179.7 165"/>
+      <path d="M20.3 167.5 A80 30 0 0 0 179.7 167.5"/>
+    </g>
+
+    <!-- blat: drewniany obrzeż, czarna antypoślizgowa okładzina, 6 drewnianych szprych, środek z napisem -->
+    <ellipse cx="100" cy="160" rx="80" ry="30" fill="#ecd2b2" stroke="#c9a37c" stroke-width=".8"/>
+    <g transform="translate(100 160) scale(1 .375)">
+      <circle r="75" fill="#262626"/>
+      <g fill="#ecd2b2">
+        <rect x="20" y="-4.6" width="56" height="9.2"/>
+        <rect x="20" y="-4.6" width="56" height="9.2" transform="rotate(60)"/>
+        <rect x="20" y="-4.6" width="56" height="9.2" transform="rotate(120)"/>
+        <rect x="20" y="-4.6" width="56" height="9.2" transform="rotate(180)"/>
+        <rect x="20" y="-4.6" width="56" height="9.2" transform="rotate(240)"/>
+        <rect x="20" y="-4.6" width="56" height="9.2" transform="rotate(300)"/>
+      </g>
+      <circle r="25" fill="#ecd2b2"/>
+    </g>
+    <text x="0" y="0" transform="translate(100 164) scale(1 .62)" text-anchor="middle"
+          font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-weight="800"
+          letter-spacing=".4" fill="#262626">nastrój</text>
+
+    <!-- ===== Jednorożec ===== -->
+    <g class="rw-lean">
+      <g stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <!-- ogon (tęcza) -->
+        <circle cx="121" cy="117" r="6"   fill="#ffadad"/>
+        <circle cx="129" cy="123" r="6.5" fill="#ffd6a5"/>
+        <circle cx="134" cy="132" r="6.5" fill="#fdffb6"/>
+        <circle cx="133" cy="142" r="6"   fill="#a0c4ff"/>
+        <circle cx="127" cy="148" r="5"   fill="#bdb2ff"/>
+
+        <!-- nogi -->
+        <path d="M92 122 Q82 138 70 154" fill="none" stroke-width="11"/>
+        <path d="M108 122 Q118 138 130 154" fill="none" stroke-width="11"/>
+        <path d="M92 122 Q82 138 70 154" fill="none" stroke="#fff" stroke-width="7.8"/>
+        <path d="M108 122 Q118 138 130 154" fill="none" stroke="#fff" stroke-width="7.8"/>
+        <!-- kopytka na blacie -->
+        <path d="M63.5 153 L76.5 153 L77.5 160 L62.5 160 Z" fill="#bdb2ff"/>
+        <path d="M123.5 153 L136.5 153 L137.5 160 L122.5 160 Z" fill="#bdb2ff"/>
+
+        <!-- tułów -->
+        <ellipse cx="100" cy="101" rx="22" ry="31" fill="#fff"/>
+        <ellipse cx="100" cy="108" rx="13" ry="18" fill="#ffe4ef" stroke="none"/>
+
+        <!-- przednie nóżki (ręce) z kopytkami -->
+        <g class="rw-armL">
+          <path d="M84 86 Q72 94 64 106" fill="none" stroke-width="10"/>
+          <path d="M84 86 Q72 94 64 106" fill="none" stroke="#fff" stroke-width="6.8"/>
+          <path d="M59.5 104.5 L66.5 101.5 L70 108 L63 111.5 Z" fill="#bdb2ff"/>
+        </g>
+        <g class="rw-armR">
+          <path d="M116 86 Q128 94 136 106" fill="none" stroke-width="10"/>
+          <path d="M116 86 Q128 94 136 106" fill="none" stroke="#fff" stroke-width="6.8"/>
+          <path d="M140.5 104.5 L133.5 101.5 L130 108 L137 111.5 Z" fill="#bdb2ff"/>
+        </g>
+      </g>
+
+      <!-- głowa: ta sama co w ikonce komplementów (skala 0.62); dotknięcie → komplement (app.js) -->
+      <g class="rw-head" data-act="uni-compl">
+      <g transform="translate(69 16) scale(.62)">
+        <circle cx="50" cy="45" r="40" fill="transparent"/>
+        <g stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+          <circle cx="26" cy="71" r="8"  fill="#ffadad"/>
+          <circle cx="22" cy="57" r="9"  fill="#ffd6a5"/>
+          <circle cx="27" cy="42" r="10" fill="#fdffb6"/>
+          <circle cx="73" cy="42" r="10" fill="#a0c4ff"/>
+          <circle cx="78" cy="57" r="9"  fill="#bdb2ff"/>
+          <circle cx="74" cy="71" r="8"  fill="#d9c2ff"/>
+          <path d="M28 40 L30 17 L43 32 Z" fill="#fff"/>
+          <path d="M72 40 L70 17 L57 32 Z" fill="#fff"/>
+          <path d="M31.5 35 L32 24 L38.5 31.5 Z" fill="#fbcfe8" stroke="none"/>
+          <path d="M68.5 35 L68 24 L61.5 31.5 Z" fill="#fbcfe8" stroke="none"/>
+          <ellipse cx="50" cy="56" rx="28" ry="26" fill="#fff"/>
+          <circle cx="41" cy="32" r="7.5" fill="#caffbf"/>
+          <circle cx="59" cy="32" r="7.5" fill="#9bf6ff"/>
+          <path d="M44.5 33 L55.5 33 L50 4 Z" fill="url(#rw-horn)"/>
+          <path d="M46.6 27 L53.6 24.5 M47.7 20 L52.6 18 M48.8 13 L51.4 12" fill="none" stroke="#e0a526" stroke-width="1.3"/>
+          <ellipse cx="50" cy="69" rx="16" ry="10.5" fill="#ffe4ef"/>
+          <ellipse cx="44.5" cy="66" rx="1.3" ry="1.8" fill="#5b3a55" stroke="none"/>
+          <ellipse cx="55.5" cy="66" rx="1.3" ry="1.8" fill="#5b3a55" stroke="none"/>
+          <path class="rw-smile" d="M43 71.5 Q50 77.5 57 71.5" fill="none" stroke-width="1.8"/>
+          <ellipse class="rw-oh" cx="50" cy="74" rx="3" ry="3.6" fill="#5b3a55" stroke="none"/>
+        </g>
+        <g transform="translate(38 51)">
+          <path d="M0 4 C-5.5 0.2 -5.6 -5 -2.6 -5 C-1.1 -5 0 -4 0 -2.7 C0 -4 1.1 -5 2.6 -5 C5.6 -5 5.5 0.2 0 4 Z" fill="#3b2438"/>
+          <circle cx="-2.4" cy="-2.9" r="1.1" fill="#fff"/>
+        </g>
+        <g class="rw-wink-open">
+          <g transform="translate(62 51)">
+            <path d="M0 4 C-5.5 0.2 -5.6 -5 -2.6 -5 C-1.1 -5 0 -4 0 -2.7 C0 -4 1.1 -5 2.6 -5 C5.6 -5 5.5 0.2 0 4 Z" fill="#3b2438"/>
+            <circle cx="-2.4" cy="-2.9" r="1.1" fill="#fff"/>
+          </g>
+        </g>
+        <path class="rw-wink-close" d="M57.5 51.5 Q62 55 66.5 51.5" fill="none" stroke="#3b2438" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- iskierki -->
+  <path class="rw-sparkle" d="M128 10 L129.4 14.6 L134 16 L129.4 17.4 L128 22 L126.6 17.4 L122 16 L126.6 14.6 Z" fill="#fde68a" stroke="#e0a526" stroke-width=".8" stroke-linejoin="round"/>
+  <path class="rw-sparkle rw-s2" d="M72 8 L73 11 L76 12 L73 13 L72 16 L71 13 L68 12 L71 11 Z" fill="#fbcfe8" stroke="#f472b6" stroke-width=".8" stroke-linejoin="round"/>
+</svg>
