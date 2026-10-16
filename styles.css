@@ -232,6 +232,7 @@ input[type=time] {
   display: grid; justify-items: center; gap: 2px;
   padding: 8px 0 6px; border-radius: 18px;
   color: var(--ink-soft); font-size: 11px; font-weight: 700;
+  touch-action: manipulation;  /* bez zoomu przy szybkim wielokrotnym dotknięciu (Oddech) */
 }
 .tab svg { width: 24px; height: 24px; fill: currentColor; stroke: currentColor; }
 .tab[data-tab="today"] svg, .tab[data-tab="month"] svg, .tab[data-tab="settings"] svg { stroke: none; }
@@ -628,3 +629,65 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .sw-back svg { width: 32px; height: 32px; stroke: currentColor; }
 .sw-back:active { transform: scale(.94); }
 .sw-back:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 2px; }
+
+/* ---------- Oddech ---------- */
+.oddech-stage { display: grid; place-items: center; gap: 28px; min-height: 60vh; align-content: center; }
+.oddech-uni { display: block; width: min(70vw, 260px); height: auto; aspect-ratio: 1; }
+.oddech-uni svg { display: block; width: 100%; height: 100%; }
+/* na Oddechu bez iskierek przy rogu */
+.oddech-stage .uni-sparkle { display: none; }
+/* na Oddechu zwykły uśmiech znika, widać tylko minę bieżącej fazy */
+.oddech-stage .uni-smile { opacity: 0; }
+.oddech-stage.ph-in   .uni-m-in,
+.oddech-stage.ph-hold .uni-m-hold,
+.oddech-stage.ph-out  .uni-m-out { opacity: 1; }
+.oddech-stage .uni-m-in, .oddech-stage .uni-m-out { transform-box: fill-box; transform-origin: center; }
+.oddech-stage.ph-in  .uni-m-in  { animation: odd-in 4s ease-out both; }   /* usta otwierają się do wdechu */
+.oddech-stage.ph-out .uni-m-out { animation: odd-out 8s ease-in both; }   /* ściągnięte usta, powoli maleją */
+.oddech-stage.ph-out .uni-puff  { transform-box: fill-box; transform-origin: center; animation: odd-puff 2s ease-out infinite; }
+.oddech-stage.ph-out .uni-p2 { animation-delay: .66s; }
+.oddech-stage.ph-out .uni-p3 { animation-delay: 1.33s; }
+@keyframes odd-in   { from { transform: scale(.45); } to { transform: scale(1.15); } }
+@keyframes odd-out  { from { transform: scale(1.1); } to { transform: scale(.8); } }
+@keyframes odd-puff { from { opacity: .9; transform: translate(0, 0) scale(.6); } to { opacity: 0; transform: translate(0, 12px) scale(1.8); } }
+
+/* pasek 19 s (4+7+8), rośnie od prawej; odcinki w kolejności od prawej:
+   #ffadad 4/19 → #ffd6a5 7/19 → #fdffb6 8/19 (jak w pasku komplementu) */
+.oddech-meter { width: min(80vw, 320px); display: grid; gap: 8px; }
+.oddech-bar {
+  width: 100%; height: 14px; border-radius: 999px; overflow: hidden;
+  background: var(--track); border: 1px solid var(--line);
+}
+.oddech-bar i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg,
+    #fdffb6 0 42.1053%,           /* 8/19 — wydech */
+    #ffd6a5 42.1053% 78.9474%,    /* 7/19 — bezdech */
+    #ffadad 78.9474% 100%);       /* 4/19 — wdech, przy prawej krawędzi */
+  clip-path: inset(0 0 0 100%);
+}
+/* liczniki sekund pod środkiem odcinków (kolumny = proporcje 8:7:4, od lewej wydech, bezdech, wdech) */
+.oddech-secs { display: grid; grid-template-columns: 8fr 7fr 4fr; justify-items: center; min-height: 36px; }
+.oddech-secs b {
+  display: grid; place-items: center; min-width: 36px; height: 36px; border-radius: 50%;
+  font-size: 20px; font-weight: 900; color: var(--ink); font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line); visibility: hidden;
+}
+.oddech-secs b:not(:empty) { visibility: visible; }
+.oddech-secs b[data-ph="in"]   { background: #ffadad; }
+.oddech-secs b[data-ph="hold"] { background: #ffd6a5; }
+.oddech-secs b[data-ph="out"]  { background: #fdffb6; }
+.oddech-secs b.on { animation: odd-num .35s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes odd-num { from { transform: scale(.6); } to { transform: none; } }
+.oddech-sound {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--rose-deep); cursor: pointer;
+  box-shadow: var(--shadow); touch-action: manipulation;
+}
+.oddech-sound svg { width: 26px; height: 26px; }
+.oddech-sound.off { color: var(--ink-soft); }
+.oddech-sound:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 2px; }
+.oddech-bar i.run { animation: compl-bar 19s linear forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .oddech-stage .uni-m-in, .oddech-stage .uni-m-out, .oddech-stage .uni-puff, .oddech-secs b.on { animation: none !important; }
+}

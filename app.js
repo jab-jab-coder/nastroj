@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   carry: 0.5,          // przeniesienie salda energii na następny dzień
   autModule: false,    // samoocena wypalenia autystycznego
   lowSensory: false,   // tryb niskiej stymulacji
+  oddechSound: true,   // kliknięcie przy zmianie fazy na ekranie Oddech
 };
 
 /* ---------- utils ---------- */
@@ -593,6 +594,104 @@ function renderSettings() {
   `;
 }
 
+/* ---------- Oddech (ukryty ekran: 3× dotknięcie zakładki Energia) ---------- */
+// Oddech 4-7-8 w pętli: wdech 4 s, bezdech 7 s, wydech 8 s.
+// Pasek rośnie od prawej; odcinki = 3 pierwsze kolory tęczy, szerokość proporcjonalna do czasu fazy.
+const ODDECH = [
+  { id: 'in',   s: 4 },
+  { id: 'hold', s: 7 },
+  { id: 'out',  s: 8 },
+];
+let oddechTimer = null;
+let oddechTick = null;                          // licznik sekund bieżącej fazy
+let oddechAudio = null;                         // AudioContext (tworzony przy dotknięciu — wymóg przeglądarek)
+
+// Krótkie „klik” syntezowane w Web Audio (bez pliku dźwiękowego).
+function oddechClick() {
+  if (!settings.oddechSound || !oddechAudio) return;
+  try {
+    const ctx = oddechAudio, t = ctx.currentTime;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1400, t);
+    osc.frequency.exponentialRampToValueAtTime(600, t + 0.04);
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.07);
+  } catch { /* brak dźwięku — trudno */ }
+}
+function oddechAudioInit() {
+  try {
+    oddechAudio = oddechAudio || new (window.AudioContext || window.webkitAudioContext)();
+    if (oddechAudio.state === 'suspended') oddechAudio.resume();
+  } catch { oddechAudio = null; }
+}
+const SPEAKER_SVG = on => `<svg viewBox="0 0 24 24" aria-hidden="true">
+  <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  ${on
+    ? '<path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    : '<path d="M3 3l18 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'}
+</svg>`;
+function oddechSoundBtn() {
+  const on = settings.oddechSound;
+  return `<button class="oddech-sound${on ? '' : ' off'}" data-act="oddech-sound" aria-pressed="${on ? 'false' : 'true'}"
+    aria-label="${on ? 'Wycisz kliknięcia' : 'Włącz kliknięcia'}">${SPEAKER_SVG(on)}</button>`;
+}
+
+function renderOddech() {
+  oddechStop();
+  oddechAudioInit();                            // render woła się z obsługi dotknięcia, więc dźwięk jest dozwolony
+  const uni = UNI_SVG
+    ? `<span class="oddech-uni no-wink" aria-hidden="true">${UNI_SVG}</span>`
+    : '<img class="oddech-uni" src="icons/jednorozec.svg" alt="" width="220" height="220">';
+  $('#view-oddech').innerHTML = `
+    <header class="head">
+      <button class="icon-btn" data-act="oddech-back" aria-label="Wróć do Energii">‹</button>
+      <div><div class="eyebrow">Chwila dla siebie</div><h1>Oddech</h1></div>
+      <span></span>
+    </header>
+    <div class="oddech-stage" id="oddech-stage">
+      ${uni}
+      <div class="oddech-meter" aria-hidden="true">
+        <div class="oddech-bar"><i></i></div>
+        <div class="oddech-secs">${ODDECH.slice().reverse().map(p => `<b data-ph="${p.id}"></b>`).join('')}</div>
+      </div>
+      ${oddechSoundBtn()}
+    </div>
+  `;
+  if (!UNI_SVG) {
+    // SVG jeszcze się nie wczytało — dociągnij i przerysuj (inline potrzebny do zmiany min)
+    fetch('icons/jednorozec.svg').then(r => (r.ok ? r.text() : null))
+      .then(t => { if (t) { UNI_SVG = t; if (ui.view === 'oddech') renderOddech(); } }).catch(() => {});
+  }
+  oddechPhase(0);
+}
+
+function oddechPhase(i) {
+  const stage = $('#oddech-stage');
+  if (!stage || ui.view !== 'oddech') return oddechStop();
+  const ph = ODDECH[i];
+  stage.classList.remove(...ODDECH.map(p => `ph-${p.id}`));
+  void stage.offsetWidth;                       // restart animacji min
+  stage.classList.add(`ph-${ph.id}`);
+  oddechClick();                                // dźwięk przy każdej zmianie koloru
+  if (i === 0) {                                // nowy cykl → pasek i liczniki od zera
+    const bar = $('.oddech-bar i', stage);
+    bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run');
+    stage.querySelectorAll('.oddech-secs b').forEach(b => { b.textContent = ''; b.classList.remove('on'); });
+  }
+  // licznik pod odcinkiem fazy: 1 na starcie, potem +1 co sekundę; ostatnia liczba zostaje
+  const num = $(`.oddech-secs b[data-ph="${ph.id}"]`, stage);
+  let n = 1;
+  const put = () => { num.textContent = n; num.classList.remove('on'); void num.offsetWidth; num.classList.add('on'); };
+  put();
+  clearInterval(oddechTick);
+  oddechTick = setInterval(() => { if (++n > ph.s) return clearInterval(oddechTick); put(); }, 1000);
+  oddechTimer = setTimeout(() => oddechPhase((i + 1) % ODDECH.length), ph.s * 1000);
+}
+function oddechStop() { clearTimeout(oddechTimer); clearInterval(oddechTick); oddechTimer = oddechTick = null; }
+
 /* =========================================================
    Widok: Stoper (podwójne dotknięcie „Ustawienia”)
    Nic nie zapisuje — stan tylko w pamięci.
@@ -774,31 +873,42 @@ function renderStopwatch() {
 /* =========================================================
    Nawigacja i zdarzenia
    ========================================================= */
-const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings, stopwatch: renderStopwatch };
+const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
+  stopwatch: renderStopwatch, oddech: renderOddech };
 
 function show(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
+  if (view !== 'oddech') oddechStop();
   document.body.classList.toggle('sw-on', view === 'stopwatch');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
+  const tabFor = view === 'oddech' ? 'energy' : view;  // Oddech podświetla zakładkę Energia
   document.querySelectorAll('.tab').forEach(t => {
-    if (t.dataset.tab === view) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
   renderers[view]();
   window.scrollTo({ top: 0 });
 }
 const rerender = () => renderers[ui.view]();
+const TRIPLE_MS = 450;               // maks. odstęp między dotknięciami przy potrójnym kliknięciu
+let tapEnergy = { n: 0, last: 0 };
 
 document.addEventListener('click', async ev => {
   const tab = ev.target.closest('.tab');
   if (tab) {
+    const now = Date.now();
     // Podwójne dotknięcie „Ustawienia” (≤ 400 ms) → stoper
     if (tab.dataset.tab === 'settings') {
-      const now = Date.now();
       if (now - (ui.settingsTap || 0) < 400) { ui.settingsTap = 0; show('stopwatch'); return; }
       ui.settingsTap = now;
     } else ui.settingsTap = 0;
-    show(tab.dataset.tab); return;
+    // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
+    if (tab.dataset.tab === 'energy') {
+      tapEnergy = now - tapEnergy.last < TRIPLE_MS ? { n: tapEnergy.n + 1, last: now } : { n: 1, last: now };
+      if (tapEnergy.n >= 3) { tapEnergy = { n: 0, last: 0 }; show('oddech'); return; }
+    } else tapEnergy = { n: 0, last: 0 };
+    show(tab.dataset.tab);
+    return;
   }
 
   const el = ev.target.closest('[data-act]');
@@ -807,6 +917,13 @@ document.addEventListener('click', async ev => {
   const card = el.closest('.slot');
 
   switch (act) {
+    case 'oddech-back': show('energy'); break;
+    case 'oddech-sound':
+      settings.oddechSound = !settings.oddechSound;
+      store(KEY_SETTINGS, settings);
+      if (settings.oddechSound) oddechAudioInit();
+      el.outerHTML = oddechSoundBtn();          // bez przerysowania ekranu, cykl biegnie dalej
+      break;
     case 'day-prev': ui.day = addDays(ui.day, -1); renderToday(); break;
     case 'day-next': if (ui.day < today0()) { ui.day = addDays(ui.day, 1); renderToday(); } break;
     case 'week-prev': ui.week = addDays(ui.week, -7); ui.selWeek = null; renderWeek(); break;
