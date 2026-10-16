@@ -583,9 +583,14 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { .sw-say { animation: none; } }
 .sw-time {
-  font-size: clamp(72px, 26vw, 128px); font-weight: 800; letter-spacing: -.02em;
+  font-size: clamp(64px, 22vw, 120px); font-weight: 800; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; color: var(--rose-deep); line-height: 1;
+  white-space: nowrap; transition: color .3s;
 }
+/* odliczanie −00:10 … −00:01 — mocniejszy, jaskrawy kolor */
+.sw-time.sw-lead { color: #ff1a75; text-shadow: 0 0 18px rgba(255, 26, 117, .35); }
+.sw-back:disabled { opacity: .35; cursor: default; box-shadow: none; }
+.sw-back:disabled:active { transform: none; }
 .sw-actions { display: flex; gap: 18px; justify-content: center; }
 .sw-back {
   width: 68px; height: 68px; border-radius: 50%; border: 0; cursor: pointer;

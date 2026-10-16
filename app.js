@@ -598,14 +598,25 @@ function renderSettings() {
    Nic nie zapisuje — stan tylko w pamięci.
    ========================================================= */
 const stopwatch = { start: 0, timer: null, svg: null, sayTimer: null };
+const SW_LEAD = 10;   // odliczanie przed startem: −00:10 … −00:01, potem 00:00 i dalej
 
+// start = chwila, w której stoper pokaże 00:00 (10 s po wejściu / restarcie / zapisie)
+function swReset() { stopwatch.start = Date.now() + SW_LEAD * 1000; }
+function swCounting() { return Date.now() < stopwatch.start; }
 function swText() {
-  const sec = Math.floor((Date.now() - stopwatch.start) / 1000);
-  return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+  const ms = Date.now() - stopwatch.start;
+  const neg = ms < 0;
+  const sec = neg ? Math.ceil(-ms / 1000) : Math.floor(ms / 1000);
+  return `${neg ? '−' : ''}${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 }
 function swTick() {
   const el = $('#sw-time');
-  if (el) el.textContent = swText();
+  if (!el) return;
+  const neg = swCounting();
+  el.textContent = swText();
+  el.classList.toggle('sw-lead', neg);
+  const save = $('[data-act="sw-save"]');
+  if (save) save.disabled = neg;   // w trakcie odliczania nie ma czego zapisać
 }
 function stopwatchStop() {
   clearInterval(stopwatch.timer);
@@ -655,16 +666,19 @@ function lastMeasures() {
 }
 
 function swSaveRecord() {
+  if (swCounting()) return;
   const rec = { s: swSeconds(), t: Date.now() };
   const { v, e } = lastMeasures();
   if (v != null) rec.v = v;
   if (e != null) rec.e = e;
   const place = recordAdd(rec);
   swSay(place === 1 ? '🏆' : '🎉', `To Twój ${place} wynik wszechczasów!`);
+  swReset();   // po zapisie od nowa: −00:10
+  swTick();
 }
 
 function swRestart() {
-  stopwatch.start = Date.now();
+  swReset();
   swTick();
 }
 
@@ -691,16 +705,16 @@ function swSay(emo, txt) {
 }
 function renderStopwatch() {
   stopwatchStop();
-  stopwatch.start = Date.now();
+  swReset();
   $('#view-stopwatch').innerHTML = `
     <div class="stopwatch">
-      <div class="sw-time" id="sw-time" role="timer" aria-live="off">00:00</div>
+      <div class="sw-time sw-lead" id="sw-time" role="timer" aria-live="off">${swText()}</div>
       <div class="sw-uni" id="sw-uni"></div>
       <div class="sw-actions">
         <button class="sw-back" data-act="sw-back" aria-label="Wróć do ekranu głównego">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <button class="sw-back" data-act="sw-save" aria-label="Zapisz wynik na liście rekordów">
+        <button class="sw-back" data-act="sw-save" aria-label="Zapisz wynik na liście rekordów" disabled>
           <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M10 6.5h10M10 12h10M10 17.5h10"/></g><circle cx="5" cy="6.5" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="12" r="1.7" stroke="none" fill="currentColor"/><circle cx="5" cy="17.5" r="1.7" stroke="none" fill="currentColor"/></svg>
         </button>
         <button class="sw-back" data-act="sw-restart" aria-label="Zacznij od nowa bez zapisu">
@@ -708,7 +722,7 @@ function renderStopwatch() {
         </button>
       </div>
     </div>`;
-  stopwatch.timer = setInterval(swTick, 250);
+  stopwatch.timer = setInterval(swTick, 200);
   swMountUni();
 }
 
