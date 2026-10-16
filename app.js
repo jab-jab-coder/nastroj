@@ -694,8 +694,32 @@ function swSaveRecord() {
   if (e != null) rec.e = e;
   const place = recordAdd(rec);
   swSay(place === 1 ? '🏆' : '🎉', `To Twój ${place} wynik wszechczasów!`);
+  swRenderTop(rec.t);
   swReset();   // po zapisie od nowa: −00:10
   swTick();
+}
+
+// Top 5 wyników wszech czasów: najdłuższy czas wyżej, przy remisie wcześniejszy wynik wyżej (miejsce wspólne)
+function swRenderTop(freshT) {
+  const box = $('#sw-top');
+  if (!box) return;
+  const top = [...records].sort((a, b) => b.s - a.s || a.t - b.t).slice(0, 5);
+  const mmss = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const rows = top.map(r => {
+    const d = new Date(r.t);
+    const place = 1 + records.filter(x => x.s > r.s).length;
+    const m = r.v != null ? `${mood(r.v)[0]} <b>${r.v}</b>` : '<span class="na">–</span>';
+    const e = r.e != null ? `<b>${r.e}</b>` : '<span class="na">–</span>';
+    return `<li class="sw-row${r.t === freshT ? ' fresh' : ''}${place === 1 ? ' first' : ''}">
+      <span class="sw-rank" aria-label="Miejsce ${place}">${place}</span>
+      <span class="sw-res">${mmss(r.s)}</span>
+      <span class="sw-when">${esc(fmt(d, { day: '2-digit', month: '2-digit', year: 'numeric' }))}<small>${esc(fmt(d, { weekday: 'long' }))}</small></span>
+      <span class="sw-meas"><span title="Ostatnie samopoczucie">${m}</span><span title="Ostatnia energia">⚡ ${e}</span></span>
+    </li>`;
+  }).join('');
+  box.innerHTML = `<h3 id="sw-top-h">Top 5 wyników wszechczasów</h3>
+    ${top.length ? `<ol class="sw-list">${rows}</ol>`
+      : '<p class="note sw-empty">Jeszcze nic tu nie ma. Gdy stoper ruszy, zapisz wynik środkowym przyciskiem.</p>'}`;
 }
 
 function swRestart() {
@@ -740,9 +764,11 @@ function renderStopwatch() {
           <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 3.5v4.2h4.2"/></g></svg>
         </button>
       </div>
+      <section class="card sw-top" id="sw-top" aria-labelledby="sw-top-h"></section>
     </div>`;
   stopwatch.timer = setInterval(swTick, 200);
   swMountUni();
+  swRenderTop();
 }
 
 /* =========================================================
