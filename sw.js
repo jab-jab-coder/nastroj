@@ -1,5 +1,5 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v28';
+const VERSION = 'nastroj-v29';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
@@ -8,6 +8,7 @@ const SHELL = [
   './komplementy.js',
   './energy.js',
   './leki.js',
+  './dzik.js',
   './app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -16,7 +17,6 @@ const SHELL = [
   './icons/skrot-stoper.png',
   './icons/jednorozec.svg',
   './icons/rownowaznia.svg',
-  './icons/dzik.svg',
 ];
 
 self.addEventListener('install', e => {

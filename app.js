@@ -990,11 +990,6 @@ function renderStopwatch() {
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
   stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, dzik: renderDzik };
 
-// Ukryty widok: podwójne dotknięcie „Miesiąc” → dzik w lesie. Pasek zakładek zostaje i działa normalnie.
-function renderDzik() {
-  $('#view-dzik').innerHTML = `
-    <div class="dzik-card"><img src="icons/dzik.svg" alt="Dzik-warchlak z tęczową szczeciną w lesie pełnym świerków, dębów i grzybów"></div>`;
-}
 
 function show(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
@@ -1024,7 +1019,7 @@ document.addEventListener('click', async ev => {
     } else ui.settingsTap = 0;
     // Podwójne dotknięcie „Miesiąc” (≤ 400 ms) → dzik
     if (tab.dataset.tab === 'month') {
-      if (now - (ui.monthTap || 0) < 400) { ui.monthTap = 0; show('dzik'); return; }
+      if (now - (ui.monthTap || 0) < 400) { ui.monthTap = 0; dzikReset(); show('dzik'); return; }
       ui.monthTap = now;
     } else ui.monthTap = 0;
     // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
@@ -1040,6 +1035,7 @@ document.addEventListener('click', async ev => {
   if (!el) return;
   const act = el.dataset.act;
   const card = el.closest('.slot');
+  if (act.startsWith('dzik-')) return dzikClick(act, el);
 
   switch (act) {
     case 'oddech-back': show('energy'); break;

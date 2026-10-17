@@ -795,4 +795,21 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 
 /* ---------- ukryty widok: dzik (podwójne dotknięcie „Miesiąc”) ---------- */
 .dzik-card { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: #eef6e6; margin-top: 8px; }
-.dzik-card img { display: block; width: 100%; height: auto; }
+.dzik-svg { display: block; width: 100%; height: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.dzik-svg [data-act] { cursor: pointer; }
+.dzik-svg .dz-acorn-in, .dzik-svg .dz-snout, .dzik-svg .dz-poop-in { transform-box: fill-box; transform-origin: center; }
+.dzik-svg .dz-acorn { transition: opacity .25s; }
+.dzik-svg .dz-acorn.dz-gone { opacity: 0; pointer-events: none; }
+.dzik-svg .dz-acorn.dz-gone .dz-acorn-in { transform: scale(.2); transition: transform .25s; }
+.dzik-svg .dz-drop .dz-acorn-in { animation: dz-drop .5s cubic-bezier(.4, 0, .9, .6); }
+@keyframes dz-drop { from { transform: translateY(-60px); opacity: 0; } 30% { opacity: 1; } }
+.dzik-svg .dz-mouth-open { opacity: 0; }
+.dzik-svg .dz-chew .dz-snout { animation: dz-chew .15s ease-in-out 6 alternate; }
+.dzik-svg .dz-chew .dz-mouth-open { animation: dz-mouth .15s 6 alternate; }
+@keyframes dz-chew { to { transform: translateY(1.8px) scaleY(.9); } }
+@keyframes dz-mouth { to { opacity: 1; } }
+.dzik-svg #dz-boar { transition: transform 1.6s ease-in; }
+.dzik-svg #dz-boar.dz-run { transform: translateX(-640px); }
+.dzik-svg #dz-poop .dz-poop-in { animation: dz-pop .4s ease-out; }
+@keyframes dz-pop { from { transform: scale(0); } 70% { transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .dzik-svg *, .dzik-svg #dz-boar { animation: none !important; transition: none !important; } }
