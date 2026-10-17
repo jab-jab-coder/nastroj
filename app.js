@@ -644,14 +644,12 @@ function renderSettings() {
 }
 
 // Każda karta Ustawień z nagłówkiem dostaje przycisk zwijania po prawej.
-// Stan: settings.collapsed (zwinięte przez użytkownika); sekcje z SEC_CLOSED_BY_DEFAULT są
-// domyślnie zwinięte, a ich rozwinięcie zapamiętuje settings.opened.
-const SEC_CLOSED_BY_DEFAULT = ['Samouczek'];
+// Stan zwinięcia zapamiętuje settings.collapsed. Samouczek się nie zapamiętuje:
+// przy każdym otwarciu Ustawień jest zwinięty, otwiera go tylko przycisk „Samouczek”.
+const SEC_TUT = 'Samouczek';
 
 function secClosed(id) {
-  return SEC_CLOSED_BY_DEFAULT.includes(id)
-    ? !(settings.opened || []).includes(id)
-    : (settings.collapsed || []).includes(id);
+  return id === SEC_TUT ? true : (settings.collapsed || []).includes(id);
 }
 
 function secSet(card, shut) {
@@ -661,18 +659,17 @@ function secSet(card, shut) {
   b.textContent = shut ? '⌄' : '⌃';
   b.setAttribute('aria-expanded', String(!shut));
   b.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
-  if (card.id === 'tut-card') tutBtnSync();
-  const key = SEC_CLOSED_BY_DEFAULT.includes(id) ? 'opened' : 'collapsed';
-  const list = (settings[key] || []).filter(x => x !== id);
-  if (SEC_CLOSED_BY_DEFAULT.includes(id) ? !shut : shut) list.push(id);
-  settings[key] = list;
+  if (id === SEC_TUT) { tutBtnSync(); return; }
+  const list = (settings.collapsed || []).filter(x => x !== id);
+  if (shut) list.push(id);
+  settings.collapsed = list;
 }
 
 // Przycisk „Zwiń/Rozwiń wszystkie” (pod Samouczkiem, zawsze widoczny): „Rozwiń”, gdy wszystkie sekcje są zwinięte.
 function secAllLabel() {
   const b = $('#view-settings .tut-all');
   if (!b) return;
-  const secs = [...document.querySelectorAll('#view-settings > .card.sec')];
+  const secs = [...document.querySelectorAll('#view-settings > .card.sec')].filter(c => c.dataset.sec !== SEC_TUT);
   const allShut = secs.length > 0 && secs.every(c => c.classList.contains('sec-closed'));
   b.dataset.mode = allShut ? 'open' : 'close';
   b.textContent = allShut ? '⌄ Rozwiń wszystkie' : '⌃ Zwiń wszystkie';
@@ -1058,7 +1055,8 @@ document.addEventListener('click', async ev => {
     }
     case 'sec-all': {
       const open = el.dataset.mode === 'open';
-      document.querySelectorAll('#view-settings > .card.sec').forEach(c => secSet(c, !open));
+      // „Rozwiń wszystkie” nie otwiera Samouczka (ma własny przycisk); „Zwiń wszystkie” zamyka też jego.
+      document.querySelectorAll('#view-settings > .card.sec').forEach(c => { if (!(open && c.dataset.sec === SEC_TUT)) secSet(c, !open); });
       store(KEY_SETTINGS, settings);
       secAllLabel();
       break;
