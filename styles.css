@@ -379,6 +379,15 @@ select.sel.narrow { width: auto; margin: 0; }
 .actform { padding: 10px; border-radius: 16px; background: #fffafc; border: 2px solid var(--line); margin: 8px 0; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .numrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-weight: 700; font-size: 14px; }
+.def-block { padding: 12px 0; border-top: 1px solid var(--line); }
+.def-title { font-weight: 700; margin-bottom: 6px; }
+.def-title small, .def-opt small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 13px; }
+.def-opt { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-weight: 700; font-size: 14px; cursor: pointer; }
+.def-opt input { width: 22px; height: 22px; accent-color: var(--rose); flex: none; margin: 0; }
+.def-own { padding-left: 32px; }
+.def-block + .row { border-top: 1px solid var(--line); }
+.def-own .numrow { margin-top: 6px; }
+.numrow input:disabled { opacity: .45; }
 .numrow input { width: 80px; font: inherit; font-weight: 800; border: 2px solid var(--line); border-radius: 12px; padding: 8px; background: var(--bg); color: var(--ink); }
 
 .tpls { display: grid; gap: 6px; }
@@ -785,3 +794,11 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .mlegend i.mk-part { border: 1.5px solid var(--rose-deep); background: linear-gradient(0deg, var(--rose-deep) 50%, transparent 50%); }
 .meds-chart .detail .drow i { width: 8px; height: 8px; }
 .medchart .hit.msel { fill: rgba(246, 165, 198, .28); }
+
+/* Ustawienia: zwijane sekcje */
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+.sec-head h3 { margin: 0; }
+.sec-tog { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--bg); color: var(--ink-soft); font: inherit; font-size: 18px; font-weight: 800; line-height: 1; cursor: pointer; }
+.sec-tog:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+.sec.sec-closed .sec-head { margin: 0; }
+.sec.sec-closed > :not(.sec-head) { display: none !important; }

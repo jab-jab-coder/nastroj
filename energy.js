@@ -272,7 +272,7 @@ function status() {
     if (ma <= 3.5) bump(2, `średni nastrój z 7 dni: ${round1(ma)}`);
     else if (ma <= 5) bump(1, `średni nastrój z 7 dni: ${round1(ma)}`);
   }
-  const cbi = lastSurvey('cbi');
+  const cbi = settings.cbiModule !== false && lastSurvey('cbi');
   if (cbi && Date.now() - cbi.t < 21 * 864e5) {
     if (cbi.score >= 75) bump(2, `wypalenie (CBI): ${cbi.score}`);
     else if (cbi.score >= 50) bump(1, `wypalenie (CBI): ${cbi.score}`);
@@ -320,7 +320,7 @@ function renderEnergy() {
       <h3>Wyciąg i badania</h3>
       <div class="stack">
         <button class="btn soft block" data-act="stmt">🧾 Wyciąg miesięczny (PDF / CSV)</button>
-        <button class="btn soft block" data-act="survey" data-type="cbi">Wypalenie osobiste (CBI)</button>
+        ${settings.cbiModule !== false ? '<button class="btn soft block" data-act="survey" data-type="cbi">Wypalenie osobiste (CBI)</button>' : ''}
         ${settings.autModule ? '<button class="btn soft block" data-act="survey" data-type="aut">Samoocena wypalenia autystycznego</button>' : ''}
       </div>
     </div>
@@ -395,6 +395,7 @@ function surveyDueHtml() {
   const due = [];
   for (const type of ['cbi', 'aut']) {
     if (type === 'aut' && !settings.autModule) continue;
+    if (type === 'cbi' && settings.cbiModule === false) continue;
     const s = lastSurvey(type);
     if (!s || Date.now() - s.t > SURVEYS[type].every * 864e5) due.push(type);
   }
@@ -751,7 +752,7 @@ function statementCsv() {
 /* ---------- udostępnianie podsumowania ---------- */
 async function shareSummary() {
   const st = status();
-  const cbi = lastSurvey('cbi');
+  const cbi = settings.cbiModule !== false && lastSurvey('cbi');
   const ma = moodAvg(7);
   const text = [
     'Nastrój — krótkie podsumowanie',
@@ -897,7 +898,22 @@ function energyChange(t) {
     return true;
   }
   if (t.id === 'carry') { settings.carry = Number(t.value); store(KEY_SETTINGS, settings); toast('Zapisano'); return true; }
+  if (t.id === 'cbiModule') { settings.cbiModule = t.checked; store(KEY_SETTINGS, settings); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
   if (t.id === 'autModule') { settings.autModule = t.checked; store(KEY_SETTINGS, settings); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
+  if (t.name === 'defMode') {
+    settings.defaults = { ...DEFAULT_SETTINGS.defaults, ...(settings.defaults || {}), mode: t.value };
+    store(KEY_SETTINGS, settings);
+    document.querySelectorAll('.def-own input').forEach(i => { i.disabled = t.value !== 'custom'; });
+    toast('Zapisano'); return true;
+  }
+  if (t.id === 'def-v' || t.id === 'def-e') {
+    const f = t.id === 'def-v' ? 'v' : 'e';
+    const d = (settings.defaults = { ...DEFAULT_SETTINGS.defaults, ...(settings.defaults || {}) });
+    const n = Math.round(Number(t.value));
+    if (!t.value || !Number.isFinite(n)) { t.value = d[f]; return true; }
+    d[f] = Math.max(1, Math.min(10, n)); t.value = d[f];
+    store(KEY_SETTINGS, settings); toast('Zapisano'); return true;
+  }
   if (t.id === 'lowSensory') { settings.lowSensory = t.checked; store(KEY_SETTINGS, settings); applyCalm(); return true; }
   return false;
 }
@@ -905,12 +921,26 @@ function energyChange(t) {
 /* ---------- ustawienia: karta „Energia” ---------- */
 function energySettingsHtml() {
   const c = settings.carry ?? 0.5;
+  const d = { ...DEFAULT_SETTINGS.defaults, ...(settings.defaults || {}) };
+  const opt = (val, label, hint) => `
+        <label class="def-opt"><input type="radio" name="defMode" value="${val}" ${d.mode === val ? 'checked' : ''}><span>${label}${hint ? `<small>${hint}</small>` : ''}</span></label>`;
   return `
     <div class="card">
       <h3>Energia i wygląd</h3>
       <div class="row">
         <label for="carry">Przeniesienie salda<small>Ile wczorajszego salda (plus lub minus) przechodzi na dziś</small></label>
         <select id="carry" class="sel narrow">${[0, 0.25, 0.5, 0.75].map(v => `<option value="${v}" ${c === v ? 'selected' : ''}>${v * 100}%</option>`).join('')}</select>
+      </div>
+      <div class="def-block">
+        <div class="def-title">Wartości domyślne<small>Od czego startują suwaki na ekranie Dziś</small></div>${opt('last', 'Jak poprzedni pomiar')}${opt('five', '5 i 5, bo to nic nie znaczy')}${opt('custom', 'Twoje ustawienia:')}
+        <div class="def-own">
+          <label class="numrow">Samopoczucie (1–10) <input type="number" id="def-v" min="1" max="10" step="1" inputmode="numeric" value="${d.v}" ${d.mode === 'custom' ? '' : 'disabled'}></label>
+          <label class="numrow">⚡ Energia (1–10) <input type="number" id="def-e" min="1" max="10" step="1" inputmode="numeric" value="${d.e}" ${d.mode === 'custom' ? '' : 'disabled'}></label>
+        </div>
+      </div>
+      <div class="row">
+        <label for="cbiModule">Wypalenie osobiste (CBI)<small>Cotygodniowe badanie (6 pytań)</small></label>
+        <span class="switch"><input type="checkbox" id="cbiModule" ${settings.cbiModule !== false ? 'checked' : ''}><span></span></span>
       </div>
       <div class="row">
         <label for="autModule">Wypalenie autystyczne<small>Comiesięczna samoocena (6 pytań)</small></label>

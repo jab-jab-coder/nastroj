@@ -21,9 +21,11 @@ const DEFAULT_SETTINGS = {
   times: { morning: '09:00', afternoon: '14:00', evening: '21:00' },
   notify: false,
   carry: 0.5,          // przeniesienie salda energii na następny dzień
+  cbiModule: true,     // wypalenie osobiste (CBI) w zakładce Energia
   autModule: false,    // samoocena wypalenia autystycznego
   lowSensory: false,   // tryb niskiej stymulacji
   oddechSound: true,   // kliknięcie przy zmianie fazy na ekranie Oddech
+  defaults: { mode: 'last', v: 5, e: 5 },   // wartości startowe suwaków na Dziś: 'last' | 'five' | 'custom'
 };
 
 /* ---------- utils ---------- */
@@ -108,6 +110,14 @@ function dayValues(k) {
 const dayAvg = k => avg(dayValues(k));
 
 // Ostatnia zapisana wartość danego pola ('v' nastrój, 'e' energia) — punkt startowy suwaka
+// Wartość startowa suwaka (f: 'v' nastrój, 'e' energia) wg ustawienia „Wartości domyślne”.
+function defaultValue(f) {
+  const d = settings.defaults || DEFAULT_SETTINGS.defaults;
+  if (d.mode === 'five') return 5;
+  if (d.mode === 'custom') { const n = Number(d[f]); return Number.isInteger(n) && n >= 1 && n <= 10 ? n : 5; }
+  return lastValue(f) ?? 5;   // 'last' — jak poprzedni pomiar (domyślnie)
+}
+
 function lastValue(f) {
   let best = null, bt = -Infinity;
   for (const day of Object.values(entries)) for (const r of Object.values(day || {})) {
@@ -198,11 +208,11 @@ function slotCard(s, key, isNow, collapsible = false) {
   const e = getEntry(key, s.id);
   const dk = `${key}|${s.id}`;
   // Szary (idle) = wartość domyślna, której użytkownik nie ustawił: brak w wpisie i brak szkicu.
-  // Domyślnie: ostatni pomiar danej kategorii, a gdy go nie ma — 5.
+  // Wartość domyślna wg ustawień (defaultValue): poprzedni pomiar / 5 / własna.
   const idleM = ui.drafts[dk] == null && e?.v == null;
   const idleE = ui.drafts[`${dk}|e`] == null && e?.e == null;
-  const v = ui.drafts[dk] ?? e?.v ?? lastValue('v') ?? 5;
-  const en = ui.drafts[`${dk}|e`] ?? e?.e ?? lastValue('e') ?? 5;
+  const v = ui.drafts[dk] ?? e?.v ?? defaultValue('v');
+  const en = ui.drafts[`${dk}|e`] ?? e?.e ?? defaultValue('e');
   const [emo, label] = mood(v);
   const dirty = (ui.drafts[dk] != null && ui.drafts[dk] !== e?.v)
     || (ui.drafts[`${dk}|e`] != null && ui.drafts[`${dk}|e`] !== e?.e);
@@ -577,21 +587,9 @@ function renderSettings() {
         </div>`).join('')}
     </div>
 
-    <div class="card">
-      <h3>Przypomnienia</h3>
-      <div class="row">
-        <label for="notify">Powiadomienia<small>${notifSupported ? 'O ustalonych porach, gdy brakuje oceny' : 'Niedostępne w tej przeglądarce'}</small></label>
-        <span class="switch"><input type="checkbox" id="notify" ${settings.notify ? 'checked' : ''} ${notifSupported ? '' : 'disabled'}><span></span></span>
-      </div>
-      <div class="stack" style="margin-top:8px">
-        <button class="btn soft block" data-act="ics">📅 Dodaj przypomnienia do kalendarza</button>
-      </div>
-      <p class="note">Android może wstrzymywać aplikacje webowe w tle, więc powiadomienia z aplikacji działają najlepiej, gdy jest zainstalowana i często używana. Najpewniejsze są przypomnienia w kalendarzu — plik .ics dodaje 3 codzienne alarmy z linkiem do aplikacji.</p>
-    </div>
+    ${medsSettingsHtml()}
 
     ${energySettingsHtml()}
-
-    ${medsSettingsHtml()}
 
     ${installPrompt ? `
     <div class="card">
@@ -611,6 +609,18 @@ function renderSettings() {
       <input type="file" id="import-file" accept="application/json,.json" hidden>
       <p class="note">Import dodaje dane z pliku do obecnych (nic nie usuwa). Przyjmuje kopie z obu wersji aplikacji.</p>
     </div>
+    <div class="card">
+      <h3>Przypomnienia</h3>
+      <div class="row">
+        <label for="notify">Powiadomienia<small>${notifSupported ? 'O ustalonych porach, gdy brakuje oceny' : 'Niedostępne w tej przeglądarce'}</small></label>
+        <span class="switch"><input type="checkbox" id="notify" ${settings.notify ? 'checked' : ''} ${notifSupported ? '' : 'disabled'}><span></span></span>
+      </div>
+      <div class="stack" style="margin-top:8px">
+        <button class="btn soft block" data-act="ics">📅 Dodaj przypomnienia do kalendarza</button>
+      </div>
+      <p class="note">Android może wstrzymywać aplikacje webowe w tle, więc powiadomienia z aplikacji działają najlepiej, gdy jest zainstalowana i często używana. Najpewniejsze są przypomnienia w kalendarzu — plik .ics dodaje 3 codzienne alarmy z linkiem do aplikacji.</p>
+    </div>
+
     <div class="card about">
       <h3>O aplikacji</h3>
       <p>Witamy w aplikacji <b>»Nastrój«</b> napisanej przez Jacka, by wspierać swe samopoczucie.</p>
@@ -619,6 +629,25 @@ function renderSettings() {
     </div>
     <p class="footer">Nastrój · działa offline</p>
   `;
+  settingsCollapsible();
+}
+
+// Każda karta Ustawień z nagłówkiem dostaje przycisk zwijania po prawej. Stan zapamiętany w settings.collapsed.
+function settingsCollapsible() {
+  const closed = settings.collapsed || [];
+  document.querySelectorAll('#view-settings > .card').forEach(card => {
+    const h = card.querySelector(':scope > h3');
+    if (!h) return;
+    const id = h.textContent.replace(/[^\p{L}\p{N} ]/gu, '').trim();
+    const shut = closed.includes(id);
+    const head = document.createElement('div');
+    head.className = 'sec-head';
+    h.replaceWith(head);
+    head.append(h);
+    head.insertAdjacentHTML('beforeend', `<button class="sec-tog" data-act="sec-toggle" data-sec="${esc(id)}" aria-expanded="${!shut}" aria-label="${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${esc(id)}">${shut ? '⌄' : '⌃'}</button>`);
+    card.classList.add('sec');
+    card.classList.toggle('sec-closed', shut);
+  });
 }
 
 /* ---------- Oddech (ukryty ekran: 3× dotknięcie zakładki Energia) ---------- */
@@ -945,6 +974,19 @@ document.addEventListener('click', async ev => {
 
   switch (act) {
     case 'oddech-back': show('energy'); break;
+    case 'sec-toggle': {
+      const id = el.dataset.sec, box = el.closest('.card');
+      const shut = !box.classList.contains('sec-closed');
+      box.classList.toggle('sec-closed', shut);
+      el.textContent = shut ? '⌄' : '⌃';
+      el.setAttribute('aria-expanded', String(!shut));
+      el.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
+      const list = (settings.collapsed || []).filter(x => x !== id);
+      if (shut) list.push(id);
+      settings.collapsed = list;
+      store(KEY_SETTINGS, settings);
+      break;
+    }
     case 'oddech-sound':
       settings.oddechSound = !settings.oddechSound;
       store(KEY_SETTINGS, settings);
