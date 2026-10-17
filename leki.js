@@ -799,6 +799,10 @@ function medsSettingsHtml() {
   return `
     <div class="card">
       <h3>💊 Leki</h3>
+      <div class="row">
+        <label for="medsModule">Moduł Leki<small>Karta na ekranie Dziś i wykresy w Tygodniu/Miesiącu</small></label>
+        <span class="switch"><input type="checkbox" id="medsModule" ${settings.medsModule !== false ? 'checked' : ''}><span></span></span>
+      </div>
       <button class="btn soft block" data-act="med-manage">Moje leki i pakiety${n ? ` (${n})` : ''}</button>
       <div class="row">
         <label for="med-chart-sel">Wykres leków<small>Wiersze w widokach Tydzień i Miesiąc</small></label>
@@ -959,6 +963,7 @@ function medsClick(act, el) {
 }
 
 function medsChange(t) {
+  if (t.id === 'medsModule') { settings.medsModule = t.checked; store(KEY_SETTINGS, settings); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
   if (t.id === 'mp-at' && mui.pack) { readPackForm(); renderPackForm(); return true; }
   if (t.id === 'mf-color' && mui.form) { readMedForm(); mui.form.color = t.value; renderMedForm(); return true; }
   if (t.id === 'med-share' || t.id === 'med-share-stmt') {
