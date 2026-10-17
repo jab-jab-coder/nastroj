@@ -85,7 +85,7 @@ function tutStep1() {
   return `
     <h1 id="tut-title" tabindex="-1">Czym jest Nastrój?</h1>
     <p class="tut-p">Aplikacja <i>Nastrój</i> pomaga zauważać, jak się czujesz i jak zarządzać Twoją energią — wystarczą krótkie oceny dzienne i szybka księgowość energetyczna - a poznasz lepiej siebie!</p>
-    <p class="tut-p">Aplikacja służy też poprawie samopoczucia i zawiera magiczne moduły, często zabawnie ukryte. Kliknij dwa razy w Ustawienia, a koziorożec uruchomi Stoper. Skontaktuj się z Jackiem po więcej wskazówek.</p>
+    <p class="tut-p">Aplikacja służy też poprawie samopoczucia i zawiera magiczne moduły, często zabawnie ukryte. Kliknij dwa razy w Ustawienia, a koziorożec uruchomi Stoper. Brakuje Ci czegoś? Daj znak Jackowi, serio!</p>
     <p class="tut-p">Dziękuję za zainteresowanie moją pracą, to jest miłe &lt;3</p>
     <div class="card tut-safe">
       <span class="tut-ico" aria-hidden="true">🔒</span>
