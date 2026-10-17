@@ -914,7 +914,6 @@ function energyChange(t) {
     d[f] = Math.max(1, Math.min(10, n)); t.value = d[f];
     store(KEY_SETTINGS, settings); toast('Zapisano'); return true;
   }
-  if (t.id === 'lowSensory') { settings.lowSensory = t.checked; store(KEY_SETTINGS, settings); applyCalm(); return true; }
   return false;
 }
 
@@ -926,7 +925,7 @@ function energySettingsHtml() {
         <label class="def-opt"><input type="radio" name="defMode" value="${val}" ${d.mode === val ? 'checked' : ''}><span>${label}${hint ? `<small>${hint}</small>` : ''}</span></label>`;
   return `
     <div class="card">
-      <h3>Energia i wygląd</h3>
+      <h3>Energia i Ankiety</h3>
       <div class="row">
         <label for="carry">Przeniesienie salda<small>Ile wczorajszego salda (plus lub minus) przechodzi na dziś</small></label>
         <select id="carry" class="sel narrow">${[0, 0.25, 0.5, 0.75].map(v => `<option value="${v}" ${c === v ? 'selected' : ''}>${v * 100}%</option>`).join('')}</select>
@@ -945,10 +944,6 @@ function energySettingsHtml() {
       <div class="row">
         <label for="autModule">Wypalenie autystyczne<small>Comiesięczna samoocena (6 pytań)</small></label>
         <span class="switch"><input type="checkbox" id="autModule" ${settings.autModule ? 'checked' : ''}><span></span></span>
-      </div>
-      <div class="row">
-        <label for="lowSensory">Tryb niskiej stymulacji<small>Stonowane kolory, bez animacji i cieni</small></label>
-        <span class="switch"><input type="checkbox" id="lowSensory" ${settings.lowSensory ? 'checked' : ''}><span></span></span>
       </div>
     </div>`;
 }

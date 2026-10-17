@@ -578,11 +578,16 @@ function renderSettings() {
     <header class="head"><span></span><div><div class="eyebrow">Aplikacja</div><h1>Ustawienia</h1></div><span></span></header>
     <p class="lead">Dopasuj aplikację do siebie</p>
 
-    <div class="card">
+    <div class="set-top">
+      <button class="btn soft tut-btn" data-act="tut-toggle" aria-controls="tut-card">Samouczek</button>
+      <button class="btn soft tut-all" data-act="sec-all"></button>
+      <button class="btn soft calm-btn" data-act="calm-toggle" aria-pressed="${settings.lowSensory ? 'true' : 'false'}">Tryb niskiej stymulacji</button>
+    </div>
+
+    <div class="card tut-card" id="tut-card">
       <h3>Samouczek</h3>
       <button class="btn soft tut-uni" data-act="compliment" aria-label="Pokaż komplement"><img src="icons/jednorozec.svg" alt="" width="46" height="46"></button>
     </div>
-    <button class="btn soft block tut-all" data-act="sec-all"></button>
 
     <div class="card">
       <h3>Pory dnia</h3>
@@ -656,6 +661,7 @@ function secSet(card, shut) {
   b.textContent = shut ? '⌄' : '⌃';
   b.setAttribute('aria-expanded', String(!shut));
   b.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
+  if (card.id === 'tut-card') tutBtnSync();
   const key = SEC_CLOSED_BY_DEFAULT.includes(id) ? 'opened' : 'collapsed';
   const list = (settings[key] || []).filter(x => x !== id);
   if (SEC_CLOSED_BY_DEFAULT.includes(id) ? !shut : shut) list.push(id);
@@ -670,6 +676,15 @@ function secAllLabel() {
   const allShut = secs.length > 0 && secs.every(c => c.classList.contains('sec-closed'));
   b.dataset.mode = allShut ? 'open' : 'close';
   b.textContent = allShut ? '⌄ Rozwiń wszystkie' : '⌃ Zwiń wszystkie';
+}
+
+// Przycisk „Samouczek” na górze pokazuje/ukrywa kartę Samouczka (jej nagłówek jest ukryty).
+function tutBtnSync() {
+  const b = $('#view-settings .tut-btn'), c = $('#tut-card');
+  if (!b || !c) return;
+  const open = !c.classList.contains('sec-closed');
+  b.setAttribute('aria-expanded', String(open));
+  b.classList.toggle('on', open);
 }
 
 function settingsCollapsible() {
@@ -691,6 +706,7 @@ function settingsCollapsible() {
     b.setAttribute('aria-expanded', String(!shut));
     b.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
   });
+  tutBtnSync();
   secAllLabel();
 }
 
@@ -1023,6 +1039,21 @@ document.addEventListener('click', async ev => {
       secSet(box, !box.classList.contains('sec-closed'));
       store(KEY_SETTINGS, settings);
       secAllLabel();
+      break;
+    }
+    case 'tut-toggle': {
+      const c = $('#tut-card');
+      secSet(c, !c.classList.contains('sec-closed'));
+      store(KEY_SETTINGS, settings);
+      secAllLabel();
+      break;
+    }
+    case 'calm-toggle': {
+      settings.lowSensory = !settings.lowSensory;
+      store(KEY_SETTINGS, settings);
+      applyCalm();
+      el.setAttribute('aria-pressed', String(settings.lowSensory));
+      toast(settings.lowSensory ? 'Tryb niskiej stymulacji włączony' : 'Tryb niskiej stymulacji wyłączony');
       break;
     }
     case 'sec-all': {
