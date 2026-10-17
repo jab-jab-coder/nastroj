@@ -24,6 +24,7 @@ const DEFAULT_SETTINGS = {
   autModule: false,    // samoocena wypalenia autystycznego
   lowSensory: false,   // tryb niskiej stymulacji
   oddechSound: true,   // kliknięcie przy zmianie fazy na ekranie Oddech
+  defaults: { mode: 'last', v: 5, e: 5 },   // wartości startowe suwaków na Dziś: 'last' | 'five' | 'custom'
 };
 
 /* ---------- utils ---------- */
@@ -108,6 +109,14 @@ function dayValues(k) {
 const dayAvg = k => avg(dayValues(k));
 
 // Ostatnia zapisana wartość danego pola ('v' nastrój, 'e' energia) — punkt startowy suwaka
+// Wartość startowa suwaka (f: 'v' nastrój, 'e' energia) wg ustawienia „Wartości domyślne”.
+function defaultValue(f) {
+  const d = settings.defaults || DEFAULT_SETTINGS.defaults;
+  if (d.mode === 'five') return 5;
+  if (d.mode === 'custom') { const n = Number(d[f]); return Number.isInteger(n) && n >= 1 && n <= 10 ? n : 5; }
+  return lastValue(f) ?? 5;   // 'last' — jak poprzedni pomiar (domyślnie)
+}
+
 function lastValue(f) {
   let best = null, bt = -Infinity;
   for (const day of Object.values(entries)) for (const r of Object.values(day || {})) {
@@ -198,11 +207,11 @@ function slotCard(s, key, isNow, collapsible = false) {
   const e = getEntry(key, s.id);
   const dk = `${key}|${s.id}`;
   // Szary (idle) = wartość domyślna, której użytkownik nie ustawił: brak w wpisie i brak szkicu.
-  // Domyślnie: ostatni pomiar danej kategorii, a gdy go nie ma — 5.
+  // Wartość domyślna wg ustawień (defaultValue): poprzedni pomiar / 5 / własna.
   const idleM = ui.drafts[dk] == null && e?.v == null;
   const idleE = ui.drafts[`${dk}|e`] == null && e?.e == null;
-  const v = ui.drafts[dk] ?? e?.v ?? lastValue('v') ?? 5;
-  const en = ui.drafts[`${dk}|e`] ?? e?.e ?? lastValue('e') ?? 5;
+  const v = ui.drafts[dk] ?? e?.v ?? defaultValue('v');
+  const en = ui.drafts[`${dk}|e`] ?? e?.e ?? defaultValue('e');
   const [emo, label] = mood(v);
   const dirty = (ui.drafts[dk] != null && ui.drafts[dk] !== e?.v)
     || (ui.drafts[`${dk}|e`] != null && ui.drafts[`${dk}|e`] !== e?.e);

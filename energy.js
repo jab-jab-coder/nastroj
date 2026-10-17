@@ -898,6 +898,20 @@ function energyChange(t) {
   }
   if (t.id === 'carry') { settings.carry = Number(t.value); store(KEY_SETTINGS, settings); toast('Zapisano'); return true; }
   if (t.id === 'autModule') { settings.autModule = t.checked; store(KEY_SETTINGS, settings); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
+  if (t.name === 'defMode') {
+    settings.defaults = { ...DEFAULT_SETTINGS.defaults, ...(settings.defaults || {}), mode: t.value };
+    store(KEY_SETTINGS, settings);
+    document.querySelectorAll('.def-own input').forEach(i => { i.disabled = t.value !== 'custom'; });
+    toast('Zapisano'); return true;
+  }
+  if (t.id === 'def-v' || t.id === 'def-e') {
+    const f = t.id === 'def-v' ? 'v' : 'e';
+    const d = (settings.defaults = { ...DEFAULT_SETTINGS.defaults, ...(settings.defaults || {}) });
+    const n = Math.round(Number(t.value));
+    if (!t.value || !Number.isFinite(n)) { t.value = d[f]; return true; }
+    d[f] = Math.max(1, Math.min(10, n)); t.value = d[f];
+    store(KEY_SETTINGS, settings); toast('Zapisano'); return true;
+  }
   if (t.id === 'lowSensory') { settings.lowSensory = t.checked; store(KEY_SETTINGS, settings); applyCalm(); return true; }
   return false;
 }
@@ -905,12 +919,22 @@ function energyChange(t) {
 /* ---------- ustawienia: karta „Energia” ---------- */
 function energySettingsHtml() {
   const c = settings.carry ?? 0.5;
+  const d = { ...DEFAULT_SETTINGS.defaults, ...(settings.defaults || {}) };
+  const opt = (val, label, hint) => `
+        <label class="def-opt"><input type="radio" name="defMode" value="${val}" ${d.mode === val ? 'checked' : ''}><span>${label}${hint ? `<small>${hint}</small>` : ''}</span></label>`;
   return `
     <div class="card">
       <h3>Energia i wygląd</h3>
       <div class="row">
         <label for="carry">Przeniesienie salda<small>Ile wczorajszego salda (plus lub minus) przechodzi na dziś</small></label>
         <select id="carry" class="sel narrow">${[0, 0.25, 0.5, 0.75].map(v => `<option value="${v}" ${c === v ? 'selected' : ''}>${v * 100}%</option>`).join('')}</select>
+      </div>
+      <div class="def-block">
+        <div class="def-title">Wartości domyślne<small>Od czego startują suwaki na ekranie Dziś</small></div>${opt('last', 'Jak poprzedni pomiar')}${opt('five', '5 i 5, bo to nic nie znaczy')}${opt('custom', 'Twoje ustawienia:')}
+        <div class="def-own">
+          <label class="numrow">Samopoczucie (1–10) <input type="number" id="def-v" min="1" max="10" step="1" inputmode="numeric" value="${d.v}" ${d.mode === 'custom' ? '' : 'disabled'}></label>
+          <label class="numrow">⚡ Energia (1–10) <input type="number" id="def-e" min="1" max="10" step="1" inputmode="numeric" value="${d.e}" ${d.mode === 'custom' ? '' : 'disabled'}></label>
+        </div>
       </div>
       <div class="row">
         <label for="autModule">Wypalenie autystyczne<small>Comiesięczna samoocena (6 pytań)</small></label>
