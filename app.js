@@ -1431,7 +1431,13 @@ navigator.storage?.persist?.().catch(() => {});
 
 energyInit();
 medsInit();
-show('today');
+
+// Skróty aplikacji z manifestu (przytrzymanie ikony, Android „Tryby i procedury”): ./?widok=stoper
+// Parametr czyścimy z paska adresu, żeby odświeżenie nie otwierało ponownie tego samego widoku.
+const DEEP_LINKS = { stoper: 'stopwatch' };
+const startView = DEEP_LINKS[new URLSearchParams(location.search).get('widok')] || 'today';
+if (location.search) history.replaceState(null, '', location.pathname + location.hash);
+show(startView);
 syncState();
 checkReminders();
 setInterval(checkReminders, 60 * 1000);

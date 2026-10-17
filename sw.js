@@ -1,5 +1,5 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v26';
+const VERSION = 'nastroj-v27';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
@@ -13,6 +13,7 @@ const SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/badge-96.png',
+  './icons/skrot-stoper.png',
   './icons/jednorozec.svg',
   './icons/rownowaznia.svg',
 ];
