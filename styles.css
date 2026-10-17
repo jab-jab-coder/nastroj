@@ -351,11 +351,11 @@ input[type=range].idle::-moz-range-thumb { border-color: var(--idle); box-shadow
 .chip small { color: var(--ink-soft); }
 .btn.sm { padding: 8px 14px; min-height: 36px; font-size: 13px; }
 
-.sel {
+select.sel {   /* tylko <select> — klasa .sel jest też na zaznaczonym dniu wykresu (rect) */
   font: inherit; font-weight: 700; color: var(--ink); width: 100%;
   border: 2px solid var(--line); border-radius: 12px; padding: 10px; background: var(--bg); margin-top: 8px;
 }
-.sel.narrow { width: auto; margin: 0; }
+select.sel.narrow { width: auto; margin: 0; }
 .proj { margin-top: 12px; padding: 10px 12px; border-radius: 14px; background: var(--bg); font-size: 14px; }
 .proj b { font-size: 18px; color: var(--rose-deep); }
 .proj.neg b { color: var(--neg); }
@@ -703,3 +703,85 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .oddech-stage .uni-m-in, .oddech-stage .uni-m-out, .oddech-stage .uni-puff, .oddech-secs b.on { animation: none !important; }
 }
+
+/* =========================================================
+   Leki (leki.js)
+   ========================================================= */
+.mdot { width: 10px; height: 10px; border-radius: 50%; background: var(--mc, var(--rose)); display: inline-block; flex: none; margin-right: 7px; vertical-align: 1px; }
+.mdot.big { width: 14px; height: 14px; margin-right: 0; }
+.sheet-head h2 .mdot.big { margin-right: 8px; vertical-align: 0; }
+.meds-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.meds-head h3 { margin: 0; }
+.meds-head small { background: var(--bg2); color: var(--rose-deep); font-weight: 800; border-radius: 99px; padding: 2px 10px; }
+.mrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.mrow + .mrow, .mpack-items + .mrow { border-top: 1px solid var(--line); }
+.mtime { width: 44px; flex: none; font-weight: 800; font-size: 14px; color: var(--rose-deep); font-variant-numeric: tabular-nums; }
+.mname { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 4px 0; cursor: pointer; color: var(--ink); }
+.mname b { display: block; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mname small { display: block; font-size: 12px; color: var(--ink-soft); font-weight: 600; margin-top: 1px; }
+.mrow.st-ok .mname small, .mrow.st-late .mname small, .mrow.st-early .mname small,
+.mrow.st-vlate .mname small, .mrow.st-vearly .mname small { color: var(--ink); }
+.mrow.st-miss .mname small { color: var(--rose-deep); }
+.mchev { font-size: 12px; color: var(--ink-soft); margin-left: 2px; }
+.mcheck {
+  width: 46px; height: 46px; flex: none; border-radius: 50%; cursor: pointer;
+  border: 2.5px dashed var(--mc, var(--rose)); background: var(--card); color: var(--mc, var(--rose));
+  font-size: 20px; font-weight: 900; line-height: 1;
+}
+.mrow.pack .mcheck { --mc: var(--rose-deep); }
+.mcheck.done { border-style: solid; background: var(--mc, var(--rose)); color: #fff; }
+.mcheck.skipped { border-style: solid; border-color: var(--line); background: var(--bg); color: var(--ink-soft); }
+.mcheck:active { transform: scale(.94); }
+.mpack-items { margin: 0 0 6px 54px; padding-left: 10px; border-left: 3px solid var(--bg2); }
+.mpack-items .mrow { padding: 4px 0; }
+.mpack-items .mrow + .mrow { border-top: 0; }
+.mpack-items .mcheck { width: 40px; height: 40px; font-size: 17px; }
+.madhoc { border-top: 1px solid var(--line); margin-top: 4px; }
+.madhoc .sub { margin-top: 10px; }
+.mchip { border-color: var(--mc, var(--line)); }
+.mundo {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 10px; padding: 8px 12px; border-radius: 14px; background: var(--bg); font-size: 14px; font-weight: 700;
+}
+.mundo .link { font-size: 14px; }
+
+.medform .fl { display: block; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+.medform .fl input, .dose3 input, .mtime-in input[type=time] {
+  display: block; width: 100%; margin-top: 4px; font: inherit; font-weight: 700; color: var(--ink);
+  border: 2px solid var(--line); border-radius: 12px; padding: 10px; background: var(--bg); min-width: 0;
+}
+.dose3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.dose3 label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg.sm .chip { min-height: 30px; padding: 3px 10px; font-size: 12px; }
+.mtimes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.mtime-in { display: inline-flex; align-items: center; gap: 4px; }
+.mtime-in input[type=time] { width: auto; margin: 0; color: var(--rose-deep); font-weight: 800; }
+.chips.days { margin-top: 10px; }
+.chips.days .chip { min-width: 42px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--card); background: var(--mc); box-shadow: 0 0 0 2px var(--line); cursor: pointer; position: relative; }
+.sw.on { box-shadow: 0 0 0 3px var(--ink); }
+.sw.custom { background: conic-gradient(#e75a8d, #e0861b, #5c9a2c, #17998a, #2f86c4, #7b5cd6, #e75a8d); overflow: hidden; display: inline-block; }
+.sw.custom.on { background: var(--mc); }
+.sw.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+.medform .opt { margin-top: 6px; }
+.mopt span { display: flex; align-items: center; gap: 2px; }
+.mopt small { color: var(--ink-soft); font-weight: 500; }
+.mopt:has(input:disabled) { opacity: .55; }
+.mshare { margin: 0 0 10px; }
+
+.mchart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px; margin-bottom: 8px; }
+.mchart-head h3 { margin: 0; }
+.mstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 6px 10px; }
+.mstats div { background: var(--bg); border-radius: 14px; padding: 8px; text-align: center; }
+.mstats b { display: block; font-size: 18px; font-weight: 900; color: var(--rose-deep); font-variant-numeric: tabular-nums; }
+.mstats small { font-size: 11px; color: var(--ink-soft); font-weight: 700; }
+.medchart .mlabel { fill: var(--ink); font-weight: 700; font-size: 11.5px; }
+.mlegend i { width: 12px; height: 12px; border-radius: 50%; }
+.mlegend i.mk-band { width: 16px; height: 8px; border-radius: 3px; background: rgba(231, 90, 141, .18); }
+.mlegend i.mk-miss { border: 1.5px solid var(--ink-soft); opacity: .6; }
+.mlegend i.mk-skip { border: 1.5px solid var(--ink-soft); opacity: .7; background: linear-gradient(135deg, transparent 44%, var(--ink-soft) 45%, var(--ink-soft) 55%, transparent 56%); }
+.mlegend i.mk-part { border: 1.5px solid var(--rose-deep); background: linear-gradient(0deg, var(--rose-deep) 50%, transparent 50%); }
+.meds-chart .detail .drow i { width: 8px; height: 8px; }
+.medchart .hit.msel { fill: rgba(246, 165, 198, .28); }

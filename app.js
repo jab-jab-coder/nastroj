@@ -174,6 +174,7 @@ function renderToday() {
     ${SLOTS.map(s => (isToday && s.id !== cur && !ui.open[`${key}|${s.id}`])
       ? slotCompact(s, key)
       : slotCard(s, key, s.id === cur, isToday && s.id !== cur)).join('')}
+    ${medsTodayHtml(key)}
   `;
 }
 
@@ -505,6 +506,7 @@ function renderWeek() {
       ${legendHtml(`<span><i class="line" style="background:${SERIES.energy.avg};opacity:.55"></i>średnia dnia</span>`, SERIES.energy.slots)}
       <div class="detail" id="week-detail">${detailHtml(ui.selWeek)}</div>
     </div>
+    ${medsChartCard(days.map(dkey), 'week')}
     <div class="card"><h3>Średnio o porach dnia</h3>${slotAvgHtml(st.per)}</div>
   `;
 }
@@ -549,6 +551,7 @@ function renderMonth() {
       ${monthLegendHtml('energy')}
       <div class="detail" id="month-detail">${detailHtml(ui.selMonth)}</div>
     </div>
+    ${medsChartCard(days.map(dkey), 'month')}
     <div class="card"><h3>Średnio o porach dnia</h3>${slotAvgHtml(st.per)}</div>
   `;
 }
@@ -560,6 +563,7 @@ function renderSettings() {
   const notifSupported = 'Notification' in window && 'serviceWorker' in navigator;
   const total = Object.values(entries).reduce((n, e) => n + Object.keys(e).length, 0);
   const ec = energyCounts();
+  const mc = medsCounts();
   $('#view-settings').innerHTML = `
     <header class="head"><span></span><div><div class="eyebrow">Aplikacja</div><h1>Ustawienia</h1></div><span></span></header>
     <p class="lead">Pory ocen i przypomnienia</p>
@@ -587,6 +591,8 @@ function renderSettings() {
 
     ${energySettingsHtml()}
 
+    ${medsSettingsHtml()}
+
     ${installPrompt ? `
     <div class="card">
       <h3>Instalacja</h3>
@@ -595,7 +601,7 @@ function renderSettings() {
 
     <div class="card">
       <h3>Dane</h3>
-      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu: ${total} ocen nastroju, ${ec.logs} operacji energii, ${ec.acts} czynności, ${ec.surveys} wyników badań${ec.records ? `, ${ec.records} rekordów stopera` : ''}. Rób czasem kopię zapasową.</p>
+      <p class="note" style="margin:0 0 12px">Wszystko jest zapisane tylko na tym urządzeniu: ${total} ocen nastroju, ${ec.logs} operacji energii, ${ec.acts} czynności, ${ec.surveys} wyników badań${ec.records ? `, ${ec.records} rekordów stopera` : ''}${mc.meds ? `, leki: ${mc.meds} (wpisy: ${mc.logs})` : ''}. Rób czasem kopię zapasową.</p>
       <div class="stack">
         <button class="btn soft block" data-act="export">Eksportuj kopię (JSON)</button>
         <button class="btn soft block" data-act="import">Importuj kopię</button>
@@ -895,7 +901,7 @@ function renderStopwatch() {
    Nawigacja i zdarzenia
    ========================================================= */
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
-  stopwatch: renderStopwatch, oddech: renderOddech };
+  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki };
 
 function show(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
@@ -903,7 +909,7 @@ function show(view) {
   document.body.classList.toggle('sw-on', view === 'stopwatch');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
-  const tabFor = view === 'oddech' ? 'energy' : view;  // Oddech podświetla zakładkę Energia
+  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view;  // Oddech → Energia, Leki → Ustawienia
   document.querySelectorAll('.tab').forEach(t => {
     if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
@@ -1004,12 +1010,12 @@ document.addEventListener('click', async ev => {
     case 'export': exportData(); break;
     case 'import': $('#import-file').click(); break;
     case 'wipe':
-      if (confirm('Na pewno usunąć wszystkie dane (oceny i energię)? Tej operacji nie można cofnąć. Najpierw zrób eksport kopii.')) {
+      if (confirm('Na pewno usunąć wszystkie dane (oceny, energię i leki)? Tej operacji nie można cofnąć. Najpierw zrób eksport kopii.')) {
         entries = {}; store(KEY_ENTRIES, entries); energyWipe(); syncState(); renderSettings(); toast('Dane usunięte');
       }
       break;
     default:
-      energyClick(act, el);
+      if (!medsClick(act, el)) energyClick(act, el);
   }
 });
 
@@ -1035,7 +1041,7 @@ document.addEventListener('change', async ev => {
   } else if (t.id === 'import-file' && t.files[0]) {
     importData(t.files[0]);
     t.value = '';
-  } else {
+  } else if (!medsChange(t)) {
     energyChange(t);
   }
 });
@@ -1178,7 +1184,7 @@ async function importData(file) {
     store(KEY_ENTRIES, entries);
     const en = energyImport(data);   // pliki z wersji 1 nie mają tych pól — wtedy nic się nie dzieje
     syncState(); renderSettings();
-    toast(`Zaimportowano: ${n} ocen${en.logs || en.acts ? `, ${en.logs} operacji energii, ${en.acts} czynności` : ''}${en.surveys ? `, ${en.surveys} badań` : ''}${en.records ? `, ${en.records} rekordów stopera` : ''}`);
+    toast(`Zaimportowano: ${n} ocen${en.logs || en.acts ? `, ${en.logs} operacji energii, ${en.acts} czynności` : ''}${en.surveys ? `, ${en.surveys} badań` : ''}${en.records ? `, ${en.records} rekordów stopera` : ''}${en.meds || en.medlogs ? `, leki: ${en.meds} (wpisy: ${en.medlogs})` : ''}`);
   } catch {
     toast('Nieprawidłowy plik kopii');
   }
@@ -1315,6 +1321,7 @@ if ('serviceWorker' in navigator) {
 navigator.storage?.persist?.().catch(() => {});
 
 energyInit();
+medsInit();
 show('today');
 syncState();
 checkReminders();
