@@ -792,3 +792,7 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .tut-card .sec-head { display: none; }
 .tut-card.sec-closed { display: none; }
 .sec-head h3 { cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; flex: 1 1 auto; }
+
+/* ---------- ukryty widok: dzik (podwójne dotknięcie „Miesiąc”) ---------- */
+.dzik-card { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: #eef6e6; margin-top: 8px; }
+.dzik-card img { display: block; width: 100%; height: auto; }

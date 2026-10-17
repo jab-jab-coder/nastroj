@@ -988,7 +988,13 @@ function renderStopwatch() {
    Nawigacja i zdarzenia
    ========================================================= */
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
-  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki };
+  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, dzik: renderDzik };
+
+// Ukryty widok: podwójne dotknięcie „Miesiąc” → dzik w lesie. Pasek zakładek zostaje i działa normalnie.
+function renderDzik() {
+  $('#view-dzik').innerHTML = `
+    <div class="dzik-card"><img src="icons/dzik.svg" alt="Dzik-warchlak z tęczową szczeciną w lesie pełnym świerków, dębów i grzybów"></div>`;
+}
 
 function show(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
@@ -996,7 +1002,7 @@ function show(view) {
   document.body.classList.toggle('sw-on', view === 'stopwatch');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
-  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view;  // Oddech → Energia, Leki → Ustawienia
+  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view === 'dzik' ? 'month' : view;  // Oddech → Energia, Leki → Ustawienia, Dzik → Miesiąc
   document.querySelectorAll('.tab').forEach(t => {
     if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
@@ -1016,6 +1022,11 @@ document.addEventListener('click', async ev => {
       if (now - (ui.settingsTap || 0) < 400) { ui.settingsTap = 0; show('stopwatch'); return; }
       ui.settingsTap = now;
     } else ui.settingsTap = 0;
+    // Podwójne dotknięcie „Miesiąc” (≤ 400 ms) → dzik
+    if (tab.dataset.tab === 'month') {
+      if (now - (ui.monthTap || 0) < 400) { ui.monthTap = 0; show('dzik'); return; }
+      ui.monthTap = now;
+    } else ui.monthTap = 0;
     // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
     if (tab.dataset.tab === 'energy') {
       tapEnergy = now - tapEnergy.last < TRIPLE_MS ? { n: tapEnergy.n + 1, last: now } : { n: 1, last: now };
