@@ -16,7 +16,7 @@
    ========================================================= */
 
 const TUT_STEPS = 3;
-const tut = { step: 0, from: 'start', v: null, e: null, touched: false };
+const tut = { step: 0, from: 'start', v: null, e: null, tv: false, te: false };   // tv/te — suwak nastroju/energii dotknięty (jak na Dziś: każdy osobno)
 
 const energyOn = () => settings.energyModule !== false;
 const medsOn = () => settings.medsModule !== false;
@@ -45,7 +45,7 @@ function tutOpen(from) {
   Object.assign(tut, {
     step: 0, from,
     v: e?.v ?? defaultValue('v'), e: e?.e ?? defaultValue('e'),
-    touched: !!e,
+    tv: e?.v != null, te: e?.e != null,
   });
   hideCompliment();
   $('#tut').hidden = false;
@@ -123,35 +123,38 @@ function tutStep3() {
   const s = SLOTS.find(x => x.id === currentSlot());
   const existing = getEntry(todayKey(), s.id);
   const [emo, label] = mood(tut.v);
-  const idle = tut.touched ? '' : ' idle';
+  const im = tut.tv ? '' : ' idle', ie = tut.te ? '' : ' idle';
   return `
     <h1 id="tut-title" tabindex="-1">Twój pierwszy wpis</h1>
-    <p class="tut-p">Jak się czujesz teraz? Przesuń suwaki i zapisz. Tak samo ocenisz się na ekranie Dziś — trzy razy dziennie.</p>
+    <p class="tut-p">Jak się czujesz teraz? Ustaw samopoczucie i energię, potem zapisz. Tak samo ocenisz się na ekranie Dziś — trzy razy dziennie.</p>
+    <p class="tut-p tut-small">Każdy suwak dotknij osobno. Szary znaczy „jeszcze nieustawiony” — zapiszą się tylko te, które ustawisz.
+    Z Twoich wpisów powstaną wykresy w widokach <b>Tydzień</b> i <b>Miesiąc</b>.</p>
     <section class="card tut-entry">
       <div class="slot-head">
         <span class="slot-icon" aria-hidden="true">${s.icon}</span>
         <div><h2>${s.label}</h2><small>${existing ? `Zapisano o ${hhmm(existing.t)}` : 'pora, która trwa teraz'}</small></div>
       </div>
       <div class="mood" aria-live="polite">
-        <span class="emo${idle}" aria-hidden="true">${emo}</span>
-        <span class="val${idle}">${tut.v}</span>
+        <span class="emo${im}" aria-hidden="true">${emo}</span>
+        <span class="val${im}">${tut.v}</span>
         <span class="lbl">${label}</span>
       </div>
-      <input type="range" class="${idle.trim()}" min="1" max="10" step="1" value="${tut.v}" data-tut-kind="mood" style="--p:${((tut.v - 1) / 9) * 100}%"
+      <input type="range" class="${im.trim()}" min="1" max="10" step="1" value="${tut.v}" data-tut-kind="mood" style="--p:${((tut.v - 1) / 9) * 100}%"
              aria-label="Samopoczucie teraz, skala 1–10">
       <div class="scale"><span>1 · myśli i próby sb</span><span>10 · euforycznie</span></div>
       <div class="energy-row">
         <span class="en-lbl">⚡ Energia</span>
-        <span class="en-val${idle}">${tut.e}</span>
+        <span class="en-val${ie}">${tut.e}</span>
       </div>
-      <input type="range" class="en${idle}" min="1" max="10" step="1" value="${tut.e}" data-tut-kind="energy" style="--p:${((tut.e - 1) / 9) * 100}%"
+      <input type="range" class="en${ie}" min="1" max="10" step="1" value="${tut.e}" data-tut-kind="energy" style="--p:${((tut.e - 1) / 9) * 100}%"
              aria-label="Energia teraz, skala 1–10">
       <div class="scale"><span>1 · pusta bateria</span><span>10 · pełna</span></div>
     </section>
     <div class="tut-nav">
       <button class="btn ghost" data-act="tut-back">Wstecz</button>
-      <button class="btn primary" data-act="tut-save">${existing ? 'Zaktualizuj i zacznij' : 'Zapisz i zacznij'}</button>
+      <button class="btn primary" data-act="tut-save" ${tut.tv || tut.te ? '' : 'disabled'}>${existing ? 'Zaktualizuj i zacznij' : 'Zapisz i zacznij'}</button>
     </div>
+    <p class="tut-p tut-bye">Miłego używania aplikacji! 💗</p>
     <button class="btn ghost block tut-later" data-act="tut-skip">Zrobię to później</button>`;
 }
 
@@ -159,18 +162,21 @@ function tutSlider(input) {
   const v = Number(input.value);
   const box = input.closest('.tut-entry');
   input.style.setProperty('--p', `${((v - 1) / 9) * 100}%`);
-  tut.touched = true;
-  box.querySelectorAll('.idle').forEach(x => x.classList.remove('idle'));
+  input.classList.remove('idle');   // dotknięty suwak staje się aktywny; drugi zostaje szary
   if (input.dataset.tutKind === 'energy') {
-    tut.e = v;
-    $('.en-val', box).textContent = v;
+    tut.e = v; tut.te = true;
+    const ev = $('.en-val', box);
+    ev.textContent = v; ev.classList.remove('idle');
   } else {
-    tut.v = v;
+    tut.v = v; tut.tv = true;
+    $('.emo', box).classList.remove('idle');
+    $('.val', box).classList.remove('idle');
     const [emo, label] = mood(v);
     $('.emo', box).textContent = emo;
     $('.val', box).textContent = v;
     $('.lbl', box).textContent = label;
   }
+  $('#tut [data-act="tut-save"]').disabled = false;
 }
 
 function tutModule(t) {
@@ -193,13 +199,18 @@ function tutClick(act) {
     case 'tut-back': tut.step = Math.max(0, tut.step - 1); tutRender(); return true;
     case 'tut-save': {
       const slot = currentSlot();
-      setEntry(todayKey(), slot, tut.v, tut.e);
+      if (!tut.tv && !tut.te) return true;
+      // Jak na Dziś: zapisujemy tylko ustawione suwaki (albo wartość zapisaną wcześniej).
+      const prev = getEntry(todayKey(), slot);
+      const v = tut.tv ? tut.v : prev?.v ?? null;
+      const e = tut.te ? tut.e : prev?.e ?? null;
+      setEntry(todayKey(), slot, v, e);
       delete ui.drafts[`${todayKey()}|${slot}`];
       delete ui.drafts[`${todayKey()}|${slot}|e`];
       ui.day = today0();
       tutClose();
       show('today');
-      toast(`${mood(tut.v)[0]} Zapisano: ${SLOTS.find(s => s.id === slot).label.toLowerCase()} — ${tut.v}/10`);
+      toast(`${v != null ? mood(v)[0] : '⚡'} Zapisano: ${SLOTS.find(s => s.id === slot).label.toLowerCase()} — ${v != null ? `${v}/10` : `energia ${e}/10`}`);
       return true;
     }
   }
