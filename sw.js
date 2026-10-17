@@ -8,6 +8,7 @@ const SHELL = [
   './komplementy.js',
   './energy.js',
   './leki.js',
+  './samouczek.js',
   './app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

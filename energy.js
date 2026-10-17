@@ -295,6 +295,7 @@ const LEVELS = [
    ========================================================= */
 function renderEnergy() {
   const v = $('#view-energy');
+  if (settings.energyModule === false) { v.innerHTML = surveysOnlyHtml(); return; }   // konto energii wyłączone — zostają badania
   if (!acts.length) { v.innerHTML = setupHtml(); return; }
   const tk = todayKey();
   const L = ledger(tk);
@@ -326,6 +327,22 @@ function renderEnergy() {
     </div>
     <p class="footer">Energy accounting — metoda Mai Toudal i Tony’ego Attwooda. Wartości są Twoje i subiektywne.</p>
   `;
+}
+
+// Zakładka Energia przy wyłączonym koncie energii: tylko badania i wyciąg.
+function surveysOnlyHtml() {
+  return `
+    <header class="head"><span></span><div><div class="eyebrow">Energia</div><h1>Badania</h1></div><span></span></header>
+    <p class="lead">Konto energii jest wyłączone — włączysz je w Ustawieniach</p>
+    ${surveyDueHtml()}
+    <div class="card">
+      <h3>Wyciąg i badania</h3>
+      <div class="stack">
+        <button class="btn soft block" data-act="stmt">🧾 Wyciąg miesięczny (PDF / CSV)</button>
+        ${settings.cbiModule !== false ? '<button class="btn soft block" data-act="survey" data-type="cbi">Wypalenie osobiste (CBI)</button>' : ''}
+        ${settings.autModule ? '<button class="btn soft block" data-act="survey" data-type="aut">Samoocena wypalenia autystycznego</button>' : ''}
+      </div>
+    </div>`;
 }
 
 function setupHtml() {
@@ -898,8 +915,9 @@ function energyChange(t) {
     return true;
   }
   if (t.id === 'carry') { settings.carry = Number(t.value); store(KEY_SETTINGS, settings); toast('Zapisano'); return true; }
-  if (t.id === 'cbiModule') { settings.cbiModule = t.checked; store(KEY_SETTINGS, settings); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
-  if (t.id === 'autModule') { settings.autModule = t.checked; store(KEY_SETTINGS, settings); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
+  if (t.id === 'energyModule') { settings.energyModule = t.checked; store(KEY_SETTINGS, settings); tutApplyModules(); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
+  if (t.id === 'cbiModule') { settings.cbiModule = t.checked; store(KEY_SETTINGS, settings); tutApplyModules(); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
+  if (t.id === 'autModule') { settings.autModule = t.checked; store(KEY_SETTINGS, settings); tutApplyModules(); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
   if (t.name === 'defMode') {
     settings.defaults = { ...DEFAULT_SETTINGS.defaults, ...(settings.defaults || {}), mode: t.value };
     store(KEY_SETTINGS, settings);
@@ -926,6 +944,10 @@ function energySettingsHtml() {
   return `
     <div class="card">
       <h3>Energia i Ankiety</h3>
+      <div class="row">
+        <label for="energyModule">Konto energii<small>Wpłaty, wypłaty i saldo dnia (energy accounting)</small></label>
+        <span class="switch"><input type="checkbox" id="energyModule" ${settings.energyModule !== false ? 'checked' : ''}><span></span></span>
+      </div>
       <div class="row">
         <label for="carry">Przeniesienie salda<small>Ile wczorajszego salda (plus lub minus) przechodzi na dziś</small></label>
         <select id="carry" class="sel narrow">${[0, 0.25, 0.5, 0.75].map(v => `<option value="${v}" ${c === v ? 'selected' : ''}>${v * 100}%</option>`).join('')}</select>
