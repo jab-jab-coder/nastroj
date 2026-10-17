@@ -84,11 +84,12 @@ function tutRender() {
 function tutStep1() {
   return `
     <h1 id="tut-title" tabindex="-1">Czym jest Nastrój?</h1>
-    <p class="tut-p">Nastrój pomaga zauważać, jak się czujesz i ile masz energii — wystarczą trzy krótkie oceny dziennie: rano, po południu i wieczorem.
-    Z czasem na wykresach zobaczysz, co Ci służy, a co zabiera siły.</p>
+    <p class="tut-p">Aplikacja <i>Nastrój</i> pomaga zauważać, jak się czujesz i jak zarządzać Twoją energią — wystarczą krótkie oceny dzienne i szybka księgowość energetyczna - a poznasz lepiej siebie!</p>
+    <p class="tut-p">Aplikacja służy też poprawie samopoczucia i zawiera magiczne moduły, często zabawnie ukryte. Kliknij dwa razy w Ustawienia, a koziorożec uruchomi Stoper. Skontaktuj się z Jackiem po więcej wskazówek.</p>
+    <p class="tut-p">Dziękuję za zainteresowanie moją pracą, to jest miłe &lt;3</p>
     <div class="card tut-safe">
       <span class="tut-ico" aria-hidden="true">🔒</span>
-      <p><b>Twoje dane zostają na tym telefonie.</b><br>Nie ma konta ani serwera. Kopię zapasową zrobisz w Ustawieniach.</p>
+      <p><b>Twoje dane zostają na tym urządzeniu.</b><br>Nie ma konta ani serwera. Twoje dane są tylko tu. Możesz szybko skasować pamięć albo zrobić eksport do pliku i przenieść dane w zakładce Ustawienia.</p>
     </div>
     <div class="tut-nav">
       <span></span>
@@ -128,6 +129,7 @@ function tutStep3() {
     <h1 id="tut-title" tabindex="-1">Twój pierwszy wpis</h1>
     <p class="tut-p">Jak się czujesz teraz? Ustaw samopoczucie i energię, potem zapisz. Tak samo ocenisz się na ekranie Dziś — trzy razy dziennie.</p>
     <p class="tut-p tut-small">Każdy suwak dotknij osobno. Szary znaczy „jeszcze nieustawiony” — zapiszą się tylko te, które ustawisz.
+    Jeśli wartości domyślne Ci pasują, naciśnij „Zapisz” — oba suwaki się aktywują; drugie naciśnięcie je zapisze.
     Z Twoich wpisów powstaną wykresy w widokach <b>Tydzień</b> i <b>Miesiąc</b>.</p>
     <section class="card tut-entry">
       <div class="slot-head">
@@ -152,7 +154,7 @@ function tutStep3() {
     </section>
     <div class="tut-nav">
       <button class="btn ghost" data-act="tut-back">Wstecz</button>
-      <button class="btn primary" data-act="tut-save" ${tut.tv || tut.te ? '' : 'disabled'}>${existing ? 'Zaktualizuj i zacznij' : 'Zapisz i zacznij'}</button>
+      <button class="btn primary" data-act="tut-save">${existing ? 'Zaktualizuj' : 'Zapisz'}</button>
     </div>
     <p class="tut-p tut-bye">Miłego używania aplikacji! 💗</p>
     <button class="btn ghost block tut-later" data-act="tut-skip">Zrobię to później</button>`;
@@ -176,7 +178,6 @@ function tutSlider(input) {
     $('.val', box).textContent = v;
     $('.lbl', box).textContent = label;
   }
-  $('#tut [data-act="tut-save"]').disabled = false;
 }
 
 function tutModule(t) {
@@ -199,7 +200,8 @@ function tutClick(act) {
     case 'tut-back': tut.step = Math.max(0, tut.step - 1); tutRender(); return true;
     case 'tut-save': {
       const slot = currentSlot();
-      if (!tut.tv && !tut.te) return true;
+      // Jak na Dziś: pierwsze „Zapisz” bez ruszania suwaków tylko aktywuje oba (wartości domyślne), drugie zapisuje.
+      if (!tut.tv && !tut.te) { tut.tv = tut.te = true; tutRender(); return true; }
       // Jak na Dziś: zapisujemy tylko ustawione suwaki (albo wartość zapisaną wcześniej).
       const prev = getEntry(todayKey(), slot);
       const v = tut.tv ? tut.v : prev?.v ?? null;
