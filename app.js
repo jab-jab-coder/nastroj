@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS = {
   times: { morning: '09:00', afternoon: '14:00', evening: '21:00' },
   notify: false,
   carry: 0.5,          // przeniesienie salda energii na następny dzień
+  cbiModule: true,     // wypalenie osobiste (CBI) w zakładce Energia
   autModule: false,    // samoocena wypalenia autystycznego
   lowSensory: false,   // tryb niskiej stymulacji
   oddechSound: true,   // kliknięcie przy zmianie fazy na ekranie Oddech
@@ -586,6 +587,8 @@ function renderSettings() {
         </div>`).join('')}
     </div>
 
+    ${medsSettingsHtml()}
+
     <div class="card">
       <h3>Przypomnienia</h3>
       <div class="row">
@@ -599,8 +602,6 @@ function renderSettings() {
     </div>
 
     ${energySettingsHtml()}
-
-    ${medsSettingsHtml()}
 
     ${installPrompt ? `
     <div class="card">
