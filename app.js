@@ -586,7 +586,7 @@ function renderSettings() {
 
     <div class="card tut-card" id="tut-card">
       <h3>Samouczek</h3>
-      <button class="btn soft tut-uni" data-act="compliment" aria-label="Pokaż komplement"><img src="icons/jednorozec.svg" alt="" width="46" height="46"></button>
+      <button class="btn soft tut-uni" data-act="compliment" aria-label="Pokaż komplement"><img src="icons/jednorozec.svg" alt="" width="51" height="51"></button>
     </div>
 
     <div class="card">
@@ -693,6 +693,7 @@ function settingsCollapsible() {
     head.className = 'sec-head';
     h.replaceWith(head);
     head.append(h);
+    h.dataset.act = 'sec-toggle';   // dotknięcie tytułu też zwija/rozwija (przycisk ⌃/⌄ zostaje dla klawiatury i czytników)
     head.insertAdjacentHTML('beforeend', `<button class="sec-tog" data-act="sec-toggle"></button>`);
     card.classList.add('sec');
     card.dataset.sec = id;
@@ -1117,7 +1118,7 @@ document.addEventListener('click', async ev => {
     case 'sw-save': swSaveRecord(); break;
     case 'sw-zero': swZero(); break;
     case 'sw-restart': swRestart(); break;
-    case 'compliment': popFab(el); showCompliment(); break;
+    case 'compliment': showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
     case 'install':
@@ -1227,14 +1228,6 @@ function pickCompliment(now = Date.now(), rnd = Math.random) {
   }
   store(KEY_COMPL2, { recent: [c[1], ...recent.filter(x => x !== c[1])].slice(0, COMPL.recent) });
   return c;
-}
-
-// Animacja przycisku komplementu (klasa .pop, restart przy kolejnym dotknięciu).
-function popFab(btn) {
-  btn.classList.remove('pop');
-  void btn.offsetWidth;
-  btn.classList.add('pop');
-  btn.addEventListener('animationend', () => btn.classList.remove('pop'), { once: true });
 }
 
 // Jednorożec w dymku wstawiany inline (nie <img>), żeby losowo wyłączać mrugnięcie klasą .no-wink.
