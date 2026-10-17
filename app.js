@@ -576,7 +576,18 @@ function renderSettings() {
   const mc = medsCounts();
   $('#view-settings').innerHTML = `
     <header class="head"><span></span><div><div class="eyebrow">Aplikacja</div><h1>Ustawienia</h1></div><span></span></header>
-    <p class="lead">Pory ocen i przypomnienia</p>
+    <p class="lead">Dopasuj aplikację do siebie</p>
+
+    <div class="set-top">
+      <button class="btn soft tut-btn" data-act="tut-toggle" aria-controls="tut-card">Samouczek</button>
+      <button class="btn soft tut-all" data-act="sec-all"></button>
+      <button class="btn soft calm-btn" data-act="calm-toggle" aria-pressed="${settings.lowSensory ? 'true' : 'false'}">Tryb niskiej stymulacji</button>
+    </div>
+
+    <div class="card tut-card" id="tut-card">
+      <h3>Samouczek</h3>
+      <button class="btn soft tut-uni" data-act="compliment" aria-label="Pokaż komplement"><img src="icons/jednorozec.svg" alt="" width="51" height="51"></button>
+    </div>
 
     <div class="card">
       <h3>Pory dnia</h3>
@@ -632,22 +643,69 @@ function renderSettings() {
   settingsCollapsible();
 }
 
-// Każda karta Ustawień z nagłówkiem dostaje przycisk zwijania po prawej. Stan zapamiętany w settings.collapsed.
+// Każda karta Ustawień z nagłówkiem dostaje przycisk zwijania po prawej.
+// Stan zwinięcia zapamiętuje settings.collapsed. Samouczek się nie zapamiętuje:
+// przy każdym otwarciu Ustawień jest zwinięty, otwiera go tylko przycisk „Samouczek”.
+const SEC_TUT = 'Samouczek';
+
+function secClosed(id) {
+  return id === SEC_TUT ? true : (settings.collapsed || []).includes(id);
+}
+
+function secSet(card, shut) {
+  const id = card.dataset.sec;
+  card.classList.toggle('sec-closed', shut);
+  const b = card.querySelector('.sec-tog');
+  b.textContent = shut ? '⌄' : '⌃';
+  b.setAttribute('aria-expanded', String(!shut));
+  b.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
+  if (id === SEC_TUT) { tutBtnSync(); return; }
+  const list = (settings.collapsed || []).filter(x => x !== id);
+  if (shut) list.push(id);
+  settings.collapsed = list;
+}
+
+// Przycisk „Zwiń/Rozwiń wszystkie” (pod Samouczkiem, zawsze widoczny): „Rozwiń”, gdy wszystkie sekcje są zwinięte.
+function secAllLabel() {
+  const b = $('#view-settings .tut-all');
+  if (!b) return;
+  const secs = [...document.querySelectorAll('#view-settings > .card.sec')].filter(c => c.dataset.sec !== SEC_TUT);
+  const allShut = secs.length > 0 && secs.every(c => c.classList.contains('sec-closed'));
+  b.dataset.mode = allShut ? 'open' : 'close';
+  b.textContent = allShut ? '⌄ Rozwiń wszystkie' : '⌃ Zwiń wszystkie';
+}
+
+// Przycisk „Samouczek” na górze pokazuje/ukrywa kartę Samouczka (jej nagłówek jest ukryty).
+function tutBtnSync() {
+  const b = $('#view-settings .tut-btn'), c = $('#tut-card');
+  if (!b || !c) return;
+  const open = !c.classList.contains('sec-closed');
+  b.setAttribute('aria-expanded', String(open));
+  b.classList.toggle('on', open);
+}
+
 function settingsCollapsible() {
-  const closed = settings.collapsed || [];
   document.querySelectorAll('#view-settings > .card').forEach(card => {
     const h = card.querySelector(':scope > h3');
     if (!h) return;
     const id = h.textContent.replace(/[^\p{L}\p{N} ]/gu, '').trim();
-    const shut = closed.includes(id);
     const head = document.createElement('div');
     head.className = 'sec-head';
     h.replaceWith(head);
     head.append(h);
-    head.insertAdjacentHTML('beforeend', `<button class="sec-tog" data-act="sec-toggle" data-sec="${esc(id)}" aria-expanded="${!shut}" aria-label="${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${esc(id)}">${shut ? '⌄' : '⌃'}</button>`);
+    h.dataset.act = 'sec-toggle';   // dotknięcie tytułu też zwija/rozwija (przycisk ⌃/⌄ zostaje dla klawiatury i czytników)
+    head.insertAdjacentHTML('beforeend', `<button class="sec-tog" data-act="sec-toggle"></button>`);
     card.classList.add('sec');
+    card.dataset.sec = id;
+    const shut = secClosed(id);
     card.classList.toggle('sec-closed', shut);
+    const b = head.lastElementChild;
+    b.textContent = shut ? '⌄' : '⌃';
+    b.setAttribute('aria-expanded', String(!shut));
+    b.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
   });
+  tutBtnSync();
+  secAllLabel();
 }
 
 /* ---------- Oddech (ukryty ekran: 3× dotknięcie zakładki Energia) ---------- */
@@ -975,16 +1033,33 @@ document.addEventListener('click', async ev => {
   switch (act) {
     case 'oddech-back': show('energy'); break;
     case 'sec-toggle': {
-      const id = el.dataset.sec, box = el.closest('.card');
-      const shut = !box.classList.contains('sec-closed');
-      box.classList.toggle('sec-closed', shut);
-      el.textContent = shut ? '⌄' : '⌃';
-      el.setAttribute('aria-expanded', String(!shut));
-      el.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
-      const list = (settings.collapsed || []).filter(x => x !== id);
-      if (shut) list.push(id);
-      settings.collapsed = list;
+      const box = el.closest('.card');
+      secSet(box, !box.classList.contains('sec-closed'));
       store(KEY_SETTINGS, settings);
+      secAllLabel();
+      break;
+    }
+    case 'tut-toggle': {
+      const c = $('#tut-card');
+      secSet(c, !c.classList.contains('sec-closed'));
+      store(KEY_SETTINGS, settings);
+      secAllLabel();
+      break;
+    }
+    case 'calm-toggle': {
+      settings.lowSensory = !settings.lowSensory;
+      store(KEY_SETTINGS, settings);
+      applyCalm();
+      el.setAttribute('aria-pressed', String(settings.lowSensory));
+      toast(settings.lowSensory ? 'Tryb niskiej stymulacji włączony' : 'Tryb niskiej stymulacji wyłączony');
+      break;
+    }
+    case 'sec-all': {
+      const open = el.dataset.mode === 'open';
+      // „Rozwiń wszystkie” nie otwiera Samouczka (ma własny przycisk); „Zwiń wszystkie” zamyka też jego.
+      document.querySelectorAll('#view-settings > .card.sec').forEach(c => { if (!(open && c.dataset.sec === SEC_TUT)) secSet(c, !open); });
+      store(KEY_SETTINGS, settings);
+      secAllLabel();
       break;
     }
     case 'oddech-sound':
@@ -1043,7 +1118,7 @@ document.addEventListener('click', async ev => {
     case 'sw-save': swSaveRecord(); break;
     case 'sw-zero': swZero(); break;
     case 'sw-restart': swRestart(); break;
-    case 'compliment': popFab(el); showCompliment(); break;
+    case 'compliment': showCompliment(); break;
     case 'compl-close': hideCompliment(); break;
     case 'ics': downloadIcs(); break;
     case 'install':
@@ -1153,14 +1228,6 @@ function pickCompliment(now = Date.now(), rnd = Math.random) {
   }
   store(KEY_COMPL2, { recent: [c[1], ...recent.filter(x => x !== c[1])].slice(0, COMPL.recent) });
   return c;
-}
-
-// Animacja przycisku komplementu (klasa .pop, restart przy kolejnym dotknięciu).
-function popFab(btn) {
-  btn.classList.remove('pop');
-  void btn.offsetWidth;
-  btn.classList.add('pop');
-  btn.addEventListener('animationend', () => btn.classList.remove('pop'), { once: true });
 }
 
 // Jednorożec w dymku wstawiany inline (nie <img>), żeby losowo wyłączać mrugnięcie klasą .no-wink.
