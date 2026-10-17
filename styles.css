@@ -809,8 +809,6 @@ body.tut-on .tabbar, body.tut-on .fab { visibility: hidden; }
 .tut-safe { display: flex; gap: 12px; align-items: flex-start; }
 .tut-safe p { margin: 0; line-height: 1.45; }
 .tut-ico { font-size: 26px; line-height: 1; }
-.tut-mods .row input:disabled + span { opacity: .55; }
-.tut-hint { text-align: center; }
 .tut-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
 .tut-nav .btn.primary { flex: 1; max-width: 260px; margin-left: auto; }
 .tut-later { margin-top: 8px; }

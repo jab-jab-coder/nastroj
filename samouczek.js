@@ -2,8 +2,8 @@
 
 /* =========================================================
    Samouczek „Pierwsze kroki” — 3 krótkie ekrany, zawsze do pominięcia:
-     1. Czym jest Nastrój (+ dane zostają na telefonie)
-     2. Co chcesz śledzić? — włączanie modułów
+     1. Czym jest Nastrój (+ dane zostają na urządzeniu)
+     2. Co chcesz śledzić? — gdzie włączyć moduły (Ustawienia)
      3. Pierwszy wpis — prawdziwa ocena bieżącej pory
    Uruchamia się przy pierwszym uruchomieniu aplikacji (gdy nie ma jeszcze żadnych danych)
    oraz po dotknięciu jednorożca w karcie „Samouczek” w Ustawieniach.
@@ -98,22 +98,10 @@ function tutStep1() {
 }
 
 function tutStep2() {
-  const row = (id, title, sub, on, locked = false) => `
-    <div class="row">
-      <label for="${id}">${title}<small>${sub}</small></label>
-      <span class="switch"><input type="checkbox" id="${id}" data-tut-mod="${id}" ${on ? 'checked' : ''} ${locked ? 'disabled' : ''}><span></span></span>
-    </div>`;
   return `
     <h1 id="tut-title" tabindex="-1">Co chcesz śledzić?</h1>
-    <p class="tut-p">Zacznij od tego, co Ci teraz potrzebne. Resztę możesz dołożyć później.</p>
-    <div class="card tut-mods">
-      ${row('tm-mood', 'Nastrój i energia', 'Trzy oceny dziennie, skala 1–10 · zawsze włączone', true, true)}
-      ${row('tm-energy', 'Konto energii', 'Wpłaty i wypłaty energii, saldo dnia (energy accounting)', energyOn())}
-      ${row('tm-meds', 'Leki', 'Odhaczanie leków i godzina wzięcia', medsOn())}
-      ${row('tm-cbi', 'Badanie co tydzień', 'Wypalenie osobiste (CBI), 6 pytań', settings.cbiModule !== false)}
-      ${row('tm-aut', 'Badanie co miesiąc', 'Samoocena wypalenia autystycznego, 6 pytań', !!settings.autModule)}
-    </div>
-    <p class="note tut-hint">Wszystko zmienisz później w Ustawieniach.</p>
+    <p class="tut-p">Żeby skorzystać z Księgowości Energetycznej, Dzienniczka leków czy dodatkowych Ankiet — trzeba wejść w moduł i aktywować go.
+    Wszystko to można zrobić w „Ustawieniach”.</p>
     <div class="tut-nav">
       <button class="btn ghost" data-act="tut-back">Wstecz</button>
       <button class="btn primary" data-act="tut-next">Dalej</button>
@@ -180,17 +168,6 @@ function tutSlider(input) {
   }
 }
 
-function tutModule(t) {
-  switch (t.dataset.tutMod) {
-    case 'tm-energy': settings.energyModule = t.checked; break;
-    case 'tm-meds': settings.medsModule = t.checked; break;
-    case 'tm-cbi': settings.cbiModule = t.checked; break;
-    case 'tm-aut': settings.autModule = t.checked; break;
-    default: return;
-  }
-  store(KEY_SETTINGS, settings);
-}
-
 // Zdarzenia samouczka (wywoływane z app.js przed modułami). Zwraca true, jeśli obsłużone.
 function tutClick(act) {
   switch (act) {
@@ -221,9 +198,6 @@ function tutClick(act) {
 
 document.addEventListener('input', ev => {
   if (ev.target.matches?.('#tut input[data-tut-kind]')) tutSlider(ev.target);
-});
-document.addEventListener('change', ev => {
-  if (ev.target.matches?.('#tut input[data-tut-mod]')) tutModule(ev.target);
 });
 document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape' && !$('#tut').hidden) tutClose();
