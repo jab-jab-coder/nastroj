@@ -988,15 +988,22 @@ function renderStopwatch() {
    Nawigacja i zdarzenia
    ========================================================= */
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
-  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki };
+  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, animals: renderAnimals };
+
+/* Widok „animals” (podwójne dotknięcie „Tydzień”): bocian na całą wysokość nad menu */
+function renderAnimals() {
+  $('#view-animals').innerHTML = `
+    <div class="animals-stage"><img src="icons/bocian.svg" alt="Magiczny bocian"></div>`;
+}
 
 function show(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
   if (view !== 'oddech') oddechStop();
   document.body.classList.toggle('sw-on', view === 'stopwatch');
+  document.body.classList.toggle('animals-on', view === 'animals');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
-  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view;  // Oddech → Energia, Leki → Ustawienia
+  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view === 'animals' ? 'week' : view;  // Oddech → Energia, Leki → Ustawienia, Animals → Tydzień
   document.querySelectorAll('.tab').forEach(t => {
     if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
@@ -1016,6 +1023,11 @@ document.addEventListener('click', async ev => {
       if (now - (ui.settingsTap || 0) < 400) { ui.settingsTap = 0; show('stopwatch'); return; }
       ui.settingsTap = now;
     } else ui.settingsTap = 0;
+    // Podwójne dotknięcie „Tydzień” (≤ 400 ms) → widok animals
+    if (tab.dataset.tab === 'week') {
+      if (now - (ui.weekTap || 0) < 400) { ui.weekTap = 0; show('animals'); return; }
+      ui.weekTap = now;
+    } else ui.weekTap = 0;
     // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
     if (tab.dataset.tab === 'energy') {
       tapEnergy = now - tapEnergy.last < TRIPLE_MS ? { n: tapEnergy.n + 1, last: now } : { n: 1, last: now };
