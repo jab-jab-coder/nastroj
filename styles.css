@@ -802,3 +802,8 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .sec-tog:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
 .sec.sec-closed .sec-head { margin: 0; }
 .sec.sec-closed > :not(.sec-head) { display: none !important; }
+.tut-uni { width: 75%; display: grid; place-items: center; margin: 0 auto; padding: 6px; min-height: 60px; }
+.tut-uni img { width: 46px; height: 46px; display: block; pointer-events: none; }
+.tut-all { margin: 0 0 14px; }
+.tut-uni.pop img { animation: uni-hop .7s ease-out; }
+@media (prefers-reduced-motion: reduce) { .tut-uni.pop img { animation: none; } }

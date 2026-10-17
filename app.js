@@ -576,7 +576,13 @@ function renderSettings() {
   const mc = medsCounts();
   $('#view-settings').innerHTML = `
     <header class="head"><span></span><div><div class="eyebrow">Aplikacja</div><h1>Ustawienia</h1></div><span></span></header>
-    <p class="lead">Pory ocen i przypomnienia</p>
+    <p class="lead">Dopasuj aplikację do siebie</p>
+
+    <div class="card">
+      <h3>Samouczek</h3>
+      <button class="btn soft tut-uni" data-act="compliment" aria-label="Pokaż komplement"><img src="icons/jednorozec.svg" alt="" width="46" height="46"></button>
+    </div>
+    <button class="btn soft block tut-all" data-act="sec-all"></button>
 
     <div class="card">
       <h3>Pory dnia</h3>
@@ -632,22 +638,60 @@ function renderSettings() {
   settingsCollapsible();
 }
 
-// Każda karta Ustawień z nagłówkiem dostaje przycisk zwijania po prawej. Stan zapamiętany w settings.collapsed.
+// Każda karta Ustawień z nagłówkiem dostaje przycisk zwijania po prawej.
+// Stan: settings.collapsed (zwinięte przez użytkownika); sekcje z SEC_CLOSED_BY_DEFAULT są
+// domyślnie zwinięte, a ich rozwinięcie zapamiętuje settings.opened.
+const SEC_CLOSED_BY_DEFAULT = ['Samouczek'];
+
+function secClosed(id) {
+  return SEC_CLOSED_BY_DEFAULT.includes(id)
+    ? !(settings.opened || []).includes(id)
+    : (settings.collapsed || []).includes(id);
+}
+
+function secSet(card, shut) {
+  const id = card.dataset.sec;
+  card.classList.toggle('sec-closed', shut);
+  const b = card.querySelector('.sec-tog');
+  b.textContent = shut ? '⌄' : '⌃';
+  b.setAttribute('aria-expanded', String(!shut));
+  b.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
+  const key = SEC_CLOSED_BY_DEFAULT.includes(id) ? 'opened' : 'collapsed';
+  const list = (settings[key] || []).filter(x => x !== id);
+  if (SEC_CLOSED_BY_DEFAULT.includes(id) ? !shut : shut) list.push(id);
+  settings[key] = list;
+}
+
+// Przycisk „Zwiń/Rozwiń wszystkie” (pod Samouczkiem, zawsze widoczny): „Rozwiń”, gdy wszystkie sekcje są zwinięte.
+function secAllLabel() {
+  const b = $('#view-settings .tut-all');
+  if (!b) return;
+  const secs = [...document.querySelectorAll('#view-settings > .card.sec')];
+  const allShut = secs.length > 0 && secs.every(c => c.classList.contains('sec-closed'));
+  b.dataset.mode = allShut ? 'open' : 'close';
+  b.textContent = allShut ? '⌄ Rozwiń wszystkie' : '⌃ Zwiń wszystkie';
+}
+
 function settingsCollapsible() {
-  const closed = settings.collapsed || [];
   document.querySelectorAll('#view-settings > .card').forEach(card => {
     const h = card.querySelector(':scope > h3');
     if (!h) return;
     const id = h.textContent.replace(/[^\p{L}\p{N} ]/gu, '').trim();
-    const shut = closed.includes(id);
     const head = document.createElement('div');
     head.className = 'sec-head';
     h.replaceWith(head);
     head.append(h);
-    head.insertAdjacentHTML('beforeend', `<button class="sec-tog" data-act="sec-toggle" data-sec="${esc(id)}" aria-expanded="${!shut}" aria-label="${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${esc(id)}">${shut ? '⌄' : '⌃'}</button>`);
+    head.insertAdjacentHTML('beforeend', `<button class="sec-tog" data-act="sec-toggle"></button>`);
     card.classList.add('sec');
+    card.dataset.sec = id;
+    const shut = secClosed(id);
     card.classList.toggle('sec-closed', shut);
+    const b = head.lastElementChild;
+    b.textContent = shut ? '⌄' : '⌃';
+    b.setAttribute('aria-expanded', String(!shut));
+    b.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
   });
+  secAllLabel();
 }
 
 /* ---------- Oddech (ukryty ekran: 3× dotknięcie zakładki Energia) ---------- */
@@ -975,16 +1019,17 @@ document.addEventListener('click', async ev => {
   switch (act) {
     case 'oddech-back': show('energy'); break;
     case 'sec-toggle': {
-      const id = el.dataset.sec, box = el.closest('.card');
-      const shut = !box.classList.contains('sec-closed');
-      box.classList.toggle('sec-closed', shut);
-      el.textContent = shut ? '⌄' : '⌃';
-      el.setAttribute('aria-expanded', String(!shut));
-      el.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
-      const list = (settings.collapsed || []).filter(x => x !== id);
-      if (shut) list.push(id);
-      settings.collapsed = list;
+      const box = el.closest('.card');
+      secSet(box, !box.classList.contains('sec-closed'));
       store(KEY_SETTINGS, settings);
+      secAllLabel();
+      break;
+    }
+    case 'sec-all': {
+      const open = el.dataset.mode === 'open';
+      document.querySelectorAll('#view-settings > .card.sec').forEach(c => secSet(c, !open));
+      store(KEY_SETTINGS, settings);
+      secAllLabel();
       break;
     }
     case 'oddech-sound':
