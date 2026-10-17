@@ -696,6 +696,7 @@ function renderStatement() {
   const m = monthData(first);
   const title = fmt(first, { month: 'long', year: 'numeric' });
   const isCur = dkey(first) === dkey(startOfMonth(new Date()));
+  const withMeds = settings.meds?.share && meds.length > 0;   // leki tylko po zaznaczeniu
   openSheet(`
     <div class="sheet-head noprint">
       <button class="icon-btn" data-act="stmt-prev" aria-label="Poprzedni miesiąc">‹</button>
@@ -703,6 +704,7 @@ function renderStatement() {
       <button class="icon-btn" data-act="stmt-next" aria-label="Następny miesiąc" ${isCur ? 'disabled' : ''}>›</button>
       <button class="x" data-act="sheet-close" aria-label="Zamknij">×</button>
     </div>
+    ${medsStatementToggle()}
     <div class="stmt">
       <h2 class="ptitle">Nastrój — wyciąg: ${esc(title)}</h2>
       <div class="stats">
@@ -714,12 +716,13 @@ function renderStatement() {
       ${m.sv.length ? `<h3>Badania</h3><ul class="plain">${m.sv.map(s => `<li>${esc(fmt(new Date(s.t), { day: 'numeric', month: 'short' }))} — ${SURVEYS[s.type].title}: <b>${s.score}</b>/100</li>`).join('')}</ul>` : ''}
       ${m.rank.drains.length ? `<h3>Największe wypłaty</h3><ol class="rank">${m.rank.drains.map(x => `<li><span>${esc(x.name)}</span><small>${x.count}× · razem −${x.total}</small></li>`).join('')}</ol>` : ''}
       ${m.rank.deposits.length ? `<h3>Najskuteczniejsze wpłaty</h3><ol class="rank">${m.rank.deposits.map(x => `<li><span>${esc(x.name)}</span><small>śr. +${x.mean} · ${x.count}×</small></li>`).join('')}</ol>` : ''}
+      ${medsStatementHtml(m.rows.map(r => r.k))}
       <h3>Dzień po dniu</h3>
       <table class="tbl">
-        <thead><tr><th>Dzień</th><th>Nastrój</th><th>Energia</th><th>+</th><th>−</th><th>Saldo</th></tr></thead>
-        <tbody>${m.rows.map(r => `<tr><td>${parseKey(r.k).getDate()}</td><td>${round1(r.mood)}</td><td>${round1(r.energy)}</td><td>${r.dep || ''}</td><td>${r.wd || ''}</td><td class="${r.bal < 0 ? 'neg' : ''}">${r.bal == null ? '–' : signed(r.bal)}</td></tr>`).join('') || '<tr><td colspan="6">Brak danych</td></tr>'}</tbody>
+        <thead><tr><th>Dzień</th><th>Nastrój</th><th>Energia</th><th>+</th><th>−</th><th>Saldo</th>${withMeds ? '<th>Leki</th>' : ''}</tr></thead>
+        <tbody>${m.rows.map(r => `<tr><td>${parseKey(r.k).getDate()}</td><td>${round1(r.mood)}</td><td>${round1(r.energy)}</td><td>${r.dep || ''}</td><td>${r.wd || ''}</td><td class="${r.bal < 0 ? 'neg' : ''}">${r.bal == null ? '–' : signed(r.bal)}</td>${withMeds ? `<td>${medsDayCell(r.k)}</td>` : ''}</tr>`).join('') || `<tr><td colspan="${withMeds ? 7 : 6}">Brak danych</td></tr>`}</tbody>
       </table>
-      <p class="note">Nastrój i energia: samoocena 1–10. Wpłaty/wypłaty: subiektywne wartości 1–100 (energy accounting). Dane wyłącznie z urządzenia użytkownika; to nie jest dokumentacja medyczna.</p>
+      <p class="note">Nastrój i energia: samoocena 1–10. Wpłaty/wypłaty: subiektywne wartości 1–100 (energy accounting). ${withMeds ? ' Leki: wzięte / zaplanowane dawki (bez pominiętych świadomie).' : ''} Dane wyłącznie z urządzenia użytkownika; to nie jest dokumentacja medyczna.</p>
     </div>
     <div class="stack noprint" style="margin-top:12px">
       <button class="btn primary block" data-act="stmt-print">Drukuj / zapisz jako PDF</button>
@@ -733,10 +736,14 @@ function statementCsv() {
   const m = monthData(first);
   const sv = {};
   for (const s of surveys) { const k = dkey(new Date(s.t)); (sv[k] ||= {})[s.type] = s.score; }
-  const lines = [['data', 'nastroj_sr', 'energia_sr', 'wplaty', 'wyplaty', 'saldo', 'cbi', 'samoocena_wyp_aut'].join(';')];
+  const withMeds = settings.meds?.share && meds.length > 0;   // leki tylko po zaznaczeniu
+  const lines = [['data', 'nastroj_sr', 'energia_sr', 'wplaty', 'wyplaty', 'saldo', 'cbi', 'samoocena_wyp_aut',
+    ...(withMeds ? ['leki_wziete', 'leki_zaplanowane', 'leki_na_czas', 'leki_pominiete'] : [])].join(';')];
   for (const r of m.rows) {
     const n = v => (v == null ? '' : round1(v));
-    lines.push([r.k, n(r.mood), n(r.energy), r.dep, r.wd, r.bal ?? '', sv[r.k]?.cbi ?? '', sv[r.k]?.aut ?? ''].join(';'));
+    const ms = withMeds ? medStats([r.k]) : null;
+    lines.push([r.k, n(r.mood), n(r.energy), r.dep, r.wd, r.bal ?? '', sv[r.k]?.cbi ?? '', sv[r.k]?.aut ?? '',
+      ...(withMeds ? (ms.due || ms.skip ? [ms.taken, ms.due, ms.ok, ms.skip] : ['', '', '', '']) : [])].join(';'));
   }
   download(`nastroj-wyciag-${dkey(first).slice(0, 7)}.csv`, '﻿' + lines.join('\r\n'), 'text/csv');
 }
@@ -752,6 +759,7 @@ async function shareSummary() {
     st.bal != null ? `Saldo energii dziś: ${signed(st.bal)}${st.neg ? `, na minusie od ${st.neg} dni` : ''}` : '',
     ma != null ? `Średni nastrój z 7 dni: ${round1(ma)}/10` : '',
     cbi ? `Ostatni wynik wypalenia (CBI): ${cbi.score}/100` : '',
+    medsShareLine(),
     'Potrzebuję teraz trochę wsparcia.',
   ].filter(Boolean).join('\n');
   try {
@@ -925,7 +933,7 @@ function energyCounts() {
 
 /* ---------- eksport / import (wersja 2) ---------- */
 function energyExport() {
-  return { activities: acts, energy: elog, plans, surveys, strategies, records };
+  return { activities: acts, energy: elog, plans, surveys, strategies, records, ...medsExport() };   // + leki (leki.js)
 }
 
 function energyImport(data) {
@@ -991,6 +999,7 @@ function energyImport(data) {
     }
     saveRecs();
   }
+  Object.assign(n, medsImport(data));   // leki (leki.js); pliki bez tych pól nic nie zmieniają
   return n;
 }
 function saveRecs() { store(KEY_RECS, records); }
@@ -1004,6 +1013,7 @@ function recordAdd(rec) {
 function energyWipe() {
   acts = []; elog = {}; plans = {}; surveys = []; strategies = []; records = [];
   for (const k of [KEY_ACTS, KEY_ELOG, KEY_PLAN, KEY_SURV, KEY_STRAT, KEY_RECS]) { try { localStorage.removeItem(k); } catch { /* ignore */ } }
+  medsWipe();
 }
 
 /* ---------- dzisiejsze czynności (dla losowania komplementów) ---------- */
