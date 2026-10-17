@@ -16,7 +16,7 @@
    (a przy wypłatach także im większa wartość).
    ========================================================= */
 const KOMPLEMENTY = [
-  ['😍', 'Helloł! Wyglądasz zajebiście'],
+  ['😍', 'Helloł! Być z Tobą jest zajebiście'],
   ['🌟', 'Jesteś super, pamiętaj o tym!'],
   ['🤗', 'Dziękuję, że jesteś'],
   ['🙏', 'Dziękuję, że tu klikasz, doceniam to!'],

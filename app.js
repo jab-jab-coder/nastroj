@@ -623,7 +623,7 @@ function renderSettings() {
 
     <div class="card about">
       <h3>O aplikacji</h3>
-      <p>Witamy w aplikacji <b>»Nastrój«</b> napisanej przez Jacka, by wspierać swe samopoczucie.</p>
+      <p>Witamy w aplikacji <b>»Nastrój«</b> napisanej przez Jacka, by wspierać swe samopoczucie i mierzyć energię.</p>
       <p>Jeżeli masz jakieś uwagi, napisz na <a href="mailto:jacekbrzeski9+nastroj@gmail.com">jacekbrzeski9+nastroj@gmail.com</a>.</p>
       <p>Dziękuję za korzystanie z tej aplikacji! 💗</p>
     </div>
