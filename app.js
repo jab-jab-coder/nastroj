@@ -589,18 +589,6 @@ function renderSettings() {
 
     ${medsSettingsHtml()}
 
-    <div class="card">
-      <h3>Przypomnienia</h3>
-      <div class="row">
-        <label for="notify">Powiadomienia<small>${notifSupported ? 'O ustalonych porach, gdy brakuje oceny' : 'Niedostępne w tej przeglądarce'}</small></label>
-        <span class="switch"><input type="checkbox" id="notify" ${settings.notify ? 'checked' : ''} ${notifSupported ? '' : 'disabled'}><span></span></span>
-      </div>
-      <div class="stack" style="margin-top:8px">
-        <button class="btn soft block" data-act="ics">📅 Dodaj przypomnienia do kalendarza</button>
-      </div>
-      <p class="note">Android może wstrzymywać aplikacje webowe w tle, więc powiadomienia z aplikacji działają najlepiej, gdy jest zainstalowana i często używana. Najpewniejsze są przypomnienia w kalendarzu — plik .ics dodaje 3 codzienne alarmy z linkiem do aplikacji.</p>
-    </div>
-
     ${energySettingsHtml()}
 
     ${installPrompt ? `
@@ -621,6 +609,18 @@ function renderSettings() {
       <input type="file" id="import-file" accept="application/json,.json" hidden>
       <p class="note">Import dodaje dane z pliku do obecnych (nic nie usuwa). Przyjmuje kopie z obu wersji aplikacji.</p>
     </div>
+    <div class="card">
+      <h3>Przypomnienia</h3>
+      <div class="row">
+        <label for="notify">Powiadomienia<small>${notifSupported ? 'O ustalonych porach, gdy brakuje oceny' : 'Niedostępne w tej przeglądarce'}</small></label>
+        <span class="switch"><input type="checkbox" id="notify" ${settings.notify ? 'checked' : ''} ${notifSupported ? '' : 'disabled'}><span></span></span>
+      </div>
+      <div class="stack" style="margin-top:8px">
+        <button class="btn soft block" data-act="ics">📅 Dodaj przypomnienia do kalendarza</button>
+      </div>
+      <p class="note">Android może wstrzymywać aplikacje webowe w tle, więc powiadomienia z aplikacji działają najlepiej, gdy jest zainstalowana i często używana. Najpewniejsze są przypomnienia w kalendarzu — plik .ics dodaje 3 codzienne alarmy z linkiem do aplikacji.</p>
+    </div>
+
     <div class="card about">
       <h3>O aplikacji</h3>
       <p>Witamy w aplikacji <b>»Nastrój«</b> napisanej przez Jacka, by wspierać swe samopoczucie.</p>
@@ -629,6 +629,25 @@ function renderSettings() {
     </div>
     <p class="footer">Nastrój · działa offline</p>
   `;
+  settingsCollapsible();
+}
+
+// Każda karta Ustawień z nagłówkiem dostaje przycisk zwijania po prawej. Stan zapamiętany w settings.collapsed.
+function settingsCollapsible() {
+  const closed = settings.collapsed || [];
+  document.querySelectorAll('#view-settings > .card').forEach(card => {
+    const h = card.querySelector(':scope > h3');
+    if (!h) return;
+    const id = h.textContent.replace(/[^\p{L}\p{N} ]/gu, '').trim();
+    const shut = closed.includes(id);
+    const head = document.createElement('div');
+    head.className = 'sec-head';
+    h.replaceWith(head);
+    head.append(h);
+    head.insertAdjacentHTML('beforeend', `<button class="sec-tog" data-act="sec-toggle" data-sec="${esc(id)}" aria-expanded="${!shut}" aria-label="${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${esc(id)}">${shut ? '⌄' : '⌃'}</button>`);
+    card.classList.add('sec');
+    card.classList.toggle('sec-closed', shut);
+  });
 }
 
 /* ---------- Oddech (ukryty ekran: 3× dotknięcie zakładki Energia) ---------- */
@@ -955,6 +974,19 @@ document.addEventListener('click', async ev => {
 
   switch (act) {
     case 'oddech-back': show('energy'); break;
+    case 'sec-toggle': {
+      const id = el.dataset.sec, box = el.closest('.card');
+      const shut = !box.classList.contains('sec-closed');
+      box.classList.toggle('sec-closed', shut);
+      el.textContent = shut ? '⌄' : '⌃';
+      el.setAttribute('aria-expanded', String(!shut));
+      el.setAttribute('aria-label', `${shut ? 'Rozwiń' : 'Zwiń'} sekcję ${id}`);
+      const list = (settings.collapsed || []).filter(x => x !== id);
+      if (shut) list.push(id);
+      settings.collapsed = list;
+      store(KEY_SETTINGS, settings);
+      break;
+    }
     case 'oddech-sound':
       settings.oddechSound = !settings.oddechSound;
       store(KEY_SETTINGS, settings);

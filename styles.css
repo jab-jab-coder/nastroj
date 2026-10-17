@@ -794,3 +794,11 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .mlegend i.mk-part { border: 1.5px solid var(--rose-deep); background: linear-gradient(0deg, var(--rose-deep) 50%, transparent 50%); }
 .meds-chart .detail .drow i { width: 8px; height: 8px; }
 .medchart .hit.msel { fill: rgba(246, 165, 198, .28); }
+
+/* Ustawienia: zwijane sekcje */
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+.sec-head h3 { margin: 0; }
+.sec-tog { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: var(--bg); color: var(--ink-soft); font: inherit; font-size: 18px; font-weight: 800; line-height: 1; cursor: pointer; }
+.sec-tog:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+.sec.sec-closed .sec-head { margin: 0; }
+.sec.sec-closed > :not(.sec-head) { display: none !important; }
