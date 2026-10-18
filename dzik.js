@@ -6,7 +6,7 @@
 const DZIK_GOAL = 20;          // tyle żołędzi, po których dzik robi kupę i ucieka
 const DZIK_TAP_MS = 450;       // maks. odstęp między dotknięciami dębu
 const DZIK_END_MS = 5000;      // po kliknięciu kupy → widok „Dziś”
-const DZIK_START = [[176, 268, 0], [196, 276, 25], [150, 280, -20], [232, 286, 0]];
+const DZIK_START = [[110, 492, 0], [140, 506, 25], [84, 516, -20], [176, 522, 0]];
 
 let dz = null;
 
@@ -20,8 +20,8 @@ const dzLater = (fn, ms) => { const t = setTimeout(fn, ms); dz.timers.push(t); r
 
 function dzAcorn(x, y, r, drop) {
   const id = `dz-a${++dz.seq}`;
-  return `<g id="${id}" class="dz-acorn${drop ? ' dz-drop' : ''}" data-act="dzik-acorn" transform="translate(${x} ${y}) rotate(${r}) scale(1.6)">
-    <circle r="15" fill="transparent"/><g class="dz-acorn-in"><use href="#dz-ac"/></g></g>`;
+  return `<g id="${id}" class="dz-acorn${drop ? ' dz-drop' : ''}" data-act="dzik-acorn" transform="translate(${x} ${y}) rotate(${r})">
+    <circle r="14" fill="transparent"/><g class="dz-acorn-in"><use href="#dz-ac"/></g></g>`;
 }
 
 function renderDzik() {
@@ -74,8 +74,8 @@ function dzOakTap(svg) {
 function dzSpawn(svg, count) {
   const layer = svg.querySelector('#dz-acorns');
   for (let i = 0; i < count; i++) {
-    const x = Math.round(30 + Math.random() * 530);   // ściółka między pniami drzew pierwszego planu
-    const y = Math.round(270 + Math.random() * 40);
+    const x = Math.round(60 + Math.random() * 240);   // ściółka przed dzikiem, między drzewami pierwszego planu
+    const y = Math.round(482 + Math.random() * 92);
     const r = Math.round(Math.random() * 60 - 30);
     layer.insertAdjacentHTML('beforeend', dzAcorn(x, y, r, true));
   }
@@ -89,9 +89,11 @@ function dzEnd(svg) {
 }
 
 function dzikSvg(acorns) {
-  return `<svg class="dzik-svg" viewBox="0 0 680 320" role="img" aria-label="Dzik w lesie" xmlns="http://www.w3.org/2000/svg">
+  // Układ pionowy 2:3 (400 × 600). Horyzont ~y 300. Drzewa: horyzont skala 1.8, środek 3.2, pierwszy plan 6;
+  // podstawy wszystkich drzew leżą na ziemi (na linii horyzontu lub niżej). Klikalne są tylko dęby.
+  return `<svg class="dzik-svg" viewBox="0 0 400 600" role="img" aria-label="Dzik w lesie" xmlns="http://www.w3.org/2000/svg">
 <defs>
-<clipPath id="dz-frame"><rect width="680" height="320" rx="12"/></clipPath>
+<clipPath id="dz-frame"><rect width="400" height="600" rx="12"/></clipPath>
 <g id="dz-ey"><path d="M38 55 C32.5 51.2 32.4 46 35.4 46 C36.9 46 38 47 38 48.3 C38 47 39.1 46 40.6 46 C43.6 46 43.5 51.2 38 55 Z" fill="#3b2438"/><circle cx="35.6" cy="48.1" r="1.1" fill="#fff"/><path d="M62 55 C56.5 51.2 56.4 46 59.4 46 C60.9 46 62 47 62 48.3 C62 47 63.1 46 64.6 46 C67.6 46 67.5 51.2 62 55 Z" fill="#3b2438"/><circle cx="59.6" cy="48.1" r="1.1" fill="#fff"/></g>
 <g id="dz-ac" stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round"><ellipse cx="0" cy="2" rx="4.5" ry="5.5" fill="#ffd6a5"/><path d="M-5.5 -1 Q0 -8 5.5 -1 Z" fill="#c9a07a"/></g>
 <g id="dz-pn" stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round"><rect x="-3" y="-10" width="6" height="10" fill="#d9b48e" vector-effect="non-scaling-stroke"/><path d="M-20 -10 L0 -36 L20 -10 Z" fill="#a9cfa0" vector-effect="non-scaling-stroke"/><path d="M-16 -26 L0 -50 L16 -26 Z" fill="#b6d9ac" vector-effect="non-scaling-stroke"/><path d="M-11 -42 L0 -62 L11 -42 Z" fill="#c4e2b8" vector-effect="non-scaling-stroke"/></g>
@@ -117,24 +119,24 @@ function dzikSvg(acorns) {
 </defs>
 
 <g clip-path="url(#dz-frame)">
-<rect width="680" height="320" fill="#eef6e6"/>
+<rect width="400" height="600" fill="#eef6e6"/>
 
 <g opacity=".6">
-<use href="#dz-pn" transform="translate(40 232) scale(2.58)"/>
-<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(150 226) scale(2.58)"/>
-<use href="#dz-pn" transform="translate(250 224) scale(2.58)"/>
-<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(420 223) scale(2.58)"/>
-<use href="#dz-pn" transform="translate(520 224) scale(2.58)"/>
-<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(600 227) scale(2.58)"/>
+<use href="#dz-pn" transform="translate(28 304) scale(1.8)"/>
+<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(96 300) scale(1.8)"/>
+<use href="#dz-pn" transform="translate(162 298) scale(1.8)"/>
+<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(250 298) scale(1.8)"/>
+<use href="#dz-pn" transform="translate(316 300) scale(1.8)"/>
+<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(378 304) scale(1.8)"/>
 </g>
 
-<path d="M-10 230 Q340 210 690 228 V330 H-10 Z" fill="#efdfb4" stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M-10 300 Q200 288 410 302 V610 H-10 Z" fill="#efdfb4" stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round"/>
 
-<use href="#dz-pn" transform="translate(145 252) scale(3.87)"/>
-<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(330 248) scale(3.87)"/>
-<use href="#dz-pn" transform="translate(520 252) scale(3.87)"/>
+<use href="#dz-pn" transform="translate(70 388) scale(3.2)"/>
+<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(206 382) scale(3.2)"/>
+<use href="#dz-pn" transform="translate(332 392) scale(3.2)"/>
 
-<g id="dz-poop" data-act="dzik-poop" transform="translate(462 262)" display="none">
+<g id="dz-poop" data-act="dzik-poop" transform="translate(286 480)" display="none">
 <circle cy="-12" r="24" fill="transparent"/>
 <g class="dz-poop-in" stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round">
 <path d="M-15 0 Q-16 -8 -8 -8 L8 -8 Q16 -8 15 0 Q0 3 -15 0 Z" fill="#8b5a3c"/>
@@ -144,7 +146,7 @@ function dzikSvg(acorns) {
 </g>
 </g>
 
-<g id="dz-boar">
+<g id="dz-boar"><g transform="translate(29 333) scale(.52)">
 <g stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
 <path d="M454 184 Q468 178 466 190 Q463 198 455 193" fill="none" stroke-width="2"/>
 <path d="M410 232 L408 258" fill="none" stroke-width="11"/><path d="M410 232 L408 258" fill="none" stroke="#d8c5bd" stroke-width="8"/>
@@ -174,26 +176,26 @@ function dzikSvg(acorns) {
 </g>
 <use href="#dz-ey"/>
 </g>
-</g>
+</g></g>
 
 <g id="dz-acorns">${acorns}</g>
 
-<use href="#dz-bor" transform="translate(338 292)"/>
-<use href="#dz-bor" transform="translate(364 298) scale(.75)"/>
-<use href="#dz-bor" transform="translate(212 306) scale(.9)"/>
-<use href="#dz-mu" transform="translate(524 298) scale(1.1)"/>
+<use href="#dz-bor" transform="translate(232 534) scale(.6)"/>
+<use href="#dz-bor" transform="translate(250 540) scale(.45)"/>
+<use href="#dz-bor" transform="translate(62 566) scale(.55)"/>
+<use href="#dz-mu" transform="translate(298 512) scale(.6)"/>
 
-<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(-5 318) scale(4.9)"/>
-<use href="#dz-pn" transform="translate(660 318) scale(4.9)"/>
+<use href="#dz-db" class="dz-oak" data-act="dzik-oak" transform="translate(-90 598) scale(6.5)"/>
+<use href="#dz-pn" transform="translate(430 598) scale(6)"/>
 
 <g stroke="#5b3a55" stroke-width="1" fill="#ffc89a">
-<path d="M494 284 q6 -6 12 0 q-6 6 -12 0 Z"/><path d="M118 300 q6 -6 12 0 q-6 6 -12 0 Z"/><path d="M558 306 q6 -6 12 0 q-6 6 -12 0 Z" fill="#fdffb6"/><path d="M400 298 q6 -6 12 0 q-6 6 -12 0 Z" fill="#ffadad"/>
+<path d="M222 578 q5 -5 10 0 q-5 5 -10 0 Z"/><path d="M118 586 q5 -5 10 0 q-5 5 -10 0 Z"/><path d="M330 590 q5 -5 10 0 q-5 5 -10 0 Z" fill="#fdffb6"/><path d="M190 556 q5 -5 10 0 q-5 5 -10 0 Z" fill="#ffadad"/>
 </g>
-<use href="#dz-sp" transform="translate(470 140) scale(.8)"/><use href="#dz-sp" transform="translate(185 150) scale(.6)"/><use href="#dz-sp" transform="translate(240 70) scale(.6)"/>
+<use href="#dz-sp" transform="translate(330 90) scale(.8)"/><use href="#dz-sp" transform="translate(70 140) scale(.6)"/><use href="#dz-sp" transform="translate(240 60) scale(.6)"/>
 
 <g id="dz-msg" display="none">
-<rect x="150" y="128" width="380" height="64" rx="18" fill="#fff" stroke="#5b3a55" stroke-width="1.6" opacity=".95"/>
-<text x="340" y="169" text-anchor="middle" font-size="26" font-weight="700" fill="#5b3a55">To koniec tej przygody!</text>
+<rect x="30" y="232" width="340" height="60" rx="18" fill="#fff" stroke="#5b3a55" stroke-width="1.6" opacity=".95"/>
+<text x="200" y="270" text-anchor="middle" font-size="24" font-weight="700" fill="#5b3a55">To koniec tej przygody!</text>
 </g>
 </g>
 </svg>`;
