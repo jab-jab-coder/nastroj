@@ -1003,7 +1003,7 @@ function show(view) {
   document.body.classList.toggle('animals-on', view === 'animals');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
-  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view === 'animals' ? 'week' : view;  // Oddech → Energia, Leki → Ustawienia, Animals → Tydzień
+  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view === 'animals' ? 'week' : view : view === 'dzik' ? 'month' : view;  // Oddech → Energia, Leki → Ustawienia, Animals → Tydzień
   document.querySelectorAll('.tab').forEach(t => {
     if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
