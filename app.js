@@ -989,7 +989,8 @@ function renderStopwatch() {
    Nawigacja i zdarzenia
    ========================================================= */
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
-  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, dzik: renderDzik, animals: renderAnimals };
+  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, dzik: renderDzik, animals: renderAnimals,
+  'animals-together': renderAnimalsTogether };
 
 /* Widok „animals” (podwójne dotknięcie „Tydzień”): bocian na całą wysokość nad menu */
 function renderAnimals() {
@@ -1002,10 +1003,10 @@ function show(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
   if (view !== 'oddech') oddechStop();
   document.body.classList.toggle('sw-on', view === 'stopwatch');
-  document.body.classList.toggle('animals-on', view === 'animals');
+  document.body.classList.toggle('animals-on', view === 'animals' || view === 'animals-together');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
-  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view === 'dzik' ? 'month' : view === 'animals' ? 'week' : view;  // Oddech → Energia, Leki → Ustawienia, Dzik → Miesiąc, Animals → Tydzień
+  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view === 'dzik' ? 'month' : view === 'animals' || view === 'animals-together' ? 'week' : view;  // Oddech → Energia, Leki → Ustawienia, Dzik → Miesiąc, Animals(-together) → Tydzień
   document.querySelectorAll('.tab').forEach(t => {
     if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
@@ -1030,11 +1031,18 @@ document.addEventListener('click', async ev => {
       if (now - (ui.monthTap || 0) < 400) { ui.monthTap = 0; dzikReset(); show('dzik'); return; }
       ui.monthTap = now;
     } else ui.monthTap = 0;
-    // Podwójne dotknięcie „Tydzień” (≤ 400 ms) → widok animals (bocian)
+    // „Tydzień”: 2 dotknięcia → animals (bocian), 3 dotknięcia → animals-together.
+    // Po drugim dotknięciu czekamy TRIPLE_MS, czy nie przyjdzie trzecie.
     if (tab.dataset.tab === 'week') {
-      if (now - (ui.weekTap || 0) < 400) { ui.weekTap = 0; show('animals'); return; }
+      clearTimeout(ui.weekTimer);
+      ui.weekTaps = now - (ui.weekTap || 0) < TRIPLE_MS ? (ui.weekTaps || 0) + 1 : 1;
       ui.weekTap = now;
-    } else ui.weekTap = 0;
+      if (ui.weekTaps >= 3) { ui.weekTaps = 0; ui.weekTap = 0; show('animals-together'); return; }
+      if (ui.weekTaps === 2) {
+        ui.weekTimer = setTimeout(() => { ui.weekTaps = 0; if (ui.view === 'week') show('animals'); }, TRIPLE_MS);
+        return;
+      }
+    } else { clearTimeout(ui.weekTimer); ui.weekTaps = 0; ui.weekTap = 0; }
     // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
     if (tab.dataset.tab === 'energy') {
       tapEnergy = now - tapEnergy.last < TRIPLE_MS ? { n: tapEnergy.n + 1, last: now } : { n: 1, last: now };
@@ -1049,6 +1057,7 @@ document.addEventListener('click', async ev => {
   const act = el.dataset.act;
   const card = el.closest('.slot');
   if (act.startsWith('dzik-')) return dzikClick(act, el);
+  if (act === 'at-flip') return atFlip(el);
 
   switch (act) {
     case 'oddech-back': show('energy'); break;

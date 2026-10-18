@@ -844,3 +844,21 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
   display: grid; place-items: center; overflow: hidden;
 }
 .animals-stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* ---------- ukryty widok: animals-together (potrójne dotknięcie „Tydzień”) ---------- */
+.at-grid {
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 104px);  /* cała wysokość nad menu */
+  display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px;
+}
+@media (orientation: landscape) { .at-grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); } }
+.at-tile {
+  min-width: 0; min-height: 0; padding: 6px; border-radius: 16px; cursor: pointer;
+  background: #fff7fa; border: 1px solid #f3e1ea; -webkit-tap-highlight-color: transparent;
+  display: grid; place-items: stretch;
+}
+.at-tile:focus-visible { outline: 3px solid #f3c2d3; outline-offset: 2px; }
+.at-art { display: block; width: 100%; height: 100%; min-height: 0; animation: at-in .22s ease-out; }
+.at-art svg { width: 100%; height: 100%; display: block; }
+.at-tile .o { stroke: #5b3a55; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+@keyframes at-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .at-art { animation: none; } }
