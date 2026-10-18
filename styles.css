@@ -221,7 +221,7 @@ input[type=time] {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom) + 12px);
   width: min(448px, calc(100% - 24px));
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;   /* ukryta zakładka nie zostawia dziury */
   background: rgba(255, 255, 255, .92);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-radius: 24px; box-shadow: var(--shadow);
@@ -801,3 +801,44 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
   display: grid; place-items: center; overflow: hidden;
 }
 .animals-stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* ---------- ukryty widok: dzik (podwójne dotknięcie „Miesiąc”) ---------- */
+.dzik-card { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: #eef6e6; margin-top: 8px; }
+.dzik-svg { display: block; width: 100%; height: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.dzik-svg [data-act] { cursor: pointer; }
+.dzik-svg .dz-acorn-in, .dzik-svg .dz-snout, .dzik-svg .dz-poop-in { transform-box: fill-box; transform-origin: center; }
+.dzik-svg .dz-acorn { transition: opacity .25s; }
+.dzik-svg .dz-acorn.dz-gone { opacity: 0; pointer-events: none; }
+.dzik-svg .dz-acorn.dz-gone .dz-acorn-in { transform: scale(.2); transition: transform .25s; }
+.dzik-svg .dz-drop .dz-acorn-in { animation: dz-drop .5s cubic-bezier(.4, 0, .9, .6); }
+@keyframes dz-drop { from { transform: translateY(-60px); opacity: 0; } 30% { opacity: 1; } }
+.dzik-svg .dz-mouth-open { opacity: 0; }
+.dzik-svg .dz-chew .dz-snout { animation: dz-chew .15s ease-in-out 6 alternate; }
+.dzik-svg .dz-chew .dz-mouth-open { animation: dz-mouth .15s 6 alternate; }
+@keyframes dz-chew { to { transform: translateY(1.8px) scaleY(.9); } }
+@keyframes dz-mouth { to { opacity: 1; } }
+.dzik-svg #dz-boar { transition: transform 1.6s ease-in; }
+.dzik-svg #dz-boar.dz-run { transform: translateX(-640px); }
+.dzik-svg #dz-poop .dz-poop-in { animation: dz-pop .4s ease-out; }
+@keyframes dz-pop { from { transform: scale(0); } 70% { transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .dzik-svg *, .dzik-svg #dz-boar { animation: none !important; transition: none !important; } }
+/* ---------- samouczek „Pierwsze kroki” (bez animacji, zawsze do pominięcia) ---------- */
+#tut { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 24px); }
+body.tut-on { overflow: hidden; }
+body.tut-on .tabbar, body.tut-on .fab { visibility: hidden; }
+.tut-in { max-width: 480px; margin: 0 auto; }
+.tut-top { display: flex; align-items: center; justify-content: space-between; }
+.tut-count { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.tut-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0 22px; }
+.tut-bar i { height: 6px; border-radius: 99px; background: var(--line); }
+.tut-bar i.on { background: var(--rose); }
+#tut h1 { outline: none; }
+.tut-p { font-size: 16px; line-height: 1.5; margin: 10px 0 16px; }
+.tut-safe { display: flex; gap: 12px; align-items: flex-start; }
+.tut-safe p { margin: 0; line-height: 1.45; }
+.tut-ico { font-size: 26px; line-height: 1; }
+.tut-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
+.tut-nav .btn.primary { flex: 1; max-width: 260px; margin-left: auto; }
+.tut-later { margin-top: 8px; }
+.tut-small { font-size: 14px; color: var(--ink-soft); margin-top: -6px; }
+.tut-bye { text-align: center; font-weight: 700; color: var(--rose-deep); margin: 14px 0 0; }

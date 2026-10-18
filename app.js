@@ -178,13 +178,13 @@ function renderToday() {
       </div>
       <button class="icon-btn" data-act="day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
     </header>
-    ${saldoChipHtml()}
+    ${energyOn() ? saldoChipHtml() : ''}
     <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
     <p class="lead">${msg}</p>
     ${SLOTS.map(s => (isToday && s.id !== cur && !ui.open[`${key}|${s.id}`])
       ? slotCompact(s, key)
       : slotCard(s, key, s.id === cur, isToday && s.id !== cur)).join('')}
-    ${medsTodayHtml(key)}
+    ${medsOn() ? medsTodayHtml(key) : ''}
   `;
 }
 
@@ -516,7 +516,7 @@ function renderWeek() {
       ${legendHtml(`<span><i class="line" style="background:${SERIES.energy.avg};opacity:.55"></i>średnia dnia</span>`, SERIES.energy.slots)}
       <div class="detail" id="week-detail">${detailHtml(ui.selWeek)}</div>
     </div>
-    ${medsChartCard(days.map(dkey), 'week')}
+    ${medsOn() ? medsChartCard(days.map(dkey), 'week') : ''}
     <div class="card"><h3>Średnio o porach dnia</h3>${slotAvgHtml(st.per)}</div>
   `;
 }
@@ -561,7 +561,7 @@ function renderMonth() {
       ${monthLegendHtml('energy')}
       <div class="detail" id="month-detail">${detailHtml(ui.selMonth)}</div>
     </div>
-    ${medsChartCard(days.map(dkey), 'month')}
+    ${medsOn() ? medsChartCard(days.map(dkey), 'month') : ''}
     <div class="card"><h3>Średnio o porach dnia</h3>${slotAvgHtml(st.per)}</div>
   `;
 }
@@ -586,7 +586,8 @@ function renderSettings() {
 
     <div class="card tut-card" id="tut-card">
       <h3>Samouczek</h3>
-      <button class="btn soft tut-uni" data-act="compliment" aria-label="Pokaż komplement"><img src="icons/jednorozec.svg" alt="" width="51" height="51"></button>
+      <button class="btn soft tut-uni" data-act="tut-start" aria-label="Uruchom samouczek"><img src="icons/jednorozec.svg" alt="" width="51" height="51"></button>
+      <p class="note" style="text-align:center">Dotknij jednorożca, żeby przejść pierwsze kroki jeszcze raz.</p>
     </div>
 
     <div class="card">
@@ -1028,6 +1029,11 @@ document.addEventListener('click', async ev => {
       if (now - (ui.weekTap || 0) < 400) { ui.weekTap = 0; show('animals'); return; }
       ui.weekTap = now;
     } else ui.weekTap = 0;
+    // Podwójne dotknięcie „Miesiąc” (≤ 400 ms) → dzik
+    if (tab.dataset.tab === 'month') {
+      if (now - (ui.monthTap || 0) < 400) { ui.monthTap = 0; dzikReset(); show('dzik'); return; }
+      ui.monthTap = now;
+    } else ui.monthTap = 0;
     // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
     if (tab.dataset.tab === 'energy') {
       tapEnergy = now - tapEnergy.last < TRIPLE_MS ? { n: tapEnergy.n + 1, last: now } : { n: 1, last: now };
@@ -1041,6 +1047,7 @@ document.addEventListener('click', async ev => {
   if (!el) return;
   const act = el.dataset.act;
   const card = el.closest('.slot');
+  if (act.startsWith('dzik-')) return dzikClick(act, el);
 
   switch (act) {
     case 'oddech-back': show('energy'); break;
@@ -1144,7 +1151,7 @@ document.addEventListener('click', async ev => {
       }
       break;
     default:
-      if (!medsClick(act, el)) energyClick(act, el);
+      if (!tutClick(act) && !medsClick(act, el)) energyClick(act, el);
   }
 });
 
@@ -1450,6 +1457,7 @@ const DEEP_LINKS = { stoper: 'stopwatch' };
 const startView = DEEP_LINKS[new URLSearchParams(location.search).get('widok')] || 'today';
 if (location.search) history.replaceState(null, '', location.pathname + location.hash);
 show(startView);
+tutMaybeStart();
 syncState();
 checkReminders();
 setInterval(checkReminders, 60 * 1000);
