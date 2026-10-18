@@ -32,6 +32,10 @@ Aplikacja do oceny samopoczucia 3× dziennie (rano, popołudnie, wieczór) w ska
 Dane: `localStorage` przeglądarki, tylko na urządzeniu. Format ocen (bez zmian od v1, pole `e` opcjonalne): `{ "YYYY-MM-DD": { "morning": { "v": 7, "t": <timestamp>, "e": 4 }, ... } }`.
 Nowe klucze v2: `nastroj.activities.v1`, `nastroj.energy.v1`, `nastroj.plan.v1`, `nastroj.surveys.v1`, `nastroj.strategies.v1`. Moduł Leki: `nastroj.meds.v1`, `nastroj.medpacks.v1`, `nastroj.medlog.v1` (opis formatu na początku `leki.js`); kopia JSON zawiera je jako `meds`, `medpacks`, `medlog`. Przy pierwszym uruchomieniu v2 aplikacja zapisuje kopię starych ocen w `nastroj.backup.pre-v2` (do pobrania w Ustawieniach). Eksport ma `version: 2`; import przyjmuje pliki z wersji 1 i 2 i tylko dopisuje dane.
 
+## Strona do wysyłania znajomym
+
+`pobierz.html` (https://jab-jab-coder.github.io/nastroj/pobierz.html) — krótki opis aplikacji, przycisk „Otwórz aplikację” i instrukcja instalacji dla Androida i iPhone'a (wykrywa telefon i pokazuje jego instrukcję pierwszą). Wykrywa też przeglądarki komunikatorów (Messenger, Instagram…) i prosi o otwarcie w Chrome/Safari. Na komputerze pokazuje kod QR (`icons/qr-pobierz.svg`). Strona nie należy do powłoki aplikacji w `sw.js`.
+
 ## Uruchomienie lokalne
 
 ```bash
