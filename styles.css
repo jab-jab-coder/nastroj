@@ -794,7 +794,8 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .sec-head h3 { cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; flex: 1 1 auto; }
 
 /* ---------- ukryty widok: dzik (podwójne dotknięcie „Miesiąc”) ---------- */
-.dzik-card { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: #eef6e6; margin-top: 8px; }
+.dzik-card { border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: #eef6e6; margin: 8px auto 0;
+  max-width: max(240px, calc((100dvh - 170px) * 2 / 3)); }
 .dzik-svg { display: block; width: 100%; height: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
 .dzik-svg [data-act] { cursor: pointer; }
 .dzik-svg .dz-acorn-in, .dzik-svg .dz-snout, .dzik-svg .dz-poop-in { transform-box: fill-box; transform-origin: center; }
