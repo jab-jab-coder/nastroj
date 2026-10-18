@@ -834,3 +834,12 @@ body.tut-on .tabbar, body.tut-on .fab { visibility: hidden; }
 .tut-later { margin-top: 8px; }
 .tut-small { font-size: 14px; color: var(--ink-soft); margin-top: -6px; }
 .tut-bye { text-align: center; font-weight: 700; color: var(--rose-deep); margin: 14px 0 0; }
+
+/* ---------- ukryty widok: animals (podwójne dotknięcie „Tydzień”) ---------- */
+body.animals-on .fab, body.animals-on #compliment { display: none !important; }
+body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
+.animals-stage {
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 104px);  /* cała wysokość nad menu */
+  display: grid; place-items: center; overflow: hidden;
+}
+.animals-stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
