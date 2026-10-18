@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e75a8d">
+<meta name="description" content="Nastrój — ocena samopoczucia i energii 3× dziennie, księgowość energetyczna, wykresy. Bez konta, dane zostają na Twoim telefonie.">
+<meta property="og:title" content="Nastrój — aplikacja do samopoczucia i energii">
+<meta property="og:description" content="Krótkie oceny dzienne i szybka księgowość energetyczna. Bez konta, dane tylko na Twoim telefonie.">
+<meta property="og:image" content="https://jab-jab-coder.github.io/nastroj/icons/icon-512.png">
+<title>Nastrój — pobierz aplikację</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  /* Jedna kolumna jak w aplikacji: ikona i przycisk na górze, potem instrukcja dla Twojego telefonu.
+     Kolory i krój te same co w aplikacji (styles.css). Bez zewnętrznych zasobów — strona nic nie śledzi. */
+  :root {
+    --bg: #fff3f7;
+    --bg2: #ffe4ee;
+    --card: #ffffff;
+    --ink: #4a2236;
+    --ink-soft: #8a5a72;
+    --line: #f6d3e1;
+    --rose: #e75a8d;
+    --rose-deep: #c2185b;
+    --warn-bg: #fff6e0;
+    --warn-line: #f2d48a;
+    --shadow: 0 6px 24px rgba(194, 24, 91, .10), 0 1px 3px rgba(194, 24, 91, .08);
+    --radius: 22px;
+    --font: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", Roboto, system-ui, sans-serif;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 320px);
+    background-color: var(--bg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+  [hidden] { display: none !important; }
+  img { max-width: 100%; }
+  a { color: var(--rose-deep); }
+
+  .wrap {
+    max-width: 520px; margin: 0 auto;
+    padding-block: 28px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 18px;
+  }
+
+  /* ---------- nagłówek ---------- */
+  .hero { display: grid; justify-items: center; text-align: center; gap: 10px; padding-top: 6px; }
+  .app-icon { width: 96px; height: 96px; border-radius: 24px; box-shadow: var(--shadow); }
+  h1 { font-size: 34px; line-height: 1.1; margin: 4px 0 0; font-weight: 800; letter-spacing: -.01em; }
+  .tagline { margin: 0; font-size: 17px; max-width: 30ch; text-wrap: balance; }
+  .facts { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-soft); letter-spacing: .02em; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 0; border-radius: 99px; cursor: pointer;
+    padding: 14px 26px; min-height: 52px;
+    font: inherit; font-weight: 800; font-size: 17px; text-decoration: none;
+  }
+  .btn.primary { background: var(--rose); color: #fff; box-shadow: 0 4px 14px rgba(231, 90, 141, .35); }
+  .btn.soft { background: var(--bg2); color: var(--rose-deep); font-size: 15px; min-height: 46px; padding: 10px 20px; }
+  .btn:focus-visible, summary:focus-visible { outline: 3px solid #f28bb6; outline-offset: 3px; }
+  .cta { display: grid; gap: 8px; justify-items: center; width: 100%; }
+  .cta .btn.primary { width: min(100%, 320px); }
+
+  /* mała próbka oceny — tak wygląda wpis w aplikacji */
+  .sample {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border-radius: 18px; padding: 10px 16px; box-shadow: var(--shadow);
+    font-size: 15px; margin-top: 4px;
+  }
+  .sample .emo { font-size: 26px; line-height: 1; }
+  .sample b { font-size: 22px; color: var(--rose-deep); font-variant-numeric: tabular-nums; }
+  .sample .lbl { color: var(--ink-soft); font-weight: 700; }
+  .sample .en { color: var(--ink-soft); font-weight: 700; padding-left: 12px; border-left: 1px solid var(--line); }
+
+  /* ---------- karty ---------- */
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 18px 20px; min-width: 0; }
+  h2 { font-size: 19px; margin: 0 0 10px; font-weight: 800; text-wrap: balance; }
+  p { margin: 0; }
+  .card > p + p, .card > p + ul, .card > ul + p { margin-top: 10px; }
+  ul.plain { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  ul.plain li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: start; }
+  ul.plain li span:first-child { text-align: center; }
+
+  .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--rose); }
+
+  /* ---------- instrukcje instalacji ---------- */
+  .platform { display: grid; gap: 12px; }
+  .platform .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .platform .head h2 { margin: 0; }
+  .mine { display: none; background: var(--rose); color: #fff; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 99px; }
+  .platform.is-mine .mine { display: inline-block; }
+  .platform.is-mine { outline: 2px solid var(--rose); outline-offset: -2px; }
+  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
+  ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+  ol.steps > li::before {
+    content: counter(s); width: 30px; height: 30px; border-radius: 50%;
+    background: var(--bg2); color: var(--rose-deep); font-weight: 800; font-size: 15px;
+    display: grid; place-items: center;
+  }
+  .ui { /* nazwa przycisku/menu na telefonie */
+    font-weight: 800; white-space: nowrap;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 0 6px;
+  }
+  .sub { display: block; font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
+  .note {
+    background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 14px;
+    padding: 10px 12px; font-size: 14px;
+  }
+  details.more > summary { cursor: pointer; font-weight: 800; color: var(--rose-deep); list-style: none; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::after { content: " ⌄"; }
+  details.more[open] > summary::after { content: " ⌃"; }
+  details.more > div { margin-top: 10px; display: grid; gap: 8px; font-size: 15px; }
+
+  /* ---------- przeglądarka w komunikatorze ---------- */
+  .inapp { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 10px; }
+  .inapp h2 { margin: 0; }
+  .row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ---------- komputer: kod QR ---------- */
+  .desk { display: grid; grid-template-columns: 132px 1fr; gap: 16px; align-items: center; }
+  .desk img { width: 132px; height: 132px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+  @media (max-width: 380px) { .desk { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+
+  .mail { font-weight: 800; word-break: break-all; user-select: all; }
+  footer { text-align: center; font-size: 13px; color: var(--ink-soft); display: grid; gap: 6px; }
+
+  @media (prefers-reduced-motion: no-preference) { .btn { transition: transform .12s; } .btn:active { transform: scale(.97); } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <!-- Otwarte z Messengera, Instagrama itp.: tam nie da się zainstalować aplikacji -->
+  <section class="inapp" id="inapp" hidden>
+    <h2>Otwórz w zwykłej przeglądarce</h2>
+    <p id="inapp-text">Ten link otworzył się w przeglądarce komunikatora. Stąd nie da się dodać aplikacji do ekranu, a wpisy mogłyby zniknąć.</p>
+    <div class="row-btns">
+      <a class="btn primary" id="open-chrome" href="#" hidden>Otwórz w Chrome</a>
+      <button class="btn soft" id="copy-1" type="button">Kopiuj link</button>
+    </div>
+  </section>
+
+  <header class="hero">
+    <img class="app-icon" src="icons/icon-192.png" alt="Ikona aplikacji Nastrój" width="96" height="96">
+    <h1>Nastrój</h1>
+    <p class="tagline">Zauważaj, jak się czujesz, i zarządzaj swoją energią — wystarczą krótkie oceny w ciągu dnia.</p>
+    <div class="sample" aria-label="Przykładowa ocena: rano, samopoczucie 6, Dobrze, energia 5">
+      <span class="emo" aria-hidden="true">🙂</span><b>6</b><span class="lbl">Dobrze</span><span class="en">⚡ 5</span>
+    </div>
+    <div class="cta">
+      <a class="btn primary" id="open-app" href="./">Otwórz aplikację</a>
+      <p class="facts">Za darmo · bez konta · działa bez internetu</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2>Co to jest?</h2>
+    <p>Aplikacja <i>Nastrój</i> pomaga zauważać, jak się czujesz i jak zarządzać Twoją energią — wystarczą krótkie oceny dzienne i szybka księgowość energetyczna, a poznasz lepiej siebie.</p>
+    <ul class="plain" style="margin-top:12px">
+      <li><span aria-hidden="true">🌤️</span><span>Ocena samopoczucia i energii rano, po południu i wieczorem — skala 1–10.</span></li>
+      <li><span aria-hidden="true">⚡</span><span>Księgowość energetyczna: co dodaje, a co zabiera Ci energię, i saldo dnia.</span></li>
+      <li><span aria-hidden="true">📈</span><span>Wykresy tygodnia i miesiąca, dzienniczek leków, krótkie ankiety.</span></li>
+      <li><span aria-hidden="true">🔒</span><span>Twoje dane zostają na Twoim telefonie. Nie ma konta ani serwera.</span></li>
+    </ul>
+  </section>
+
+  <div id="platforms" style="display:grid;gap:18px">
+    <section class="card platform" id="p-android" data-os="android">
+      <div class="head"><h2>Android</h2><span class="mine">Twój telefon</span></div>
+      <ol class="steps">
+        <li><span>Otwórz ten link w <b>Chrome</b> i dotknij <span class="ui">Otwórz aplikację</span>.</span></li>
+        <li><span>Chrome zaproponuje <span class="ui">Zainstaluj</span> — potwierdź.
+          <span class="sub">Jeśli nie zaproponuje: menu <span class="ui">⋮</span> w prawym górnym rogu → <span class="ui">Zainstaluj aplikację</span> albo <span class="ui">Dodaj do ekranu głównego</span>.</span></span></li>
+        <li><span>Uruchamiaj Nastrój z ikony na ekranie telefonu — jak każdą aplikację.</span></li>
+      </ol>
+      <details class="more">
+        <summary>Masz Samsung Internet albo Firefox?</summary>
+        <div>
+          <p><b>Samsung Internet:</b> menu <span class="ui">≡</span> → <span class="ui">Dodaj stronę do</span> → <span class="ui">Ekran startowy</span>.</p>
+          <p><b>Firefox:</b> menu <span class="ui">⋮</span> → <span class="ui">Dodaj do ekranu głównego</span>.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="card platform" id="p-ios" data-os="ios">
+      <div class="head"><h2>iPhone i iPad</h2><span class="mine">Twój telefon</span></div>
+      <ol class="steps">
+        <li><span>Otwórz ten link w <b>Safari</b> i dotknij <span class="ui">Otwórz aplikację</span>.</span></li>
+        <li><span>Dotknij <span class="ui">Udostępnij</span> (kwadrat ze strzałką w górę).
+          <span class="sub">W iOS 26 najpierw dotknij <span class="ui">⋯</span> obok paska adresu, potem <span class="ui">Udostępnij</span>.</span></span></li>
+        <li><span>Przewiń w dół, wybierz <span class="ui">Do ekranu początkowego</span>, a potem <span class="ui">Dodaj</span>.
+          <span class="sub">Jeśli widzisz przełącznik otwierania jako aplikacja webowa — zostaw go włączony.</span></span></li>
+        <li><span>Zamknij Safari i otwórz Nastrój <b>z ikony</b> na ekranie. Dopiero tam zrób pierwszy wpis.</span></li>
+      </ol>
+      <p class="note"><b>Ważne:</b> na iPhonie Safari i aplikacja z ikony mają osobną pamięć. Wpisy zrobione w Safari nie przejdą do aplikacji — dlatego najpierw dodaj ją do ekranu.</p>
+      <details class="more">
+        <summary>Używasz Chrome na iPhonie?</summary>
+        <div>
+          <p>Też się da (iOS 16.4 i nowsze): przycisk <span class="ui">Udostępnij</span> przy pasku adresu → <span class="ui">Do ekranu początkowego</span>. Jeśli tej opcji nie ma, otwórz link w Safari.</p>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <section class="card" id="desktop" hidden>
+    <div class="desk">
+      <img src="icons/qr-pobierz.svg" alt="Kod QR z linkiem do tej strony" width="132" height="132">
+      <div>
+        <p class="eyebrow">Jesteś na komputerze?</p>
+        <p>Nastrój jest zrobiony na telefon. Zeskanuj kod aparatem telefonu i zainstaluj aplikację tam.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Dobrze wiedzieć</h2>
+    <ul class="plain">
+      <li><span aria-hidden="true">💾</span><span>Wszystko jest zapisane tylko na Twoim telefonie. Usunięcie aplikacji albo wyczyszczenie danych przeglądarki kasuje wpisy — czasem zrób kopię: <b>Ustawienia → Dane → Eksportuj kopię</b>.</span></li>
+      <li><span aria-hidden="true">📱</span><span>Nowy telefon? Zrób eksport na starym, a na nowym <b>Importuj kopię</b>.</span></li>
+      <li><span aria-hidden="true">⏰</span><span>Najpewniejsze przypomnienia dodasz do kalendarza: <b>Ustawienia → Przypomnienia</b>.</span></li>
+      <li><span aria-hidden="true">🦄</span><span>Przy pierwszym uruchomieniu poprowadzi Cię krótki samouczek. Wrócisz do niego w Ustawieniach.</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Brakuje Ci czegoś? Daj znak Jackowi, serio!</p>
+    <p><a class="mail" href="mailto:jacekbrzeski9+nastroj@gmail.com">jacekbrzeski9+nastroj@gmail.com</a></p>
+    <p><button class="btn soft" id="copy-2" type="button">Kopiuj link do tej strony</button></p>
+  </footer>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  // Przeglądarki wbudowane w komunikatory (nie da się z nich zainstalować aplikacji)
+  var inApp = /FBAN|FBAV|FB_IAB|Instagram|Messenger|Line\/|Snapchat|musical_ly|TikTok|LinkedInApp|Twitter/i.test(ua);
+
+  // Adres aplikacji: ten sam folder co ta strona
+  var appUrl = new URL('./', location.href);
+
+  // Twój telefon na górze i wyróżniony
+  var mine = isIOS ? 'p-ios' : isAndroid ? 'p-android' : null;
+  if (mine) {
+    var box = document.getElementById(mine);
+    box.classList.add('is-mine');
+    box.parentNode.insertBefore(box, box.parentNode.firstChild);
+  } else {
+    document.getElementById('desktop').hidden = false;
+  }
+
+  if (inApp) {
+    document.getElementById('inapp').hidden = false;
+    if (isAndroid) {
+      var oc = document.getElementById('open-chrome');
+      oc.href = 'intent://' + location.host + location.pathname + '#Intent;scheme=https;package=com.android.chrome;end';
+      oc.hidden = false;
+    } else if (isIOS) {
+      document.getElementById('inapp-text').textContent =
+        'Ten link otworzył się w przeglądarce komunikatora. Dotknij ⋯ lub ikonę udostępniania i wybierz „Otwórz w Safari” — stamtąd zainstalujesz aplikację.';
+    }
+  }
+
+  function copy(btn) {
+    var url = location.href.split('#')[0];
+    var done = function () { var t = btn.textContent; btn.textContent = 'Skopiowano ✓'; setTimeout(function () { btn.textContent = t; }, 1800); };
+    var fallback = function () { window.prompt ? window.prompt('Skopiuj link:', url) : null; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback);
+    else fallback();
+  }
+  document.getElementById('copy-1').addEventListener('click', function () { copy(this); });
+  document.getElementById('copy-2').addEventListener('click', function () { copy(this); });
+})();
+</script>
+</body>
+</html>
