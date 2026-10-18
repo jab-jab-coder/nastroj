@@ -988,7 +988,7 @@ function renderStopwatch() {
    Nawigacja i zdarzenia
    ========================================================= */
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
-  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, animals: renderAnimals };
+  stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, dzik: renderDzik, animals: renderAnimals };
 
 /* Widok „animals” (podwójne dotknięcie „Tydzień”): bocian na całą wysokość nad menu */
 function renderAnimals() {
