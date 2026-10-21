@@ -793,6 +793,11 @@ body.sw-on .fab, body.sw-on #compliment { display: none !important; }
 .sec.sec-closed > :not(.sec-head) { display: none !important; }
 .tut-uni { width: 75%; display: grid; place-items: center; margin: 0 auto; padding: 6px; min-height: 60px; }
 .tut-uni img { width: 51px; height: 51px; display: block; pointer-events: none; }
+.tut-pets { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+.tut-pet { min-width: 0; width: 100%; margin: 0; padding: 6px 0; min-height: 52px; display: grid; place-items: center; }
+.tut-pet img { width: 40px; height: 40px; display: block; pointer-events: none; }
+.tut-pet[aria-disabled="true"] { cursor: default; }
+.tut-pet:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
 .set-top { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 14px; }
 .set-top .btn { min-width: 0; width: 100%; margin: 0; padding: 8px 6px; min-height: 52px; font-size: 13px; line-height: 1.2; white-space: normal; text-align: center; }
 .set-top .btn.on, .set-top .btn[aria-pressed="true"] { background: var(--rose); border-color: var(--rose); color: #fff; }

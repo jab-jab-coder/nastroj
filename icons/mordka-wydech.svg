@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="Jednorożec robi wydech">
+  <title>Jednorożec robi wydech</title>
+  <defs>
+    <linearGradient id="uni-horn" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#f9c74f"/>
+      <stop offset="1" stop-color="#ffe8a3"/>
+    </linearGradient>
+    
+  </defs>
+
+  <g stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- grzywa z tyłu -->
+    <!-- pastelowa tęcza, zgodnie z ruchem wskazówek zegara od lewego dołu -->
+    <circle cx="26" cy="71" r="8"  fill="#ffadad"/>
+    <circle cx="22" cy="57" r="9"  fill="#ffd6a5"/>
+    <circle cx="27" cy="42" r="10" fill="#fdffb6"/>
+    <circle cx="73" cy="42" r="10" fill="#a0c4ff"/>
+    <circle cx="78" cy="57" r="9"  fill="#bdb2ff"/>
+    <circle cx="74" cy="71" r="8"  fill="#d9c2ff"/>
+
+    <!-- uszy -->
+    <path d="M28 40 L30 17 L43 32 Z" fill="#fff"/>
+    <path d="M72 40 L70 17 L57 32 Z" fill="#fff"/>
+    <path d="M31.5 35 L32 24 L38.5 31.5 Z" fill="#fbcfe8" stroke="none"/>
+    <path d="M68.5 35 L68 24 L61.5 31.5 Z" fill="#fbcfe8" stroke="none"/>
+
+    <!-- głowa -->
+    <ellipse cx="50" cy="56" rx="28" ry="26" fill="#fff"/>
+
+    <!-- grzywka -->
+    <circle cx="41" cy="32" r="7.5" fill="#caffbf"/>
+    <circle cx="59" cy="32" r="7.5" fill="#9bf6ff"/>
+
+    <!-- róg -->
+    <path d="M44.5 33 L55.5 33 L50 4 Z" fill="url(#uni-horn)"/>
+    <path d="M46.6 27 L53.6 24.5 M47.7 20 L52.6 18 M48.8 13 L51.4 12" fill="none" stroke="#e0a526" stroke-width="1.3"/>
+
+    <!-- pyszczek -->
+    <ellipse cx="50" cy="69" rx="16" ry="10.5" fill="#ffe4ef"/>
+    <ellipse cx="44.5" cy="66" rx="1.3" ry="1.8" fill="#5b3a55" stroke="none"/>
+    <ellipse cx="55.5" cy="66" rx="1.3" ry="1.8" fill="#5b3a55" stroke="none"/>
+  </g>
+
+  <!-- wydech: ściągnięte usta i obłoczki -->
+  <ellipse cx="50" cy="74" rx="2.6" ry="2.3" fill="#5b3a55" stroke="#f472b6" stroke-width="1.4"/>
+  <g fill="#dbe7ff" stroke="#7da7ef" stroke-width="1">
+    <circle cx="58" cy="82" r="2.4"/>
+    <circle cx="66" cy="87" r="3.2"/>
+    <circle cx="76" cy="91" r="4.2"/>
+  </g>
+
+  <!-- lewe oko (otwarte, serduszko) -->
+  <g transform="translate(38 51)">
+    <path d="M0 4 C-5.5 0.2 -5.6 -5 -2.6 -5 C-1.1 -5 0 -4 0 -2.7 C0 -4 1.1 -5 2.6 -5 C5.6 -5 5.5 0.2 0 4 Z" fill="#3b2438"/>
+    <circle cx="-2.4" cy="-2.9" r="1.1" fill="#fff"/>
+  </g>
+
+  <!-- prawe oko (serduszko, mruga) -->
+  <g transform="translate(62 51)">
+      <path d="M0 4 C-5.5 0.2 -5.6 -5 -2.6 -5 C-1.1 -5 0 -4 0 -2.7 C0 -4 1.1 -5 2.6 -5 C5.6 -5 5.5 0.2 0 4 Z" fill="#3b2438"/>
+      <circle cx="-2.4" cy="-2.9" r="1.1" fill="#fff"/>
+    </g>
+
+  <!-- iskierki -->
+  <path d="M70 10 L71.4 14.6 L76 16 L71.4 17.4 L70 22 L68.6 17.4 L64 16 L68.6 14.6 Z" fill="#fde68a" stroke="#e0a526" stroke-width="0.8" stroke-linejoin="round"/>
+  <path d="M28 8 L29 11 L32 12 L29 13 L28 16 L27 13 L24 12 L27 11 Z" fill="#fbcfe8" stroke="#f472b6" stroke-width="0.8" stroke-linejoin="round"/>
+</svg>
