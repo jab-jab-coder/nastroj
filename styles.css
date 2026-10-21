@@ -870,3 +870,17 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 .at-tile .o { stroke: #5b3a55; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
 @keyframes at-in { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .at-art { animation: none; } }
+
+/* ---------- Ustawienia: pory dnia ---------- */
+.pd-bar { display: block; width: 100%; height: auto; margin: 4px 0 6px; }
+.pd-row { padding: 10px 0; }
+.pd-row + .pd-row { border-top: 1px solid var(--line); }
+.pd-name { font-weight: 700; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.pd-name small { color: var(--ink-soft); font-weight: 500; font-size: 13px; white-space: nowrap; }
+.pd-name small b { color: var(--ink); font-weight: 800; }
+.pd-ins { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.pd-in { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pd-in small { font-size: 11px; color: var(--ink-soft); }
+.pd-in input[type=time] { width: 100%; min-width: 0; box-sizing: border-box; }
+.pd-fixed { padding: 8px 4px; color: var(--ink-soft); font-weight: 700; }
+.pd-link { background: none; border: 0; padding: 0; color: var(--rose-deep); font-weight: 700; text-decoration: underline; cursor: pointer; }
