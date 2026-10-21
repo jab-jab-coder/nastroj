@@ -126,19 +126,38 @@ function lastValue(f) {
   return best;
 }
 
-// Aktywna pora dnia (pozostałe karty zwijamy):
-//   rano       — od północy do godziny „rano” + 2 h
-//   popołudnie — godzina „popołudnie” ± 2 h
-//   wieczór    — godzina „wieczór” ± 2 h (i dalej do północy)
-// W przerwach między oknami aktywna jest najbliższa nadchodząca pora.
-const WINDOW = 120;
+// Okna pór dnia — decydują, która karta jest rozwinięta na ekranie Dziś (wpis można zrobić zawsze).
+// Doba dzielona jest dwiema granicami na trzy przylegające przedziały:
+//   rano       — 00:00 → granica „popołudnie”
+//   popołudnie — granica „popołudnie” → granica „wieczór”
+//   wieczór    — granica „wieczór” → 24:00
+// settings.windows = { afternoon: 'HH:MM', evening: 'HH:MM' } — ustawione ręcznie.
+// Brak pola = okna automatyczne: każda pora zaczyna się 2 h po godzinie wpisu poprzedniej
+// (tak działała aplikacja przed wprowadzeniem okien). Przypomnienia (settings.times) są niezależne.
+const WIN_AUTO_OFFSET = 120;
+const WIN_MIN = 60;          // minimalna długość okna
+const DAY_MIN = 1440;
+const isHHMM = s => typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+const fmtSlotMin = m => m >= DAY_MIN ? '24:00' : `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+function slotBounds() {
+  const w = settings.windows;
+  if (w && isHHMM(w.afternoon) && isHHMM(w.evening)) {
+    const a = minutesOf(w.afternoon), e = minutesOf(w.evening);
+    if (a >= WIN_MIN && e - a >= WIN_MIN && DAY_MIN - e >= WIN_MIN) return { a, e, auto: false };
+  }
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  const a = clamp(minutesOf(settings.times.morning) + WIN_AUTO_OFFSET, WIN_MIN, DAY_MIN - 2 * WIN_MIN);
+  const e = clamp(minutesOf(settings.times.afternoon) + WIN_AUTO_OFFSET, a + WIN_MIN, DAY_MIN - WIN_MIN);
+  return { a, e, auto: true };
+}
+// Okna jako [od, do) w minutach od północy.
+function slotWindows() {
+  const { a, e } = slotBounds();
+  return { morning: [0, a], afternoon: [a, e], evening: [e, DAY_MIN] };
+}
 function currentSlot() {
-  const m = nowMinutes();
-  const t = Object.fromEntries(SLOTS.map(s => [s.id, minutesOf(settings.times[s.id])]));
-  if (m <= t.morning + WINDOW) return 'morning';
-  if (Math.abs(m - t.afternoon) <= WINDOW) return 'afternoon';
-  if (Math.abs(m - t.evening) <= WINDOW || m > t.evening) return 'evening';
-  return m < t.afternoon ? 'afternoon' : 'evening';
+  const m = nowMinutes(), { a, e } = slotBounds();
+  return m < a ? 'morning' : m < e ? 'afternoon' : 'evening';
 }
 
 /* ---------- UI state ---------- */
@@ -569,6 +588,66 @@ function renderMonth() {
 /* =========================================================
    Widok: Ustawienia
    ========================================================= */
+/* ---------- Ustawienia: pory dnia (okna + przypomnienia) ---------- */
+// Pasek doby 0–24 h: trzy okna w kolorach pór, kropki = godziny przypomnień, kreska = teraz.
+function dayBarSvg(win) {
+  const W = 320, X0 = 10, BW = W - 2 * X0, x = m => X0 + BW * m / DAY_MIN;
+  let s = `<svg class="pd-bar" viewBox="0 0 ${W} 54" role="img" aria-label="Okna pór dnia na osi doby">`
+    + `<defs><clipPath id="pd-clip"><rect x="${X0}" y="8" width="${BW}" height="24" rx="8"/></clipPath></defs><g clip-path="url(#pd-clip)">`;
+  SLOTS.forEach(sl => {
+    const [f, t] = win[sl.id], w = x(t) - x(f);
+    s += `<rect x="${x(f)}" y="8" width="${w}" height="24" style="fill:var(--c-${sl.id})"/>`;
+    if (w > 26) s += `<text x="${x(f) + w / 2}" y="25" text-anchor="middle" font-size="13">${sl.icon}</text>`;
+  });
+  s += '</g>';
+  SLOTS.forEach(sl => {
+    s += `<circle cx="${x(minutesOf(settings.times[sl.id]))}" cy="38" r="3.5" style="fill:var(--ink)"/>`;
+  });
+  const now = x(nowMinutes());
+  s += `<line x1="${now}" x2="${now}" y1="4" y2="36" stroke-width="2" style="stroke:var(--ink)"/>`;
+  [0, 6, 12, 18, 24].forEach(h => {
+    const anchor = h === 0 ? 'start' : h === 24 ? 'end' : 'middle';
+    s += `<text x="${x(h * 60)}" y="52" text-anchor="${anchor}" font-size="10" style="fill:var(--ink-soft)">${h}:00</text>`;
+  });
+  return s + '</svg>';
+}
+
+function poryCardHtml() {
+  const b = slotBounds(), win = slotWindows();
+  const startInput = { afternoon: b.a, evening: b.e };
+  const warns = SLOTS.filter(s => {
+    const m = minutesOf(settings.times[s.id]), [f, t] = win[s.id];
+    return m < f || m >= t;
+  }).map(s => `<p class="warn">Godzina wpisu „${s.label.toLowerCase()}” (${settings.times[s.id]}) wypada poza okno tej pory.</p>`);
+  return `
+    <div class="card" id="pory-card">
+      <h3>Pory dnia</h3>
+      ${dayBarSvg(win)}
+      ${SLOTS.map(s => {
+        const [f, t] = win[s.id];
+        return `
+        <div class="pd-row">
+          <div class="pd-name">${s.icon} ${s.label}<small>okno <b>${fmtSlotMin(f)}–${fmtSlotMin(t)}</b></small></div>
+          <div class="pd-ins">
+            <label class="pd-in"><small>od</small>${s.id === 'morning'
+              ? '<span class="pd-fixed">00:00</span>'
+              : `<input type="time" data-win="${s.id}" value="${fmtSlotMin(startInput[s.id])}" aria-label="${s.label}: początek okna">`}</label>
+            <label class="pd-in"><small>godzina wpisu</small><input type="time" id="t-${s.id}" data-time="${s.id}" value="${settings.times[s.id]}" aria-label="${s.label}: godzina wpisu"></label>
+          </div>
+        </div>`;
+      }).join('')}
+      ${warns.join('')}
+      <p class="note">${b.auto
+        ? 'Okna: <b>automatyczne</b> — każda pora zaczyna się 2 h po godzinie wpisu poprzedniej. Zmień „od”, żeby ustawić własne.'
+        : 'Okna: <b>własne</b>. <button class="pd-link" data-act="win-auto">Przywróć automatyczne</button>'}</p>
+      <p class="note">Okno decyduje, która pora jest rozwinięta na ekranie Dziś. Ocenę możesz zapisać o każdej godzinie.</p>
+    </div>`;
+}
+function refreshPoryCard() {
+  const c = document.getElementById('pory-card');
+  if (c) c.outerHTML = poryCardHtml();
+}
+
 function renderSettings() {
   const notifSupported = 'Notification' in window && 'serviceWorker' in navigator;
   const total = Object.values(entries).reduce((n, e) => n + Object.keys(e).length, 0);
@@ -590,14 +669,7 @@ function renderSettings() {
       <p class="note" style="text-align:center">Dotknij jednorożca, żeby przejść pierwsze kroki jeszcze raz.</p>
     </div>
 
-    <div class="card">
-      <h3>Pory dnia</h3>
-      ${SLOTS.map(s => `
-        <div class="row">
-          <label for="t-${s.id}">${s.icon} ${s.label}</label>
-          <input type="time" id="t-${s.id}" data-time="${s.id}" value="${settings.times[s.id]}">
-        </div>`).join('')}
-    </div>
+    ${poryCardHtml()}
 
     ${medsSettingsHtml()}
 
@@ -1142,6 +1214,12 @@ document.addEventListener('click', async ev => {
 
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
+    case 'win-auto':
+      delete settings.windows;
+      store(KEY_SETTINGS, settings); syncState();
+      refreshPoryCard();
+      toast('Przywrócono automatyczne okna');
+      break;
     case 'sw-back': show('today'); break;
     case 'uni-compl': swCompliment(); break;
     case 'sw-save': swSaveRecord(); break;
@@ -1180,7 +1258,22 @@ document.addEventListener('change', async ev => {
     if (!t.value) return;
     settings.times[t.dataset.time] = t.value;
     store(KEY_SETTINGS, settings); syncState();
-    toast('Zapisano porę');
+    refreshPoryCard();
+    toast('Zapisano godzinę wpisu');
+  } else if (t.matches('[data-win]')) {
+    if (!t.value) return;
+    const b = slotBounds();
+    const next = { afternoon: fmtSlotMin(b.a), evening: fmtSlotMin(b.e), [t.dataset.win]: t.value };
+    const a = minutesOf(next.afternoon), e = minutesOf(next.evening);
+    if (a < WIN_MIN || e - a < WIN_MIN || DAY_MIN - e < WIN_MIN) {
+      toast('Każda pora musi trwać co najmniej godzinę');
+      refreshPoryCard();
+      return;
+    }
+    settings.windows = next;
+    store(KEY_SETTINGS, settings); syncState();
+    refreshPoryCard();
+    toast('Zapisano okno pory');
   } else if (t.id === 'notify') {
     const ok = await setNotifications(t.checked);
     if (!ok) t.checked = false;
