@@ -26,6 +26,11 @@ const CATS = {
 };
 const CHIPS = [[10, 'mała'], [25, 'średnia'], [50, 'duża'], [80, 'ogromna']];
 
+// Skróty „Dodaj jednym dotknięciem”: najczęstsze czynności
+const TOP_WINDOW = 28;   // okno częstości (dni), liczone do wczoraj włącznie → układ stały przez cały dzień
+const TOP_NEW = 14;      // nowa czynność (pole addedAt) jest w skrótach przez tyle dni
+const TOP_N = 6;         // ile skrótów widać w sekcji (wypłaty i wpłaty, niezależnie od statusu)
+
 // [typ, nazwa, kategoria, wartość domyślna, stały identyfikator (tpl — m.in. dla komplementów)]
 const TEMPLATES = [
   // wypłaty
@@ -90,7 +95,7 @@ const SURVEYS = {
 
 /* ---------- stan ---------- */
 let acts = [], elog = {}, plans = {}, surveys = [], strategies = [], records = [];
-const eui = { survey: null, stmt: null, editAct: null };
+const eui = { survey: null, stmt: null, editAct: null, quickAdd: null };
 
 function energyInit() {
   // jednorazowa kopia danych sprzed aktualizacji (na wszelki wypadek)
@@ -227,6 +232,45 @@ function fadingDeposits() {
     }
   }
   return out;
+}
+
+/* =========================================================
+   Skróty: najczęstsze czynności
+   Częstość = liczba DNI z co najmniej jednym zapisem czynności w ostatnich
+   TOP_WINDOW dniach, bez dzisiejszego dnia. Dzięki temu układ skrótów nie
+   zmienia się w trakcie dnia (dotknięcie nie przesuwa kafelków), a liczba
+   nie wymaga nowego klucza danych — jest liczona z nastroj.energy.v1.
+   Pola czynności (nowe, opcjonalne):
+     pinned: true         — przypięta, zawsze w skrótach
+     addedAt: 'YYYY-MM-DD' — dzień dodania; przez TOP_NEW dni zawsze w skrótach
+   ========================================================= */
+function useDays(tk = todayKey()) {
+  const t = parseKey(tk);
+  const from = dkey(addDays(t, -TOP_WINDOW)), to = dkey(addDays(t, -1));
+  const m = {};
+  for (const [k, list] of Object.entries(elog)) {
+    if (k < from || k > to) continue;
+    for (const id of new Set(list.map(x => x.a))) m[id] = (m[id] || 0) + 1;
+  }
+  return m;
+}
+
+const isNewAct = (a, tk = todayKey()) => typeof a.addedAt === 'string' && a.addedAt > dkey(addDays(parseKey(tk), -TOP_NEW)) && a.addedAt <= tk;
+
+// → { top: [czynności w skrótach], rest: [pozostałe], total }
+// Kolejność: przypięte i nowe (kolejność z listy), potem wg częstości (remis → kolejność z listy).
+// Tryb 'fixed' (Ustawienia): przypięte i nowe, potem lista w kolejności „Moich czynności”.
+function quickTop(kind, limit, tk = todayKey()) {
+  const list = acts.filter(a => a.kind === kind && !a.archived);
+  const fixed = settings.energyList?.mode === 'fixed';
+  const f = fixed ? {} : useDays(tk);
+  const sure = list.filter(a => a.pinned || isNewAct(a, tk));
+  const others = list.filter(a => !sure.includes(a))
+    .map((a, i) => ({ a, i, n: f[a.id] || 0 }))
+    .sort((x, y) => y.n - x.n || x.i - y.i)
+    .map(x => x.a);
+  const top = [...sure, ...others.slice(0, Math.max(0, limit - sure.length))];
+  return { top, rest: list.filter(a => !top.includes(a)), total: list.length };
 }
 
 /* =========================================================
@@ -461,14 +505,51 @@ function todayPlanHtml() {
 }
 
 function quickLogHtml() {
-  const btns = kind => acts.filter(a => a.kind === kind && !a.archived)
-    .map(a => `<button class="qa ${kind}" data-act="elog" data-id="${a.id}"><span>${esc(a.name)}</span><small>${kind === 'd' ? '+' : '−'}${a.def}</small></button>`).join('');
+  const fixed = settings.energyList?.mode === 'fixed';
+  const btn = a => `<button class="qa ${a.kind}" data-act="elog" data-id="${a.id}"><span>${a.pinned ? '<i class="pin" aria-label="przypięta">📌</i>' : ''}${esc(a.name)}</span><small>${a.kind === 'd' ? '+' : '−'}${a.def}</small></button>`;
+  const section = (kind, limit) => {
+    const { top, rest, total } = quickTop(kind, limit);
+    const open = !!settings.energyList?.open?.[kind];
+    const label = kind === 'd' ? '➕ Wpłaty' : '➖ Wypłaty';
+    return `
+      <p class="sub qhead"><span>${label}${total > top.length ? ` · ${fixed ? 'skróty' : 'najczęstsze'}` : ''}</span>${total > top.length ? `<small>${top.length} z ${total}</small>` : ''}</p>
+      <div class="qgrid">${(open ? [...top, ...rest] : top).map(btn).join('') || '<span class="muted">brak</span>'}</div>
+      <div class="qfoot">
+        <button class="btn soft sm" data-act="qa-new" data-kind="${kind}">＋ Moja ${kind === 'd' ? 'wpłata' : 'wypłata'}</button>
+        ${rest.length ? `<button class="link" data-act="qa-more" data-kind="${kind}" aria-expanded="${open}">${open ? 'Zwiń ⌃' : `Wszystkie (${total}) ⌄`}</button>` : ''}
+      </div>`;
+  };
   return `
     <div class="card">
       <h3>Dodaj jednym dotknięciem</h3>
-      <p class="sub">➖ Wypłaty</p><div class="qgrid">${btns('w') || '<span class="muted">brak</span>'}</div>
-      <p class="sub">➕ Wpłaty</p><div class="qgrid">${btns('d') || '<span class="muted">brak</span>'}</div>
+      ${section('w', TOP_N)}
+      ${section('d', TOP_N)}
     </div>`;
+}
+
+// Arkusz „Moja wypłata / wpłata” — typ ustawiony z góry przez sekcję
+function renderQuickAdd() {
+  const kind = eui.quickAdd;
+  const word = kind === 'd' ? 'wpłata' : 'wypłata';
+  openSheet(`
+    <div class="sheet-head"><h2>＋ Moja ${word}</h2><button class="x" data-act="sheet-close" aria-label="Zamknij">×</button></div>
+    <div class="actform qaform">
+      <input type="text" id="qa-name" maxlength="60" placeholder="${kind === 'd' ? 'np. herbata w ciszy' : 'np. telefon do urzędu'}" aria-label="Nazwa czynności">
+      <select id="qa-cat" class="sel" aria-label="Kategoria">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <label class="numrow">Domyślna wartość (1–100) <input type="number" id="qa-def" min="1" max="100" inputmode="numeric" value="25"></label>
+      <div class="chips">${CHIPS.map(([v, l]) => `<button class="chip ${v === 25 ? 'on' : ''}" data-act="qa-chip" data-v="${v}">${l} ${v}</button>`).join('')}</div>
+      <div class="row">
+        <label for="qa-pin">📌 Przypnij do skrótów<small>Będzie zawsze widoczna, niezależnie od częstości</small></label>
+        <span class="switch"><input type="checkbox" id="qa-pin"><span></span></span>
+      </div>
+    </div>
+    <p class="note">Nowa czynność jest w skrótach przez ${TOP_NEW} dni, potem — jeśli jej nie przypniesz — zostaje, gdy często jej używasz.</p>
+    <div class="stack">
+      <button class="btn primary block" data-act="qa-save" data-now="1">Zapisz i dodaj teraz</button>
+      <button class="btn soft block" data-act="qa-save">Tylko zapisz</button>
+    </div>
+  `);
+  setTimeout(() => $('#qa-name')?.focus(), 50);
 }
 
 function todayLogHtml() {
@@ -604,6 +685,7 @@ function strategiesHtml() {
 
 function inventoryHtml() {
   const ed = eui.editAct;
+  const wasOpen = !!$('#inv-fold')?.open;   // przypnij/ukryj nie zwija listy (rerender buduje ją od nowa)
   const form = a => `
     <div class="actform">
       <input type="text" id="af-name" maxlength="60" placeholder="Nazwa czynności" value="${esc(a?.name ?? '')}">
@@ -612,6 +694,7 @@ function inventoryHtml() {
         <select id="af-cat" class="sel">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${a?.cat === k ? 'selected' : ''}>${v}</option>`).join('')}</select>
       </div>
       <label class="numrow">Domyślna wartość (1–100) <input type="number" id="af-def" min="1" max="100" value="${a?.def ?? 25}"></label>
+      <label class="numrow">📌 Przypięta do skrótów <input type="checkbox" id="af-pin" class="chk" ${a?.pinned ? 'checked' : ''}></label>
       <div class="actions">
         <button class="btn ghost" data-act="act-cancel">Anuluj</button>
         <button class="btn primary" data-act="act-save" data-id="${a?.id ?? ''}">${a ? 'Zapisz' : 'Dodaj'}</button>
@@ -620,12 +703,13 @@ function inventoryHtml() {
   const list = kind => acts.filter(a => a.kind === kind).map(a => ed === a.id ? form(a) : `
     <div class="logrow ${a.archived ? 'arch' : ''}">
       <span class="k ${a.kind}">${a.kind === 'd' ? '+' : '−'}${a.def}</span>
-      <span class="nm">${esc(a.name)}<small>${CATS[a.cat] || ''} · nauczone ${learned(a.id)}${a.archived ? ' · ukryta' : ''}</small></span>
+      <span class="nm">${a.pinned ? '📌 ' : ''}${esc(a.name)}<small>${CATS[a.cat] || ''} · nauczone ${learned(a.id)}${a.archived ? ' · ukryta' : ''}</small></span>
+      ${a.archived ? '' : `<button class="link" data-act="act-pin" data-id="${a.id}" aria-pressed="${!!a.pinned}">${a.pinned ? 'odepnij' : 'przypnij'}</button>`}
       <button class="link" data-act="act-edit" data-id="${a.id}">edytuj</button>
       <button class="link" data-act="${a.archived ? 'act-restore' : 'act-arch'}" data-id="${a.id}">${a.archived ? 'przywróć' : 'ukryj'}</button>
     </div>`).join('');
   return `
-    <details class="card fold" ${ed ? 'open' : ''}>
+    <details class="card fold" id="inv-fold" ${ed || wasOpen ? 'open' : ''}>
       <summary><h3>Moje czynności</h3><small>${acts.filter(a => !a.archived).length}</small></summary>
       <p class="sub">Wypłaty</p>${list('w')}
       <p class="sub">Wpłaty</p>${list('d')}
@@ -647,7 +731,7 @@ function closeSheet() {
   const sh = $('#sheet');
   sh.hidden = true; sh.innerHTML = '';
   document.body.classList.remove('locked');
-  eui.survey = null; eui.stmt = null;
+  eui.survey = null; eui.stmt = null; eui.quickAdd = null;
 }
 
 function renderSurvey() {
@@ -876,15 +960,52 @@ function energyClick(act, el) {
       const def = Math.max(1, Math.min(100, Math.round(Number($('#af-def').value) || 25)));
       if (!name) { toast('Podaj nazwę'); return true; }
       const kind = $('#af-kind').value, cat = $('#af-cat').value;
+      const pinned = !!$('#af-pin')?.checked;
       const a = actById(el.dataset.id);
       if (a) {
         // zmiana typu (wpłata ↔ wypłata) zrywa powiązanie z szablonem
         if (a.kind !== kind) delete a.tpl;
         Object.assign(a, { name, kind, cat, def });
+        if (pinned) a.pinned = true; else delete a.pinned;
       }
-      else acts.push({ id: uid(), name, kind, cat, def, archived: false });
+      else acts.push({ id: uid(), name, kind, cat, def, archived: false, addedAt: todayKey(), ...(pinned ? { pinned: true } : {}) });
       saveActs(); eui.editAct = null; rerender(); toast('Zapisano czynność');
       return true;
+    }
+    case 'act-pin': {
+      const a = actById(el.dataset.id);
+      if (a) {
+        if (a.pinned) delete a.pinned; else a.pinned = true;
+        saveActs(); rerender(); toast(a.pinned ? `📌 Przypięto: ${a.name}` : `Odpięto: ${a.name}`);
+      }
+      return true;
+    }
+    case 'qa-more': {
+      const k = el.dataset.kind;
+      const cfg = (settings.energyList = { mode: 'freq', ...(settings.energyList || {}) });
+      cfg.open = { ...(cfg.open || {}), [k]: !cfg.open?.[k] };
+      store(KEY_SETTINGS, settings); rerender(); return true;
+    }
+    case 'qa-new': eui.quickAdd = el.dataset.kind === 'd' ? 'd' : 'w'; renderQuickAdd(); return true;
+    case 'qa-chip': {
+      const inp = $('#qa-def');
+      if (inp) inp.value = el.dataset.v;
+      document.querySelectorAll('[data-act="qa-chip"]').forEach(c => c.classList.toggle('on', c === el));
+      return true;
+    }
+    case 'qa-save': {
+      const kind = eui.quickAdd;
+      if (!kind) return true;
+      const name = $('#qa-name').value.trim();
+      if (!name) { toast('Podaj nazwę'); $('#qa-name').focus(); return true; }
+      const def = Math.max(1, Math.min(100, Math.round(Number($('#qa-def').value) || 25)));
+      const cat = CATS[$('#qa-cat').value] ? $('#qa-cat').value : 'emoc';
+      const a = { id: uid(), name: name.slice(0, 60), kind, cat, def, archived: false, addedAt: todayKey() };
+      if ($('#qa-pin').checked) a.pinned = true;
+      acts.push(a); saveActs();
+      closeSheet();
+      if (el.dataset.now) logActivity(a.id); else toast(`Dodano: ${a.name}`);
+      rerender(); return true;
     }
     case 'act-arch': case 'act-restore': {
       const a = actById(el.dataset.id);
@@ -913,6 +1034,10 @@ function energyChange(t) {
     const btn = $('[data-act="sv-submit"]');
     if (btn) { btn.disabled = done < def.items.length; btn.textContent = `Zapisz wynik (${done}/${def.items.length})`; }
     return true;
+  }
+  if (t.id === 'qaMode') {
+    settings.energyList = { ...(settings.energyList || {}), mode: t.value === 'fixed' ? 'fixed' : 'freq' };
+    store(KEY_SETTINGS, settings); toast('Zapisano'); return true;
   }
   if (t.id === 'carry') { settings.carry = Number(t.value); store(KEY_SETTINGS, settings); toast('Zapisano'); return true; }
   if (t.id === 'energyModule') { settings.energyModule = t.checked; store(KEY_SETTINGS, settings); tutApplyModules(); toast(t.checked ? 'Moduł włączony' : 'Moduł wyłączony'); return true; }
@@ -952,6 +1077,10 @@ function energySettingsHtml() {
         <label for="carry">Przeniesienie salda<small>Ile wczorajszego salda (plus lub minus) przechodzi na dziś</small></label>
         <select id="carry" class="sel narrow">${[0, 0.25, 0.5, 0.75].map(v => `<option value="${v}" ${c === v ? 'selected' : ''}>${v * 100}%</option>`).join('')}</select>
       </div>
+      <div class="row">
+        <label for="qaMode">Skróty wpłat i wypłat<small>Które czynności widać na karcie „Dodaj jednym dotknięciem” (przypięte są zawsze)</small></label>
+        <select id="qaMode" class="sel narrow"><option value="freq" ${settings.energyList?.mode !== 'fixed' ? 'selected' : ''}>Najczęstsze</option><option value="fixed" ${settings.energyList?.mode === 'fixed' ? 'selected' : ''}>Stała kolejność</option></select>
+      </div>
       <div class="def-block">
         <div class="def-title">Wartości domyślne<small>Od czego startują suwaki na ekranie Dziś</small></div>${opt('last', 'Jak poprzedni pomiar')}${opt('five', '5 i 5, bo to nic nie znaczy')}${opt('custom', 'Twoje ustawienia:')}
         <div class="def-own">
@@ -990,6 +1119,8 @@ function energyImport(data) {
       if (!a || typeof a.id !== 'string' || typeof a.name !== 'string' || !['w', 'd'].includes(a.kind)) continue;
       const clean = { id: a.id, name: a.name.slice(0, 60), kind: a.kind, cat: CATS[a.cat] ? a.cat : 'emoc', def: Math.max(1, Math.min(100, Number(a.def) || 25)), archived: !!a.archived };
       if (isTpl(a.tpl)) clean.tpl = a.tpl;
+      if (a.pinned === true) clean.pinned = true;
+      if (typeof a.addedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.addedAt)) clean.addedAt = a.addedAt;
       const i = acts.findIndex(x => x.id === a.id);
       if (i >= 0) acts[i] = clean; else acts.push(clean);
       n.acts++;
