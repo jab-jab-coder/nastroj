@@ -29,9 +29,7 @@ const CHIPS = [[10, 'mała'], [25, 'średnia'], [50, 'duża'], [80, 'ogromna']];
 // Skróty „Dodaj jednym dotknięciem”: najczęstsze czynności
 const TOP_WINDOW = 28;   // okno częstości (dni), liczone do wczoraj włącznie → układ stały przez cały dzień
 const TOP_NEW = 14;      // nowa czynność (pole addedAt) jest w skrótach przez tyle dni
-const TOP_W = 6;         // wypłaty — zawsze 6
-const TOP_D = 6;         // wpłaty przy zielonym statusie
-const TOP_D_ALERT = 12;  // wpłaty przy żółtym i czerwonym statusie
+const TOP_N = 6;         // ile skrótów widać w sekcji (wypłaty i wpłaty, niezależnie od statusu)
 
 // [typ, nazwa, kategoria, wartość domyślna, stały identyfikator (tpl — m.in. dla komplementów)]
 const TEMPLATES = [
@@ -356,7 +354,7 @@ function renderEnergy() {
     ${surveyDueHtml()}
     ${st.level >= 1 ? recoveryHtml(st) : ''}
     ${todayPlanHtml()}
-    ${quickLogHtml(st.level)}
+    ${quickLogHtml()}
     ${todayLogHtml()}
     ${planHtml(day.balance)}
     ${trendHtml()}
@@ -506,7 +504,7 @@ function todayPlanHtml() {
     </div>`;
 }
 
-function quickLogHtml(level = 0) {
+function quickLogHtml() {
   const fixed = settings.energyList?.mode === 'fixed';
   const btn = a => `<button class="qa ${a.kind}" data-act="elog" data-id="${a.id}"><span>${a.pinned ? '<i class="pin" aria-label="przypięta">📌</i>' : ''}${esc(a.name)}</span><small>${a.kind === 'd' ? '+' : '−'}${a.def}</small></button>`;
   const section = (kind, limit) => {
@@ -515,8 +513,7 @@ function quickLogHtml(level = 0) {
     const label = kind === 'd' ? '➕ Wpłaty' : '➖ Wypłaty';
     return `
       <p class="sub qhead"><span>${label}${total > top.length ? ` · ${fixed ? 'skróty' : 'najczęstsze'}` : ''}</span>${total > top.length ? `<small>${top.length} z ${total}</small>` : ''}</p>
-      <div class="qgrid">${top.map(btn).join('') || '<span class="muted">brak</span>'}</div>
-      ${open && rest.length ? `<p class="qrest">Pozostałe</p><div class="qgrid">${rest.map(btn).join('')}</div>` : ''}
+      <div class="qgrid">${(open ? [...top, ...rest] : top).map(btn).join('') || '<span class="muted">brak</span>'}</div>
       <div class="qfoot">
         <button class="btn soft sm" data-act="qa-new" data-kind="${kind}">＋ Moja ${kind === 'd' ? 'wpłata' : 'wypłata'}</button>
         ${rest.length ? `<button class="link" data-act="qa-more" data-kind="${kind}" aria-expanded="${open}">${open ? 'Zwiń ⌃' : `Wszystkie (${total}) ⌄`}</button>` : ''}
@@ -525,8 +522,8 @@ function quickLogHtml(level = 0) {
   return `
     <div class="card">
       <h3>Dodaj jednym dotknięciem</h3>
-      ${section('w', TOP_W)}
-      ${section('d', level >= 1 ? TOP_D_ALERT : TOP_D)}
+      ${section('w', TOP_N)}
+      ${section('d', TOP_N)}
     </div>`;
 }
 

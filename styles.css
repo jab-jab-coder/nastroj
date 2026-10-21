@@ -337,7 +337,6 @@ input[type=range].idle::-moz-range-thumb { border-color: var(--idle); box-shadow
 .qa .pin { font-style: normal; font-size: 11px; margin-right: 4px; }
 .qhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .qhead small { font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
-.qrest { font-size: 12px; font-weight: 700; color: var(--ink-soft); margin: 12px 0 6px; }
 .qfoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .numrow input.chk { width: 24px; height: 24px; padding: 0; accent-color: var(--rose); }
 .qaform input[type=text] { margin-bottom: 2px; }
