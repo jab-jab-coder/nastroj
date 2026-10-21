@@ -668,7 +668,7 @@ function renderSettings() {
       <button class="btn soft tut-uni" data-act="tut-start" aria-label="Uruchom samouczek"><img src="icons/jednorozec.svg" alt="" width="51" height="51"></button>
       <p class="note" style="text-align:center">Dotknij jednorożca, żeby przejść pierwsze kroki jeszcze raz.</p>
       <div class="tut-pets">
-        <button class="btn soft tut-pet" aria-disabled="true" aria-label="Bóbr"><img src="icons/mordka-bobr.svg" alt="" width="40" height="40"></button>
+        <button class="btn soft tut-pet" data-act="tut-go" data-go="tama" aria-label="Gra Tama Bobra"><img src="icons/mordka-bobr.svg" alt="" width="40" height="40"></button>
         <button class="btn soft tut-pet" data-act="tut-go" data-go="animals" aria-label="Bocian"><img src="icons/mordka-bocian.svg" alt="" width="40" height="40"></button>
         <button class="btn soft tut-pet" data-act="tut-go" data-go="dzik" aria-label="Gra w dzika"><img src="icons/mordka-dzik.svg" alt="" width="40" height="40"></button>
         <button class="btn soft tut-pet" data-act="tut-go" data-go="stopwatch" aria-label="Stoper"><img src="icons/rownowaznia.svg" alt="" width="40" height="40"></button>
@@ -1069,7 +1069,7 @@ function renderStopwatch() {
    ========================================================= */
 const renderers = { today: renderToday, energy: renderEnergy, week: renderWeek, month: renderMonth, settings: renderSettings,
   stopwatch: renderStopwatch, oddech: renderOddech, leki: renderLeki, dzik: renderDzik, animals: renderAnimals,
-  'animals-together': renderAnimalsTogether };
+  'animals-together': renderAnimalsTogether, tama: renderTama };
 
 /* Widok „animals” (podwójne dotknięcie „Tydzień”): bocian na całą wysokość nad menu */
 function renderAnimals() {
@@ -1081,11 +1081,12 @@ function renderAnimals() {
 function show(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
   if (view !== 'oddech') oddechStop();
+  if (view !== 'tama') tamaStop();
   document.body.classList.toggle('sw-on', view === 'stopwatch');
-  document.body.classList.toggle('animals-on', view === 'animals' || view === 'animals-together');
+  document.body.classList.toggle('animals-on', view === 'animals' || view === 'animals-together' || view === 'tama');
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
-  const tabFor = view === 'oddech' ? 'energy' : view === 'leki' ? 'settings' : view === 'dzik' ? 'month' : view === 'animals' || view === 'animals-together' ? 'week' : view;  // Oddech → Energia, Leki → Ustawienia, Dzik → Miesiąc, Animals(-together) → Tydzień
+  const tabFor = view === 'oddech' || view === 'tama' ? 'energy' : view === 'leki' ? 'settings' : view === 'dzik' ? 'month' : view === 'animals' || view === 'animals-together' ? 'week' : view;  // Oddech, Tama → Energia, Leki → Ustawienia, Dzik → Miesiąc, Animals(-together) → Tydzień
   document.querySelectorAll('.tab').forEach(t => {
     if (t.dataset.tab === tabFor) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   });
@@ -1122,11 +1123,17 @@ document.addEventListener('click', async ev => {
         return;
       }
     } else { clearTimeout(ui.weekTimer); ui.weekTaps = 0; ui.weekTap = 0; }
-    // 3 dotknięcia zakładki Energia w krótkim odstępie → ekran Oddech
+    // „Energia”: 2 dotknięcia → gra Tama Bobra, 3 dotknięcia → ekran Oddech.
+    // Po drugim dotknięciu czekamy TRIPLE_MS, czy nie przyjdzie trzecie.
     if (tab.dataset.tab === 'energy') {
+      clearTimeout(ui.energyTimer);
       tapEnergy = now - tapEnergy.last < TRIPLE_MS ? { n: tapEnergy.n + 1, last: now } : { n: 1, last: now };
       if (tapEnergy.n >= 3) { tapEnergy = { n: 0, last: 0 }; show('oddech'); return; }
-    } else tapEnergy = { n: 0, last: 0 };
+      if (tapEnergy.n === 2) {
+        ui.energyTimer = setTimeout(() => { tapEnergy = { n: 0, last: 0 }; if (ui.view === 'energy') { tamaReset(); show('tama'); } }, TRIPLE_MS);
+        return;
+      }
+    } else { clearTimeout(ui.energyTimer); tapEnergy = { n: 0, last: 0 }; }
     show(tab.dataset.tab);
     return;
   }
@@ -1140,9 +1147,12 @@ document.addEventListener('click', async ev => {
 
   switch (act) {
     case 'oddech-back': show('energy'); break;
+    case 'tama-back': show('today'); break;
+    case 'tama-again': tamaAgain(); break;
     case 'tut-go': {                            // mordki w Samouczku → ukryte ekrany
       const v = el.dataset.go;
       if (v === 'dzik') dzikReset();
+      if (v === 'tama') tamaReset();
       if (renderers[v]) show(v);
       break;
     }
