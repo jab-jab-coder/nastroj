@@ -132,7 +132,7 @@ function lastValue(f) {
 //   popołudnie — granica „popołudnie” → granica „wieczór”
 //   wieczór    — granica „wieczór” → 24:00
 // settings.windows = { afternoon: 'HH:MM', evening: 'HH:MM' } — ustawione ręcznie.
-// Brak pola = okna automatyczne: każda pora zaczyna się 2 h po przypomnieniu poprzedniej
+// Brak pola = okna automatyczne: każda pora zaczyna się 2 h po godzinie wpisu poprzedniej
 // (tak działała aplikacja przed wprowadzeniem okien). Przypomnienia (settings.times) są niezależne.
 const WIN_AUTO_OFFSET = 120;
 const WIN_MIN = 60;          // minimalna długość okna
@@ -618,7 +618,7 @@ function poryCardHtml() {
   const warns = SLOTS.filter(s => {
     const m = minutesOf(settings.times[s.id]), [f, t] = win[s.id];
     return m < f || m >= t;
-  }).map(s => `<p class="warn">Przypomnienie „${s.label.toLowerCase()}” (${settings.times[s.id]}) wypada poza okno tej pory.</p>`);
+  }).map(s => `<p class="warn">Godzina wpisu „${s.label.toLowerCase()}” (${settings.times[s.id]}) wypada poza okno tej pory.</p>`);
   return `
     <div class="card" id="pory-card">
       <h3>Pory dnia</h3>
@@ -632,13 +632,13 @@ function poryCardHtml() {
             <label class="pd-in"><small>od</small>${s.id === 'morning'
               ? '<span class="pd-fixed">00:00</span>'
               : `<input type="time" data-win="${s.id}" value="${fmtSlotMin(startInput[s.id])}" aria-label="${s.label}: początek okna">`}</label>
-            <label class="pd-in"><small>przypomnienie</small><input type="time" id="t-${s.id}" data-time="${s.id}" value="${settings.times[s.id]}" aria-label="${s.label}: godzina przypomnienia"></label>
+            <label class="pd-in"><small>godzina wpisu</small><input type="time" id="t-${s.id}" data-time="${s.id}" value="${settings.times[s.id]}" aria-label="${s.label}: godzina wpisu"></label>
           </div>
         </div>`;
       }).join('')}
       ${warns.join('')}
       <p class="note">${b.auto
-        ? 'Okna: <b>automatyczne</b> — każda pora zaczyna się 2 h po przypomnieniu poprzedniej. Zmień „od”, żeby ustawić własne.'
+        ? 'Okna: <b>automatyczne</b> — każda pora zaczyna się 2 h po godzinie wpisu poprzedniej. Zmień „od”, żeby ustawić własne.'
         : 'Okna: <b>własne</b>. <button class="pd-link" data-act="win-auto">Przywróć automatyczne</button>'}</p>
       <p class="note">Okno decyduje, która pora jest rozwinięta na ekranie Dziś. Ocenę możesz zapisać o każdej godzinie.</p>
     </div>`;
@@ -1259,7 +1259,7 @@ document.addEventListener('change', async ev => {
     settings.times[t.dataset.time] = t.value;
     store(KEY_SETTINGS, settings); syncState();
     refreshPoryCard();
-    toast('Zapisano godzinę przypomnienia');
+    toast('Zapisano godzinę wpisu');
   } else if (t.matches('[data-win]')) {
     if (!t.value) return;
     const b = slotBounds();
