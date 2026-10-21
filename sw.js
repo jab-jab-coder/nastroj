@@ -1,5 +1,5 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v36';
+const VERSION = 'nastroj-v37';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
@@ -10,6 +10,7 @@ const SHELL = [
   './leki.js',
   './dzik.js',
   './animals-together.js',
+  './tama.js',
   './samouczek.js',
   './app.js',
   './manifest.webmanifest',

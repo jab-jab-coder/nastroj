@@ -889,3 +889,33 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 .pd-in input[type=time] { width: 100%; min-width: 0; box-sizing: border-box; }
 .pd-fixed { padding: 8px 4px; color: var(--ink-soft); font-weight: 700; }
 .pd-link { background: none; border: 0; padding: 0; color: var(--rose-deep); font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* ---------- ukryty widok: Tama Bobra (podwójne dotknięcie „Energia”, bóbr w Samouczku) ---------- */
+.tama-stage {
+  position: relative; overflow: hidden; border-radius: var(--radius); background: #cfeec4;
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 104px);  /* cała wysokość nad menu */
+}
+.tama-stage svg { display: block; width: 100%; height: 100%; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+#view-tama .o { stroke: #5b3a55; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+#view-tama .item, #view-tama .tap { cursor: pointer; }
+#tb-beaver .bob, #tb-capyWalk .step, #view-tama .fl-in { transform-box: fill-box; transform-origin: 50% 100%; }
+#view-tama .drop, #view-tama .tw { transform-box: fill-box; transform-origin: center; }
+#view-tama .hop { animation: tb-hop .36s ease-out; }
+#view-tama .huh, #view-tama .wig { animation: tb-huh .5s ease-in-out; }
+#view-tama .walk { animation: tb-walk .32s ease-in-out infinite; }
+#view-tama .tw { animation: tb-tw 1.6s ease-in-out infinite; }
+#view-tama .plus { font: 900 16px var(--font); fill: #e75a8d; }
+#tb-flow use { animation: tb-flow 2.4s linear infinite; }
+#tb-flow use:nth-child(2n) { animation-delay: -1.2s; }
+@keyframes tb-hop { 40% { transform: translateY(-9px) scaleY(1.04); } 100% { transform: none; } }
+@keyframes tb-huh { 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+@keyframes tb-walk { 50% { transform: translateY(-4px); } }
+@keyframes tb-tw { 50% { opacity: .25; } }
+@keyframes tb-flow { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+.tama-end {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(340px, calc(100% - 24px));
+  background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 16px 16px 14px; text-align: center; box-shadow: var(--shadow);
+}
+.tama-end h2 { margin: 0 0 6px; font-size: 20px; font-weight: 900; }
+.tama-end p { margin: 0 0 12px; color: var(--ink-soft); font-weight: 700; line-height: 1.4; }
+@media (prefers-reduced-motion: reduce) { #tb-flow use, #view-tama .tw { animation: none; } }
