@@ -667,6 +667,13 @@ function renderSettings() {
       <h3>Samouczek</h3>
       <button class="btn soft tut-uni" data-act="tut-start" aria-label="Uruchom samouczek"><img src="icons/jednorozec.svg" alt="" width="51" height="51"></button>
       <p class="note" style="text-align:center">Dotknij jednorożca, żeby przejść pierwsze kroki jeszcze raz.</p>
+      <div class="tut-pets">
+        <button class="btn soft tut-pet" aria-disabled="true" aria-label="Bóbr"><img src="icons/mordka-bobr.svg" alt="" width="40" height="40"></button>
+        <button class="btn soft tut-pet" data-act="tut-go" data-go="animals" aria-label="Bocian"><img src="icons/mordka-bocian.svg" alt="" width="40" height="40"></button>
+        <button class="btn soft tut-pet" data-act="tut-go" data-go="dzik" aria-label="Gra w dzika"><img src="icons/mordka-dzik.svg" alt="" width="40" height="40"></button>
+        <button class="btn soft tut-pet" data-act="tut-go" data-go="stopwatch" aria-label="Stoper"><img src="icons/rownowaznia.svg" alt="" width="40" height="40"></button>
+        <button class="btn soft tut-pet" data-act="tut-go" data-go="oddech" aria-label="Ćwiczenia oddechowe"><img src="icons/mordka-wydech.svg" alt="" width="40" height="40"></button>
+      </div>
     </div>
 
     ${poryCardHtml()}
@@ -1133,6 +1140,12 @@ document.addEventListener('click', async ev => {
 
   switch (act) {
     case 'oddech-back': show('energy'); break;
+    case 'tut-go': {                            // mordki w Samouczku → ukryte ekrany
+      const v = el.dataset.go;
+      if (v === 'dzik') dzikReset();
+      if (renderers[v]) show(v);
+      break;
+    }
     case 'sec-toggle': {
       const box = el.closest('.card');
       secSet(box, !box.classList.contains('sec-closed'));

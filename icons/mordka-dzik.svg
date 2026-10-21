@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 14 76 76" width="100" height="100" role="img" aria-label="Dzik">
+<title>Dzik</title>
+<g stroke="#5b3a55" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+<path d="M29 42 L21 19 L42 31 Z" fill="#d8c5bd"/><path d="M71 42 L79 19 L58 31 Z" fill="#d8c5bd"/>
+<path d="M30 36 L26 26 L37 32 Z" fill="#fbcfe8" stroke="none"/><path d="M70 36 L74 26 L63 32 Z" fill="#fbcfe8" stroke="none"/>
+<circle cx="39" cy="31" r="5" fill="#ffadad"/><circle cx="61" cy="31" r="5" fill="#a0c4ff"/><circle cx="44.5" cy="27" r="5.5" fill="#ffd6a5"/><circle cx="55.5" cy="27" r="5.5" fill="#caffbf"/><circle cx="50" cy="24.5" r="6" fill="#fdffb6"/>
+<ellipse cx="50" cy="56" rx="28" ry="26" fill="#d8c5bd"/>
+<g>
+<path d="M38 74 Q33 72 33 66 Q37 69.5 40.5 69.5 Z" fill="#fff" stroke-width="1.2"/><path d="M62 74 Q67 72 67 66 Q63 69.5 59.5 69.5 Z" fill="#fff" stroke-width="1.2"/>
+<ellipse cx="50" cy="68" rx="13" ry="9.5" fill="#ffd1dc"/>
+<ellipse cx="45.5" cy="68" rx="2" ry="3" fill="#5b3a55" stroke="none"/><ellipse cx="54.5" cy="68" rx="2" ry="3" fill="#5b3a55" stroke="none"/>
+<path d="M45.5 80 Q50 82.5 54.5 80" fill="none"/>
+</g>
+</g>
+<path d="M38 55 C32.5 51.2 32.4 46 35.4 46 C36.9 46 38 47 38 48.3 C38 47 39.1 46 40.6 46 C43.6 46 43.5 51.2 38 55 Z" fill="#3b2438"/><circle cx="35.6" cy="48.1" r="1.1" fill="#fff"/><path d="M62 55 C56.5 51.2 56.4 46 59.4 46 C60.9 46 62 47 62 48.3 C62 47 63.1 46 64.6 46 C67.6 46 67.5 51.2 62 55 Z" fill="#3b2438"/><circle cx="59.6" cy="48.1" r="1.1" fill="#fff"/>
+</svg>

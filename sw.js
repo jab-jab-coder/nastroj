@@ -1,5 +1,5 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v35';
+const VERSION = 'nastroj-v36';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
@@ -20,6 +20,10 @@ const SHELL = [
   './icons/jednorozec.svg',
   './icons/rownowaznia.svg',
   './icons/bocian.svg',
+  './icons/mordka-bobr.svg',
+  './icons/mordka-bocian.svg',
+  './icons/mordka-dzik.svg',
+  './icons/mordka-wydech.svg',
 ];
 
 self.addEventListener('install', e => {
