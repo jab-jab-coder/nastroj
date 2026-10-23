@@ -25,6 +25,7 @@ const CATS = {
   spol: 'Społeczne', sens: 'Sensoryczne', pozn: 'Poznawcze', fiz: 'Fizyczne', emoc: 'Emocjonalne',
 };
 const CHIPS = [[10, 'mała'], [25, 'średnia'], [50, 'duża'], [80, 'ogromna']];
+const CHIP_SHORT = { 10: 'mała', 25: 'śred', 50: 'duża', 80: 'ogro' };   // skróty w „Dzisiejszych operacjach”
 
 // Skróty „Dodaj jednym dotknięciem”: najczęstsze czynności
 const TOP_WINDOW = 30;   // okno częstości (dni), liczone do wczoraj włącznie → układ stały przez cały dzień
@@ -351,7 +352,7 @@ function renderEnergy() {
   const st = status();
 
   v.innerHTML = `
-    <header class="head"><span></span><div><div class="eyebrow">Energia</div><h1>Saldo energii</h1></div><span></span></header>
+    <header class="head"><span></span><div><div class="eyebrow">Energia</div><h1>Księgowość Energetyczna</h1></div><span></span></header>
     <p class="lead">${esc(fmt(today0(), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
     ${saldoCard(day, st)}
     ${calibrationHtml(day.balance)}
@@ -561,6 +562,14 @@ function renderQuickAdd() {
   setTimeout(() => $('#qa-name')?.focus(), 50);
 }
 
+// Wartości do wyboru przy operacji: cztery podstawowe (skrócone) + domyślna czynności,
+// jeśli jest inna niż podstawowe — sama liczba, w kolejności wartości.
+function opChips(x) {
+  const def = actById(x.a)?.def;
+  const list = CHIPS.map(([v]) => [v, CHIP_SHORT[v]]);
+  if (Number.isFinite(def) && !list.some(([v]) => v === def)) list.push([def, '']);
+  return list.sort((a, b) => a[0] - b[0]);
+}
 // Wiersz operacji z dnia (wspólny dla listy i osi doby)
 function opRowHtml(x) {
   return `
@@ -570,7 +579,7 @@ function opRowHtml(x) {
             <span class="nm">${esc(x.n)}<small>${hhmm(x.t)}</small></span>
             <button class="x" data-act="e-del" data-entry="${x.id}" aria-label="Usuń">×</button>
           </div>
-          <div class="chips">${CHIPS.map(([v, l]) => `<button class="chip ${x.v === v ? 'on' : ''}" data-act="e-chip" data-entry="${x.id}" data-v="${v}">${l} ${v}</button>`).join('')}</div>
+          <div class="chips">${opChips(x).map(([v, l]) => `<button class="chip ${x.v === v ? 'on' : ''}" data-act="e-chip" data-entry="${x.id}" data-v="${v}"${l ? '' : ` aria-label="domyślna ${v}"`}>${l ? `${l} ${v}` : v}</button>`).join('')}</div>
         </div>`;
 }
 
