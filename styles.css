@@ -925,6 +925,9 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 #view-tama .hop { animation: tb-hop .36s ease-out; }
 #view-tama .huh, #view-tama .wig { animation: tb-huh .5s ease-in-out; }
 #view-tama .oak-in { transform-box: fill-box; transform-origin: 50% 100%; }
+#view-tama .hud-ico { transform-box: fill-box; transform-origin: center; transition: opacity .4s, filter .4s; }
+#view-tama .hud-ico.off { opacity: .3; filter: grayscale(1); }
+#view-tama .hud-ico.lit { animation: tb-lit .6s ease-out; }
 #view-tama .pine-in { transform-box: fill-box; transform-origin: 50% 100%; }
 #view-tama .psway { animation: tb-psway .6s ease-in-out; }
 #view-tama .joy { transform-box: fill-box; transform-origin: 50% 100%; animation: tb-joy .45s ease-in-out 4; }
@@ -940,6 +943,7 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 @keyframes tb-huh { 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
 @keyframes tb-walk { 50% { transform: translateY(-4px); } }
 @keyframes tb-tw { 50% { opacity: .25; } }
+@keyframes tb-lit { 40% { transform: scale(1.5); } 100% { transform: none; } }
 @keyframes tb-psway { 25% { transform: rotate(-2deg); } 60% { transform: rotate(2deg); } 100% { transform: none; } }
 @keyframes tb-joy { 50% { transform: translateY(-7px) scale(1.05); } }
 @keyframes tb-sway { 30% { transform: rotate(-1.6deg); } 65% { transform: rotate(1.1deg); } 100% { transform: none; } }
