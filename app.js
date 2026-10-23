@@ -126,7 +126,7 @@ function lastValue(f) {
   return best;
 }
 
-// Okna pór dnia — decydują, która karta jest rozwinięta na ekranie Dziś (wpis można zrobić zawsze).
+// Okna pór dnia — decydują, która karta jest rozwinięta na ekranie Dziś (tylko dziś, bieżąca pora; pozostałe karty — także w innych dniach — są zwinięte; wpis można zrobić zawsze).
 // Doba dzielona jest dwiema granicami na trzy przylegające przedziały:
 //   rano       — 00:00 → granica „popołudnie”
 //   popołudnie — granica „popołudnie” → granica „wieczór”
@@ -181,12 +181,8 @@ let installPrompt = null;
 function renderToday() {
   const key = dkey(ui.day);
   const isToday = key === dkey(new Date());
-  const filled = SLOTS.filter(s => getEntry(key, s.id)).length;
   const cur = isToday ? currentSlot() : null;
   ui.active = cur;
-  const msg = filled === 3 ? 'Wszystkie oceny zapisane — brawo! 💗'
-    : filled === 0 ? (isToday ? 'Jak się dziś czujesz?' : 'Brak wpisów tego dnia')
-    : `Zapisano ${filled} z 3 ocen`;
 
   $('#view-today').innerHTML = `
     <header class="head">
@@ -199,10 +195,9 @@ function renderToday() {
     </header>
     ${energyOn() ? saldoChipHtml(key) : ''}
     <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
-    <p class="lead">${msg}</p>
-    ${SLOTS.map(s => (isToday && s.id !== cur && !ui.open[`${key}|${s.id}`])
+    ${SLOTS.map(s => (s.id !== cur && !ui.open[`${key}|${s.id}`])
       ? slotCompact(s, key)
-      : slotCard(s, key, s.id === cur, isToday && s.id !== cur)).join('')}
+      : slotCard(s, key, s.id === cur, s.id !== cur)).join('')}
     ${medsOn() ? medsTodayHtml(key) : ''}
   `;
 }
@@ -211,8 +206,8 @@ function renderToday() {
 function slotCompact(s, key) {
   const e = getEntry(key, s.id);
   const vals = e
-    ? `<span class="c-vals"><span class="c-m">${e.v != null ? `${mood(e.v)[0]} <b>${e.v}</b>` : '<b>–</b>'}</span><span class="c-e">⚡ <b>${e.e ?? '–'}</b></span></span>`
-    : `<span class="c-vals c-none">brak wpisu</span>`;
+    ? `<span class="c-vals"><span class="c-m">${e.v != null ? `${mood(e.v)[0]} <b>${e.v}</b>` : `${mood(5)[0]} <b>–</b>`}</span><span class="c-e">⚡ <b>${e.e ?? '–'}</b></span></span>`
+    : `<span class="c-vals c-none"><span class="c-dim" aria-hidden="true">${mood(5)[0]} ⚡</span>brak wpisu</span>`;
   return `
     <button class="card slot-compact ${e ? 'filled' : 'empty'}" data-act="slot-open" data-key="${key}" data-slot="${s.id}"
             aria-label="${s.label}: ${e ? `nastrój ${e.v ?? 'brak'}, energia ${e.e ?? 'brak'}` : 'brak wpisu'}. Rozwiń">
