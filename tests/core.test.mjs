@@ -683,3 +683,18 @@ describe('Energia: zmiana godziny operacji z osi doby', () => {
     assert.equal(app.call('opStep', 6 * 60, -1), 6 * 60);
   });
 });
+
+describe('Energia: wartości przy dzisiejszych operacjach', () => {
+  const st = def => ({
+    [K.settings]: { onboarded: true },
+    'nastroj.activities.v1': [{ id: 'a1', name: 'Praca', kind: 'w', cat: 'praca', def, archived: false }],
+  });
+  test('skrócone etykiety, domyślna spoza podstawowych jako sama liczba w kolejności', () => {
+    const app = boot({ storage: st(15) });
+    assert.deepEqual(plain(app.call('opChips', { a: 'a1' })), [[10, 'mała'], [15, ''], [25, 'śred'], [50, 'duża'], [80, 'ogro']]);
+  });
+  test('domyślna równa podstawowej — bez dodatkowej wartości', () => {
+    const app = boot({ storage: st(25) });
+    assert.equal(app.call('opChips', { a: 'a1' }).length, 4);
+  });
+});
