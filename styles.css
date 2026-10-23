@@ -99,6 +99,21 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .tl-dot.on { background: var(--c); border-color: var(--card); box-shadow: 0 0 0 2px var(--c); }
 .tl-dot::before { content: ""; position: absolute; inset: -12px; }   /* większe pole dotyku */
 .tl-dot:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 3px; }
+/* Energia → Dzisiejsze operacje: ta sama oś w karcie */
+.tl-ops { margin: 14px 0 6px; }
+.tl-ops .tl-card { display: block; gap: 0; }
+.tl-ops .tl-empty { min-height: 34px; }
+.tl-ops .tl-row { padding-bottom: 0; }
+.tl-ops .tl-row + .tl-row .tl-card { border-top: 1px solid var(--line); }
+.tl-ops .logrow:first-child { padding-top: 10px; }
+.card .tl-hr { background: var(--card); }
+.tl-op {
+  position: absolute; z-index: 3; transform: translate(-50%, -50%);
+  width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 13px; font-weight: 900; line-height: 1; border: 2px solid currentColor; background: var(--card);
+}
+.tl-op.w { left: calc(50% - 14px); color: var(--neg); }
+.tl-op.d { left: calc(50% + 14px); color: var(--rose-deep); }
 .tl-pill { position: absolute; left: 50%; z-index: 2; transform: translate(-50%, -50%); font-size: 14px; line-height: 1; }
 
 /* ---------- cards ---------- */

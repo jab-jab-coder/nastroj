@@ -630,3 +630,20 @@ describe('Dziś: leki przy porach dnia', () => {
     assert.match(app.call('medsTodayHtml', TODAY, 'evening'), /15:00/);
   });
 });
+
+describe('Energia: dzisiejsze operacje na osi doby', () => {
+  test('operacje chronologicznie, wypłata ⊖ i wpłata ⊕ na osi, godziny pór bez pomiarów i leków', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true, dayStart: '00:00', windows: { afternoon: '12:00', evening: '14:00' } } } });
+    const at = (h, m) => { const d = new Date(`${TODAY}T00:00:00`); d.setHours(h, m); return d.getTime(); };
+    const list = [
+      { id: 'l2', a: 'a', n: 'Spacer', k: 'd', v: 10, t: at(15, 0) },
+      { id: 'l1', a: 'b', n: 'Praca', k: 'w', v: 20, t: at(9, 0) },
+    ];
+    const html = app.call('opsTimelineHtml', list.slice().sort((a, b) => a.t - b.t));
+    assert.equal((html.match(/class="tl-op w"/g) || []).length, 1);
+    assert.equal((html.match(/class="tl-op d"/g) || []).length, 1);
+    assert.ok(html.indexOf('Praca') < html.indexOf('Spacer'));
+    for (const h of ['00:00', '12:00', '14:00']) assert.match(html, new RegExp(`tl-hr[^>]*>${h}<`));
+    assert.doesNotMatch(html, /tl-dot|tl-pill/);
+  });
+});
