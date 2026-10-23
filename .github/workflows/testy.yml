@@ -1,0 +1,24 @@
+# Testy automatyczne operacji na danych (localStorage).
+# Uruchamiane przy każdym pushu na dowolną gałąź; wynik widać jako ✓/✗ przy commicie i w PR.
+# Bez npm i bez zależności — tylko Node z wbudowanym runnerem testów.
+name: Testy
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  testy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TZ: Europe/Warsaw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testy
+        run: node --test --test-reporter=spec
+      - name: Pokrycie operacji na storze
+        run: node tests/pokrycie.mjs

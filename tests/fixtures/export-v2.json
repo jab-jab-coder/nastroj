@@ -1,0 +1,92 @@
+{
+  "app": "nastroj",
+  "version": 2,
+  "exportedAt": "2026-10-21T18:00:00.000Z",
+  "settings": {
+    "times": { "morning": "08:30", "afternoon": "14:00", "evening": "21:00" },
+    "notify": false,
+    "carry": 0.5,
+    "cbiModule": true,
+    "autModule": true,
+    "lowSensory": false,
+    "oddechSound": true,
+    "defaults": { "mode": "last", "v": 5, "e": 5 },
+    "onboarded": true,
+    "meds": { "chart": "meds", "share": false }
+  },
+  "entries": {
+    "2026-10-20": {
+      "morning": { "v": 6, "e": 4, "t": 1792476300000 },
+      "evening": { "v": 3, "t": 1792521600000 }
+    },
+    "2026-10-21": {
+      "morning": { "e": 7, "t": 1792566000000 }
+    }
+  },
+  "activities": [
+    { "id": "act-spotkanie", "name": "Spotkanie towarzyskie", "kind": "w", "cat": "spol", "def": 30, "archived": false, "tpl": "spotkanie" },
+    { "id": "act-spacer", "name": "Spacer w lesie / na zewnątrz", "kind": "d", "cat": "fiz", "def": 25, "archived": false, "tpl": "spacer", "pinned": true },
+    { "id": "act-wlasna", "name": "Układanie klocków", "kind": "d", "cat": "pozn", "def": 40, "archived": false, "addedAt": "2026-10-15" },
+    { "id": "act-stara", "name": "Dojazd autem", "kind": "w", "cat": "sens", "def": 15, "archived": true }
+  ],
+  "energy": {
+    "2026-10-20": [
+      { "id": "log-1", "a": "act-spotkanie", "n": "Spotkanie towarzyskie", "k": "w", "v": 45, "t": 1792476420000 },
+      { "id": "log-2", "a": "act-spacer", "n": "Spacer w lesie / na zewnątrz", "k": "d", "v": 25, "t": 1792521600000 }
+    ],
+    "2026-10-21": [
+      { "id": "log-3", "a": "act-wlasna", "n": "Układanie klocków", "k": "d", "v": 40, "t": 1792582200000 }
+    ]
+  },
+  "plans": {
+    "2026-10-21": [
+      { "id": "plan-1", "a": "act-spacer", "done": true },
+      { "id": "plan-2", "a": "act-spotkanie" }
+    ]
+  },
+  "surveys": [
+    { "id": "sv-1", "type": "cbi", "t": 1792521600000, "answers": [75, 75, 50, 25, 50, 25], "score": 50 },
+    { "id": "sv-2", "type": "aut", "t": 1792566000000, "answers": [50, 25, 75, 50, 100, 25], "score": 54 }
+  ],
+  "strategies": ["Słuchawki w sklepie", "Przerwa co godzinę pracy"],
+  "records": [
+    { "s": 125, "t": 1792476300000, "v": 6, "e": 4 },
+    { "s": 48, "t": 1792566000000 }
+  ],
+  "meds": [
+    {
+      "id": "med-a", "name": "Lek poranny", "unit": "tabl.", "doses": [1, 0.5], "color": "#e75a8d",
+      "onTime": 30, "late": 120, "note": "po śniadaniu", "from": "2026-10-01",
+      "sched": [
+        { "from": "2026-10-01", "times": ["08:00"], "days": [0, 1, 2, 3, 4, 5, 6] },
+        { "from": "2026-10-15", "times": ["08:00", "20:00"], "days": [1, 2, 3, 4, 5] }
+      ]
+    },
+    {
+      "id": "med-b", "name": "Doraźny", "unit": "kaps.", "doses": [1], "color": "#7b5cd6",
+      "onTime": 30, "late": 120, "note": "", "from": "2026-10-01",
+      "sched": [{ "from": "2026-10-01", "times": [] }]
+    },
+    {
+      "id": "med-c", "name": "Zakończony", "unit": "", "doses": [2], "color": "#2f86c4",
+      "onTime": 15, "late": 60, "note": "", "from": "2026-09-01",
+      "sched": [
+        { "from": "2026-09-01", "times": ["08:00"], "days": [0, 1, 2, 3, 4, 5, 6] },
+        { "from": "2026-10-10", "off": true }
+      ]
+    }
+  ],
+  "medpacks": [
+    { "id": "pack-1", "name": "Poranne", "at": "08:00", "items": ["med-a"] }
+  ],
+  "medlog": {
+    "2026-10-20": [
+      { "id": "ml-1", "m": "med-a", "s": "08:00", "t": 1792476420000, "src": "pack", "d": 1, "p": "pack-1" },
+      { "id": "ml-2", "m": "med-a", "s": "20:00", "t": 1792521600000, "src": "manual", "skip": true },
+      { "id": "ml-3", "m": "med-b", "s": null, "t": 1792521600000, "src": "tap", "d": 1 }
+    ],
+    "2026-10-21": [
+      { "id": "ml-4", "m": "med-a", "s": "08:00", "t": 1792566000000, "src": "tap", "d": 0.5 }
+    ]
+  }
+}

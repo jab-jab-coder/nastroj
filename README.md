@@ -38,6 +38,10 @@ Nowe klucze v2: `nastroj.activities.v1`, `nastroj.energy.v1`, `nastroj.plan.v1`,
 
 `pobierz.html` (https://jab-jab-coder.github.io/nastroj/pobierz.html) — krótki opis aplikacji, przycisk „Otwórz aplikację” i instrukcja instalacji dla Androida i iPhone'a (wykrywa telefon i pokazuje jego instrukcję pierwszą). Wykrywa też przeglądarki komunikatorów (Messenger, Instagram…) i prosi o otwarcie w Chrome/Safari. Na komputerze pokazuje kod QR (`icons/qr-pobierz.svg`). Strona nie należy do powłoki aplikacji w `sw.js`.
 
+## Testy
+
+Testy automatyczne wszystkich operacji na danych (localStorage), bez npm: `node --test`. Uruchamiają się też same przy każdym pushu (GitHub Actions). Szczegóły: [tests/README.md](tests/README.md).
+
 ## Uruchomienie lokalne
 
 ```bash
