@@ -391,3 +391,41 @@ describe('usunięcie wszystkich danych', () => {
     assert.deepEqual(app.ls.snapshot(), before);
   });
 });
+
+describe('wykres tygodnia: kreska przez wszystkie pomiary', () => {
+  const D1 = '2026-10-19', D2 = '2026-10-20', D4 = '2026-10-22';
+  const keys = ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25'];
+  const lines = svg => (svg.match(/<line [^>]*stroke-width="3"[^>]*>/g) || []);
+
+  test('weekPoints: kolejność chronologiczna, dzień bez wpisów pominięty, osobno nastrój i energia', () => {
+    const app = boot();
+    app.call('setEntry', D1, 'morning', 5, 2);
+    app.call('setEntry', D1, 'evening', 7, null);
+    app.call('setEntry', D4, 'afternoon', 3, 6);
+    assert.deepEqual(plain(app.call('weekPoints', keys, 'mood')),
+      [{ i: 0, j: 0, v: 5 }, { i: 0, j: 2, v: 7 }, { i: 3, j: 1, v: 3 }]);
+    assert.deepEqual(plain(app.call('weekPoints', keys, 'energy')),
+      [{ i: 0, j: 0, v: 2 }, { i: 3, j: 1, v: 6 }]);
+  });
+
+  test('weekChart: n pomiarów → n−1 odcinków, kolor odcinka = kolor punktu końcowego', () => {
+    const app = boot();
+    app.call('setEntry', D1, 'morning', 5, null);
+    app.call('setEntry', D2, 'evening', 6, null);   // dzień z jednym pomiarem
+    app.call('setEntry', D4, 'afternoon', 3, null); // przeskok nad dniem bez wpisów
+    const days = keys.map(k => app.call('parseKey', k));
+    const svg = app.call('weekChart', days, 'mood');
+    const l = lines(svg);
+    assert.equal(l.length, 2);
+    const slots = app.g('SERIES.mood.slots');
+    assert.match(l[0], new RegExp(`stroke="${slots[2]}"`));
+    assert.match(l[1], new RegExp(`stroke="${slots[1]}"`));
+  });
+
+  test('weekChart: jeden pomiar w tygodniu → bez kreski', () => {
+    const app = boot();
+    app.call('setEntry', D1, 'morning', null, 4);
+    const days = keys.map(k => app.call('parseKey', k));
+    assert.equal(lines(app.call('weekChart', days, 'energy')).length, 0);
+  });
+});
