@@ -126,6 +126,7 @@ function tutStep3() {
         <span class="slot-icon" aria-hidden="true">${s.icon}</span>
         <div><h2>${s.label}</h2><small>${existing ? `Zapisano o ${hhmm(existing.t)}` : 'pora, która trwa teraz'}</small></div>
       </div>
+      ${moodHeadHtml()}
       <div class="mood" aria-live="polite">
         <span class="emo${im}" aria-hidden="true">${emo}</span>
         <span class="val${im}">${tut.v}</span>

@@ -95,10 +95,12 @@ function energyIcon(v) {
   const n = energyN(v);
   return batterySvg(n, ENERGIES[n][0]);
 }
+// Nagłówek nad oceną samopoczucia (karta pory i samouczek); ikona = status 5 ze skali MOODS.
+const moodHeadHtml = () => `<div class="rate-head mood-head">${MOODS[5][0]} Samopoczucie</div>`;
 // Wiersz energii jak wiersz nastroju: ikona, liczba, hasło (karta pory i samouczek).
 function energyRowHtml(en, idle) {
   const ie = idle ? ' idle' : '';
-  return `<div class="en-head">⚡ Energia</div>
+  return `<div class="rate-head">🔋 Energia</div>
       <div class="en-mood" aria-live="polite">
         <span class="en-emo${ie}" aria-hidden="true">${energyIcon(en)}</span>
         <span class="en-val${ie}">${en}</span>
@@ -341,6 +343,7 @@ function slotCard(s, key, isNow, collapsible = false) {
         ${badge}
         ${collapsible ? `<button class="c-close" data-act="slot-close" aria-label="Zwiń">⌃</button>` : ''}
       </div>
+      ${moodHeadHtml()}
       <div class="mood" aria-live="polite">
         <span class="emo${im}" aria-hidden="true">${emo}</span>
         <span class="val${im}">${v}</span>

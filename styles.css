@@ -318,7 +318,8 @@ input[type=time] {
   --bat-1: #c62828; --bat-2: #d32f2f; --bat-3: #ef6c00; --bat-4: #f29d16; --bat-5: #d4b106;
   --bat-6: #9cbf3a; --bat-7: #6aab45; --bat-8: #3f9a50; --bat-9: #2e7d4f; --bat-10: #1b6040;
 }
-.en-head { font-weight: 800; color: var(--ink-soft); font-size: 14px; margin: 14px 0 0; }
+.rate-head { font-weight: 800; color: var(--ink-soft); font-size: 14px; margin: 14px 0 0; }
+.rate-head.mood-head + .mood { margin-top: 6px; }   /* nagłówek „Samopoczucie” tuż nad oceną */
 /* min-height: miejsce na hasło w 2 liniach (na wąskim ekranie w 3), żeby suwak nie skakał przy zmianie hasła */
 .en-mood { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; min-height: 40px; }
 @media (max-width: 380px) { .en-mood { min-height: 54px; } }
