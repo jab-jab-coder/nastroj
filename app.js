@@ -63,20 +63,20 @@ function mood(v) {
   return MOODS[Math.max(1, Math.min(10, Math.round(v)))];
 }
 
-// Skala energii 1–10: [ikona, hasło]. Liczba = bateria SVG naładowana w tym ułamku (1–7),
-// tekst = emoji „ponad pełną baterię” (8–10). Kolory baterii: --bat-1…--bat-7 w styles.css.
+// Skala energii 1–10: [naładowanie baterii 0–1, hasło]. Bateria SVG od pustej (1) do pełnej (10);
+// 3 = ⅓, 5 = ½, dalej co 10%. Kolory wypełnienia: --bat-1…--bat-10 w styles.css.
 const ENERGIES = [
   null,
-  [0, 'Shutdown, zero mocy'],
-  [0.12, 'Ledwo zipię'],
-  [1 / 3, 'Jadę na oparach'],
-  [0.42, 'Ślimacze tempo'],
+  [0, 'Shutdown, meltdown, zero mocy'],
+  [1 / 6, 'Ledwo zipię'],
+  [1 / 3, 'Jadę na oparach, ale jakoś jadę'],
+  [5 / 12, 'Ślimacze tempo'],
   [0.5, 'Na pół gwizdka'],
-  [0.75, 'Daję radę'],
-  [1, 'Bateria trzyma'],
-  ['💪', 'Mam moc'],
-  ['🏃', 'Pełna para'],
-  ['🌪️', 'Aż mnie nosi'],
+  [0.6, 'Daję radę'],
+  [0.7, 'Bateria trzyma'],
+  [0.8, 'Mam moc'],
+  [0.9, 'Pełna para'],
+  [1, 'Mogę góry przenosić'],
 ];
 const energyN = v => Math.max(1, Math.min(10, Math.round(v)));
 function energyLevel(v) {
@@ -92,8 +92,8 @@ function batterySvg(n, fill) {
     + `</svg>`;
 }
 function energyIcon(v) {
-  const n = energyN(v), ic = ENERGIES[n][0];
-  return typeof ic === 'number' ? batterySvg(n, ic) : ic;
+  const n = energyN(v);
+  return batterySvg(n, ENERGIES[n][0]);
 }
 // Wiersz energii jak wiersz nastroju: ikona, liczba, hasło (karta pory i samouczek).
 function energyRowHtml(en, idle) {
@@ -352,7 +352,7 @@ function slotCard(s, key, isNow, collapsible = false) {
       ${energyRowHtml(en, idleE)}
       <input type="range" class="en${ie}" min="1" max="10" step="1" value="${en}" data-kind="energy" style="--p:${((en - 1) / 9) * 100}%"
              aria-label="Energia: ${s.label}, skala 1–10">
-      <div class="scale"><span>1 · shutdown</span><span>10 · aż mnie nosi</span></div>
+      <div class="scale"><span>1 · shutdown</span><span>10 · mogę góry przenosić</span></div>
       <div class="actions">
         ${e ? '<button class="btn ghost" data-act="del">Usuń</button>' : ''}
         <button class="btn primary" data-act="save" ${e && !dirty ? 'disabled' : ''}>${btn}</button>

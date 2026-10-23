@@ -315,16 +315,18 @@ input[type=time] {
 
 /* wiersz energii w karcie pory: jak wiersz nastroju, ale mniejszy (energia jest drugorzędna) */
 :root {
-  --bat-1: #c62828; --bat-2: #d32f2f; --bat-3: #ef6c00; --bat-4: #f2a516;
-  --bat-5: #d4b106; --bat-6: #7cb342; --bat-7: #2e7d4f;
+  --bat-1: #c62828; --bat-2: #d32f2f; --bat-3: #ef6c00; --bat-4: #f29d16; --bat-5: #d4b106;
+  --bat-6: #9cbf3a; --bat-7: #6aab45; --bat-8: #3f9a50; --bat-9: #2e7d4f; --bat-10: #1b6040;
 }
 .en-head { font-weight: 800; color: var(--ink-soft); font-size: 14px; margin: 14px 0 0; }
-.en-mood { display: flex; align-items: center; gap: 12px; margin: 6px 0 4px; }
-.en-emo { width: 46px; flex: none; display: flex; align-items: center; justify-content: center;
+/* min-height: miejsce na hasło w 2 liniach (na wąskim ekranie w 3), żeby suwak nie skakał przy zmianie hasła */
+.en-mood { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; min-height: 40px; }
+@media (max-width: 380px) { .en-mood { min-height: 54px; } }
+.en-emo { width: 40px; flex: none; display: flex; align-items: center; justify-content: center;
   font-size: 28px; line-height: 1; color: var(--ink-soft); }
-.en-emo .bat { width: 44px; height: 26px; display: block; }
-.en-txt { color: var(--ink-soft); font-weight: 700; }
-.en-mood .en-val { font-size: 28px; min-width: 52px; }   /* hasło w jednej linii z hasłem nastroju */
+.en-emo .bat { width: 40px; height: 24px; display: block; }
+.en-txt { color: var(--ink-soft); font-weight: 700; font-size: 14px; line-height: 1.25; min-width: 0; }
+.en-mood .en-val { font-size: 26px; min-width: 32px; }
 .en-emo.idle { filter: grayscale(1); opacity: .55; }
 .en-val { font-weight: 900; font-size: 22px; color: var(--c-evening); font-variant-numeric: tabular-nums; }
 .en-val small { font-size: 13px; color: var(--ink-soft); }
@@ -522,8 +524,8 @@ body.locked { overflow: hidden; }
   --line: #e0dcde; --track: #e6e2e4; --rose: #8a7480; --rose-deep: #5e4a55;
   --c-morning: #b4a3ac; --c-afternoon: #8a7480; --c-evening: #5e4a55;
   --pos: #8a7480; --neg: #4a3a43; --shadow: none;
-  --bat-1: #6b6468; --bat-2: #8a7480; --bat-3: #8a7480; --bat-4: #8a7480;
-  --bat-5: #8a7480; --bat-6: #8a7480; --bat-7: #8a7480;
+  --bat-1: #6b6468; --bat-2: #8a7480; --bat-3: #8a7480; --bat-4: #8a7480; --bat-5: #8a7480;
+  --bat-6: #8a7480; --bat-7: #8a7480; --bat-8: #8a7480; --bat-9: #8a7480; --bat-10: #8a7480;
 }
 :root[data-calm="1"] body { background: var(--bg); }
 :root[data-calm="1"] *, :root[data-calm="1"] *::before, :root[data-calm="1"] *::after { transition: none !important; animation: none !important; }

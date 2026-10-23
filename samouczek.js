@@ -137,7 +137,7 @@ function tutStep3() {
       ${energyRowHtml(tut.e, !!ie)}
       <input type="range" class="en${ie}" min="1" max="10" step="1" value="${tut.e}" data-tut-kind="energy" style="--p:${((tut.e - 1) / 9) * 100}%"
              aria-label="Energia teraz, skala 1–10">
-      <div class="scale"><span>1 · shutdown</span><span>10 · aż mnie nosi</span></div>
+      <div class="scale"><span>1 · shutdown</span><span>10 · mogę góry przenosić</span></div>
     </section>
     <div class="tut-nav">
       <button class="btn ghost" data-act="tut-back">Wstecz</button>
