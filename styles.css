@@ -545,6 +545,7 @@ body.locked { overflow: hidden; }
 .c-m b { color: var(--rose-deep); }
 .c-e b { color: var(--c-evening); }
 .c-none { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.c-dim { font-size: 15px; opacity: .4; filter: grayscale(1); }
 .c-chev { color: var(--ink-soft); font-size: 18px; flex: none; }
 .slot-compact.filled { background: linear-gradient(120deg, var(--bg2) 0%, var(--card) 100%); border-color: var(--c-morning); }
 .slot-compact.empty { opacity: .55; box-shadow: none; background: var(--card); }

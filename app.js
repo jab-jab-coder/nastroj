@@ -207,7 +207,7 @@ function slotCompact(s, key) {
   const e = getEntry(key, s.id);
   const vals = e
     ? `<span class="c-vals"><span class="c-m">${e.v != null ? `${mood(e.v)[0]} <b>${e.v}</b>` : `${mood(5)[0]} <b>–</b>`}</span><span class="c-e">⚡ <b>${e.e ?? '–'}</b></span></span>`
-    : `<span class="c-vals c-none">brak wpisu</span>`;
+    : `<span class="c-vals c-none"><span class="c-dim" aria-hidden="true">${mood(5)[0]} ⚡</span>brak wpisu</span>`;
   return `
     <button class="card slot-compact ${e ? 'filled' : 'empty'}" data-act="slot-open" data-key="${key}" data-slot="${s.id}"
             aria-label="${s.label}: ${e ? `nastrój ${e.v ?? 'brak'}, energia ${e.e ?? 'brak'}` : 'brak wpisu'}. Rozwiń">
