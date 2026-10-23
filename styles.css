@@ -909,7 +909,6 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 .pd-in { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pd-in small { font-size: 11px; color: var(--ink-soft); }
 .pd-in input[type=time] { width: 100%; min-width: 0; box-sizing: border-box; }
-.pd-fixed { padding: 8px 4px; color: var(--ink-soft); font-weight: 700; }
 .pd-link { background: none; border: 0; padding: 0; color: var(--rose-deep); font-weight: 700; text-decoration: underline; cursor: pointer; }
 
 /* ---------- ukryty widok: Tama Bobra (podwójne dotknięcie „Energia”, bóbr w Samouczku) ---------- */
@@ -957,3 +956,6 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 .tama-end h2 { margin: 0 0 6px; font-size: 20px; font-weight: 900; }
 .tama-end p { margin: 0 0 12px; color: var(--ink-soft); font-weight: 700; line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) { #tb-flow use, #view-tama .tw, #view-tama .psway { animation: none; } }
+.pd-bar { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.pd-h { cursor: ew-resize; outline: none; }
+.pd-h:focus-visible > * { stroke: var(--rose-deep); stroke-width: 3; }

@@ -327,7 +327,7 @@ function medSummary(m) {
   const tk = todayKey();
   const endV = (m.sched || []).filter(x => x.off && x.from > tk).sort((a, b) => a.from.localeCompare(b.from))[0];
   const start = (m.from > tk ? ` · od ${fmt(parseKey(m.from), { day: 'numeric', month: 'short' })}` : '')
-    + (endV ? ` · ostatni dzień ${endV.from === dkey(addDays(new Date(), 1)) ? 'dziś' : fmt(addDays(parseKey(endV.from), -1), { day: 'numeric', month: 'short' })}` : '');
+    + (endV ? ` · ostatni dzień ${endV.from === dkey(addDays(today0(), 1)) ? 'dziś' : fmt(addDays(parseKey(endV.from), -1), { day: 'numeric', month: 'short' })}` : '');
   if (!v.times.length) return `ad hoc · ${doseTxt(m, m.doses[0])}${start}`;
   return `${doseTxt(m, m.doses[0])} · ${v.times.join(', ')} · ${daysTxt(v.days)}${start}`;
 }
@@ -786,7 +786,7 @@ function medsDayCell(k) {
 }
 function medsShareLine() {
   if (!settings.meds.share || !meds.length) return '';
-  const keys = [...Array(7)].map((_, i) => dkey(addDays(new Date(), i - 6)));
+  const keys = [...Array(7)].map((_, i) => dkey(addDays(today0(), i - 6)));
   const x = medStats(keys);
   return x.due ? `Leki z 7 dni: wzięte ${x.taken}/${x.due} dawek (${x.pct}%)` : '';
 }
@@ -918,7 +918,7 @@ function medsClick(act, el) {
     case 'med-end': {
       const m = medById(d.m);
       if (!m) return true;
-      const tk = todayKey(), yk = dkey(addDays(new Date(), -1));
+      const tk = todayKey(), yk = dkey(addDays(today0(), -1));
       openSheet(`
         <div class="sheet-head"><h2>Zakończ: ${esc(m.name)}</h2><button class="x" data-act="sheet-close" aria-label="Zamknij">×</button></div>
         <p class="note" style="margin-top:0">Lek zniknie z ekranu „Dziś”. Historia zostaje w dzienniczku, a lek możesz w każdej chwili wznowić.</p>

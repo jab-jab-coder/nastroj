@@ -181,9 +181,29 @@ describe('ustawienia (nastroj.settings.v1)', () => {
     assert.deepEqual(app.stored(K.settings).windows, { afternoon: '12:00', evening: '16:00' });
   });
 
-  test('„Automatyczne okna” usuwa settings.windows', async () => {
+  test('„Cofnij zmianę” przywraca poprzednie wersje pór krok po kroku (godziny, okna, „Rano od”)', async () => {
     const app = boot({ storage: { [K.settings]: { windows: { afternoon: '12:00', evening: '18:00' }, onboarded: true } } });
-    await app.click('win-auto');
+    await app.change({ dataset: { win: 'evening' }, value: '19:00' });
+    await app.change({ dataset: { time: 'morning' }, value: '08:00' });
+    await app.change({ dataset: { dayStart: '' }, value: '04:00' });
+    await app.click('pory-undo');
+    assert.equal('dayStart' in app.stored(K.settings), false);
+    assert.equal(app.toasts.at(-1), 'Cofnięto zmianę');
+    await app.click('pory-undo');
+    assert.equal(app.stored(K.settings).times.morning, '09:00');
+    await app.click('pory-undo');
+    assert.deepEqual(app.stored(K.settings).windows, { afternoon: '12:00', evening: '18:00' });
+    const w = app.ls.writes;
+    await app.click('pory-undo');                    // stos pusty — nic się nie dzieje
+    assert.equal(app.ls.writes, w);
+  });
+
+  test('„Cofnij zmianę” po pierwszej własnej granicy wraca do okien automatycznych; odrzucona zmiana nie trafia na stos', async () => {
+    const app = boot();
+    await app.change({ dataset: { win: 'afternoon' }, value: '12:30' });
+    await app.change({ dataset: { win: 'afternoon' }, value: '15:30' });   // wieczór 16:00 − za krótko → odrzucone
+    assert.equal(app.g('poryUndo.length'), 1);
+    await app.click('pory-undo');
     assert.equal('windows' in app.stored(K.settings), false);
   });
 
@@ -427,5 +447,159 @@ describe('wykres tygodnia: kreska przez wszystkie pomiary', () => {
     app.call('setEntry', D1, 'morning', null, 4);
     const days = keys.map(k => app.call('parseKey', k));
     assert.equal(lines(app.call('weekChart', days, 'energy')).length, 0);
+  });
+});
+
+describe('początek doby — „Rano od” (settings.dayStart)', () => {
+  const SAT = '2026-10-24';
+  const DS4 = { [K.settings]: { dayStart: '04:00', onboarded: true } };
+
+  test('zmiana „Rano od” zapisuje settings.dayStart; 00:00 usuwa pole (domyślnie północ)', async () => {
+    const app = boot();
+    await app.change({ dataset: { dayStart: '' }, value: '04:00' });
+    assert.equal(app.stored(K.settings).dayStart, '04:00');
+    assert.equal(app.toasts.at(-1), 'Zapisano początek doby');
+    await app.change({ dataset: { dayStart: '' }, value: '00:00' });
+    assert.equal('dayStart' in app.stored(K.settings), false);
+    const w = app.ls.writes;
+    await app.change({ dataset: { dayStart: '' }, value: '' });
+    assert.equal(app.ls.writes, w);
+  });
+
+  test('„Rano od”, przy którym własne okna byłyby krótsze niż godzina, jest odrzucane', async () => {
+    const app = boot({ storage: { [K.settings]: { windows: { afternoon: '11:00', evening: '16:00' }, onboarded: true } } });
+    await app.change({ dataset: { dayStart: '' }, value: '10:30' });
+    assert.equal(app.toasts.at(-1), 'Każda pora musi trwać co najmniej godzinę');
+    assert.equal('dayStart' in app.stored(K.settings), false);
+  });
+
+  test('bez ustawienia: północ jak dotąd — sobota 03:00 to sobota, rano', () => {
+    const app = boot({ now: new Date(2026, 9, 24, 3, 0) });
+    assert.equal(app.run('todayK()'), SAT);
+    assert.equal(app.run('todayKey()'), SAT);
+    assert.equal(app.run('currentSlot()'), 'morning');
+  });
+
+  test('„Rano od” 04:00: sobota 03:00 to jeszcze piątek (wieczór), od 04:00 sobota (rano)', () => {
+    const app = boot({ storage: DS4, now: new Date(2026, 9, 24, 3, 0) });
+    assert.equal(app.run('todayK()'), TODAY);
+    assert.equal(app.run('dkey(ui.day)'), TODAY);
+    assert.equal(app.run('todayKey()'), TODAY);          // energia i leki liczą ten sam dzień
+    assert.equal(app.run('currentSlot()'), 'evening');
+    app.setNow(new Date(2026, 9, 24, 4, 0));
+    assert.equal(app.run('todayK()'), SAT);
+    assert.equal(app.run('currentSlot()'), 'morning');
+  });
+
+  test('ocena zapisana o 03:00 trafia do wieczoru poprzedniego dnia', async () => {
+    const app = boot({ storage: DS4, now: new Date(2026, 9, 24, 3, 0) });
+    const card = { dataset: { key: app.run('dkey(ui.day)'), slot: app.run('currentSlot()') } };
+    app.call('setEntry', card.dataset.key, card.dataset.slot, 6, 4);
+    assert.deepEqual(Object.keys(app.stored(K.entries)), [TODAY]);
+    assert.deepEqual(app.stored(K.entries)[TODAY].evening, { t: app.now(), v: 6, e: 4 });
+  });
+
+  test('okna liczone od początku doby; wieczór kończy się o „Rano od” następnego dnia', () => {
+    const app = boot({ storage: { [K.settings]: { dayStart: '04:00', windows: { afternoon: '12:00', evening: '18:00' }, onboarded: true } } });
+    assert.deepEqual(plain(app.run('slotWindows()')), { morning: [240, 720], afternoon: [720, 1080], evening: [1080, 1680] });
+  });
+
+  test('własny wieczór może zaczynać się po północy', async () => {
+    const app = boot({ storage: DS4, now: new Date(2026, 9, 23, 23, 30) });
+    await app.change({ dataset: { win: 'afternoon' }, value: '12:00' });
+    await app.change({ dataset: { win: 'evening' }, value: '00:30' });
+    assert.deepEqual(app.stored(K.settings).windows, { afternoon: '12:00', evening: '00:30' });
+    assert.equal(app.run('currentSlot()'), 'afternoon');
+    app.setNow(new Date(2026, 9, 24, 1, 0));
+    assert.equal(app.run('currentSlot()'), 'evening');
+    assert.equal(app.run('todayK()'), TODAY);
+  });
+
+  test('okna automatyczne bez „Rano od” — jak dotychczas', () => {
+    const app = boot();
+    assert.deepEqual(plain(app.run('slotWindows()')), { morning: [0, 660], afternoon: [660, 960], evening: [960, 1440] });
+  });
+
+  test('przypomnienie o godzinie po północy należy do doby aplikacji; stan dla SW zawiera dayStart', async () => {
+    const app = boot({
+      notification: 'granted', caches: true, now: new Date(2026, 9, 24, 0, 45),
+      storage: { [K.settings]: { dayStart: '04:00', notify: true, times: { morning: '09:00', afternoon: '14:00', evening: '00:30' }, onboarded: true } },
+    });
+    await app.run('checkReminders()');
+    assert.deepEqual(app.stored(K.notified), { [`${TODAY}|evening`]: true });
+    await app.run('syncState()');
+    const state = JSON.parse(app.cacheStore.get('./__state'));
+    assert.equal(state.today, TODAY);
+    assert.equal(state.dayStart, '04:00');
+  });
+});
+
+describe('pasek doby: przeciąganie godzin', () => {
+  const DS4 = { [K.settings]: { dayStart: '04:00', onboarded: true } };
+
+  test('barMinFromX: krawędzie paska, skalowanie SVG, przesunięta oś', () => {
+    const app = boot();
+    const X0 = app.g('PD.X0'), BW = app.g('PD.BW');
+    assert.equal(app.call('barMinFromX', X0, { left: 0, width: 320 }, 0), 0);
+    assert.equal(app.call('barMinFromX', X0 + BW, { left: 0, width: 320 }, 0), 1440);
+    assert.equal(app.call('barMinFromX', 2 * (X0 + BW / 2), { left: 0, width: 640 }, 240), 240 + 720);   // SVG 2× szerszy
+    assert.equal(app.call('barMinFromX', 100 + X0, { left: 100, width: 320 }, 240), 240);
+  });
+
+  test('snapMin: co 30 min, także po północy (minuty doby > 1440)', () => {
+    const app = boot();
+    assert.equal(app.call('snapMin', 615), 630);
+    assert.equal(app.call('snapMin', 614), 600);
+    assert.equal(app.call('snapMin', 1505), 1500);   // 01:05 następnego dnia → 01:00
+  });
+
+  test('clampBound: każda pora min. 1 h, krawędzie tylko do środka, godzina wpisu w obrębie doby', () => {
+    const app = boot();
+    const b = { s: 240, a: 660, e: 960 };   // „Rano od” 04:00, popołudnie 11:00, wieczór 16:00
+    const c = (id, m) => app.call('clampBound', id, m, b);
+    assert.equal(c('ds-l', 100), 240);       // lewa krawędź nie idzie w lewo
+    assert.equal(c('ds-l', 900), 600);       // najwyżej do popołudnia − 1 h
+    assert.equal(c('ds-r', 1800), 1680);     // prawa krawędź nie idzie w prawo
+    assert.equal(c('ds-r', 500), 1020);      // najwyżej do wieczoru + 1 h
+    assert.equal(c('win-afternoon', 200), 300);
+    assert.equal(c('win-afternoon', 1000), 900);
+    assert.equal(c('win-evening', 600), 720);
+    assert.equal(c('win-evening', 2000), 1620);
+    assert.equal(c('t-evening', 1500), 1500); // 01:00 po północy — w dobie
+    assert.equal(c('t-evening', 1700), 1679);
+    assert.equal(c('t-morning', 100), 240);
+  });
+
+  test('setEntryTime: zapis godziny wpisu; zła wartość nic nie zapisuje', () => {
+    const app = boot();
+    assert.equal(app.call('setEntryTime', 'evening', '22:30'), true);
+    assert.equal(app.stored(K.settings).times.evening, '22:30');
+    assert.equal(app.toasts.at(-1), 'Zapisano godzinę wpisu');
+    const w = app.ls.writes;
+    assert.equal(app.call('setEntryTime', 'evening', '25:00'), false);
+    assert.equal(app.call('setEntryTime', 'noc', '01:00'), false);
+    assert.equal(app.ls.writes, w);
+  });
+
+  test('setWindowBound: pierwsza zmiana przełącza okna na własne (obie granice), limit 1 h jak w polu godziny', () => {
+    const app = boot();
+    assert.equal(app.call('setWindowBound', 'evening', '18:30'), true);
+    assert.deepEqual(app.stored(K.settings).windows, { afternoon: '11:00', evening: '18:30' });
+    assert.equal(app.toasts.at(-1), 'Zapisano okno pory');
+    assert.equal(app.call('setWindowBound', 'afternoon', '18:00'), false);
+    assert.equal(app.toasts.at(-1), 'Każda pora musi trwać co najmniej godzinę');
+    assert.deepEqual(app.stored(K.settings).windows, { afternoon: '11:00', evening: '18:30' });
+  });
+
+  test('pdCommit: uchwyty zapisują przez te same funkcje co pola (krawędzie = „Rano od”)', () => {
+    const app = boot({ storage: DS4 });
+    app.call('pdCommit', 'ds-r', 1440 + 240 - 60);    // prawa krawędź o godzinę w lewo → 03:00
+    assert.equal(app.stored(K.settings).dayStart, '03:00');
+    app.call('pdCommit', 'ds-l', 300);                // lewa krawędź w prawo → 05:00
+    assert.equal(app.stored(K.settings).dayStart, '05:00');
+    app.call('pdCommit', 'win-afternoon', 750);
+    assert.equal(app.stored(K.settings).windows.afternoon, '12:30');
+    app.call('pdCommit', 't-evening', 1440 + 30);     // 00:30 po północy
+    assert.equal(app.stored(K.settings).times.evening, '00:30');
   });
 });

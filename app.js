@@ -127,46 +127,57 @@ function lastValue(f) {
 }
 
 // Okna pór dnia — decydują, która karta jest rozwinięta na ekranie Dziś (tylko dziś, bieżąca pora; pozostałe karty — także w innych dniach — są zwinięte; wpis można zrobić zawsze).
+// Doba aplikacji zaczyna się o godzinie „Rano od” (settings.dayStart, domyślnie 00:00) i trwa 24 h,
+// więc przy np. 04:00 sobota 03:00 to jeszcze piątek: „Dziś” pokazuje piątek, a wpis trafia do piątku.
 // Doba dzielona jest dwiema granicami na trzy przylegające przedziały:
-//   rano       — 00:00 → granica „popołudnie”
+//   rano       — początek doby → granica „popołudnie”
 //   popołudnie — granica „popołudnie” → granica „wieczór”
-//   wieczór    — granica „wieczór” → 24:00
-// settings.windows = { afternoon: 'HH:MM', evening: 'HH:MM' } — ustawione ręcznie.
+//   wieczór    — granica „wieczór” → początek następnej doby (24:00 przy początku 00:00)
+// settings.windows = { afternoon: 'HH:MM', evening: 'HH:MM' } — ustawione ręcznie (godziny zegarowe;
+// godzina przed początkiem doby oznacza noc po północy, np. wieczór od 00:30).
 // Brak pola = okna automatyczne: każda pora zaczyna się 2 h po godzinie wpisu poprzedniej
 // (tak działała aplikacja przed wprowadzeniem okien). Przypomnienia (settings.times) są niezależne.
+// Wewnątrz liczymy w „minutach doby aplikacji”: od północy dnia, do którego należy wpis (0…2879).
 const WIN_AUTO_OFFSET = 120;
 const WIN_MIN = 60;          // minimalna długość okna
 const DAY_MIN = 1440;
 const isHHMM = s => typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
-const fmtSlotMin = m => m >= DAY_MIN ? '24:00' : `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
-function slotBounds() {
-  const w = settings.windows;
+const clockMin = m => { const c = ((m % DAY_MIN) + DAY_MIN) % DAY_MIN; return `${pad2(Math.floor(c / 60))}:${pad2(c % 60)}`; };
+const fmtSlotMin = m => m === DAY_MIN ? '24:00' : clockMin(m);
+// Początek doby aplikacji w minutach od północy (0 = jak dotąd, o północy).
+const dayStartMin = () => (isHHMM(settings.dayStart) ? minutesOf(settings.dayStart) : 0);
+// Godzina zegarowa → minuta doby aplikacji (godziny przed początkiem doby należą do jej końca).
+const logMin = (m, s = dayStartMin()) => (m < s ? m + DAY_MIN : m);
+const validBounds = (s, a, e) => a - s >= WIN_MIN && e - a >= WIN_MIN && s + DAY_MIN - e >= WIN_MIN;
+function slotBounds(s = dayStartMin(), w = settings.windows) {
   if (w && isHHMM(w.afternoon) && isHHMM(w.evening)) {
-    const a = minutesOf(w.afternoon), e = minutesOf(w.evening);
-    if (a >= WIN_MIN && e - a >= WIN_MIN && DAY_MIN - e >= WIN_MIN) return { a, e, auto: false };
+    const a = logMin(minutesOf(w.afternoon), s), e = logMin(minutesOf(w.evening), s);
+    if (validBounds(s, a, e)) return { s, a, e, auto: false };
   }
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
-  const a = clamp(minutesOf(settings.times.morning) + WIN_AUTO_OFFSET, WIN_MIN, DAY_MIN - 2 * WIN_MIN);
-  const e = clamp(minutesOf(settings.times.afternoon) + WIN_AUTO_OFFSET, a + WIN_MIN, DAY_MIN - WIN_MIN);
-  return { a, e, auto: true };
+  const a = clamp(logMin(minutesOf(settings.times.morning), s) + WIN_AUTO_OFFSET, s + WIN_MIN, s + DAY_MIN - 2 * WIN_MIN);
+  const e = clamp(logMin(minutesOf(settings.times.afternoon), s) + WIN_AUTO_OFFSET, a + WIN_MIN, s + DAY_MIN - WIN_MIN);
+  return { s, a, e, auto: true };
 }
-// Okna jako [od, do) w minutach od północy.
+// Okna jako [od, do) w minutach doby aplikacji.
 function slotWindows() {
-  const { a, e } = slotBounds();
-  return { morning: [0, a], afternoon: [a, e], evening: [e, DAY_MIN] };
+  const { s, a, e } = slotBounds();
+  return { morning: [s, a], afternoon: [a, e], evening: [e, s + DAY_MIN] };
 }
 function currentSlot() {
-  const m = nowMinutes(), { a, e } = slotBounds();
+  const m = logMin(nowMinutes()), { a, e } = slotBounds();
   return m < a ? 'morning' : m < e ? 'afternoon' : 'evening';
 }
 
 /* ---------- UI state ---------- */
-const today0 = () => startOfDay(new Date());
+// „Dziś” aplikacji: przed godziną „Rano od” to jeszcze poprzedni dzień kalendarzowy.
+const today0 = () => startOfDay(nowMinutes() < dayStartMin() ? addDays(new Date(), -1) : new Date());
+const todayK = () => dkey(today0());
 const ui = {
   view: 'today',
   day: today0(),
-  week: startOfWeek(new Date()),
-  month: startOfMonth(new Date()),
+  week: startOfWeek(today0()),
+  month: startOfMonth(today0()),
   drafts: {},          // niezapisane wartości suwaków: "YYYY-MM-DD|slot" -> v
   selWeek: null,       // zaznaczony dzień na wykresie tygodniowym
   selMonth: null,
@@ -180,9 +191,10 @@ let installPrompt = null;
    ========================================================= */
 function renderToday() {
   const key = dkey(ui.day);
-  const isToday = key === dkey(new Date());
+  const isToday = key === todayK();
   const cur = isToday ? currentSlot() : null;
   ui.active = cur;
+  ui.todayKey = todayK();
 
   $('#view-today').innerHTML = `
     <header class="head">
@@ -359,7 +371,7 @@ function weekPoints(keys, kind) {
 
 function weekChart(days, kind = 'mood') {
   const S = SERIES[kind], g = geom(kind), { H, IH, yOf } = g;
-  const todayK = dkey(new Date());
+  const curKey = todayK();
   const colW = IW / 7;
   const xOf = i => L + colW * (i + 0.5);
   const keys = days.map(dkey);
@@ -384,7 +396,7 @@ function weekChart(days, kind = 'mood') {
 
   days.forEach((d, i) => {
     const k = keys[i];
-    const cls = k === todayK ? 'today-lbl' : '';
+    const cls = k === curKey ? 'today-lbl' : '';
     s += `<text class="${cls}" x="${xOf(i)}" y="${H - 18}" text-anchor="middle">${esc(fmt(d, { weekday: 'short' }).replace('.', ''))}</text>`;
     s += `<text class="${cls}" x="${xOf(i)}" y="${H - 4}" text-anchor="middle">${d.getDate()}</text>`;
   });
@@ -396,7 +408,7 @@ function weekChart(days, kind = 'mood') {
 function monthChart(first, kind = 'mood') {
   const S = SERIES[kind], g = geom(kind), { H, IH, yOf } = g;
   const n = daysInMonth(first);
-  const todayK = dkey(new Date());
+  const curKey = todayK();
   const colW = IW / n;
   const xOf = i => L + colW * (i + 0.5);
   const days = [...Array(n)].map((_, i) => addDays(first, i));
@@ -429,7 +441,7 @@ function monthChart(first, kind = 'mood') {
   days.forEach((d, i) => {
     const day = d.getDate();
     if (day === 1 || day % 5 === 0) {
-      s += `<text class="${keys[i] === todayK ? 'today-lbl' : ''}" x="${xOf(i)}" y="${H - 10}" text-anchor="middle">${day}</text>`;
+      s += `<text class="${keys[i] === curKey ? 'today-lbl' : ''}" x="${xOf(i)}" y="${H - 10}" text-anchor="middle">${day}</text>`;
     }
   });
 
@@ -443,8 +455,8 @@ function chartTitle(text, color, note = '') {
 }
 
 function statsFor(days) {
-  const todayK = dkey(new Date());
-  const past = days.filter(d => dkey(d) <= todayK);
+  const curKey = todayK();
+  const past = days.filter(d => dkey(d) <= curKey);
   const vals = []; const per = { morning: [], afternoon: [], evening: [] };
   let best = null, worst = null;
   for (const d of past) {
@@ -508,7 +520,7 @@ function monthLegendHtml(kind) {
    ========================================================= */
 function renderWeek() {
   const days = [...Array(7)].map((_, i) => addDays(ui.week, i));
-  const isCurrent = dkey(ui.week) === dkey(startOfWeek(new Date()));
+  const isCurrent = dkey(ui.week) === dkey(startOfWeek(today0()));
   const st = statsFor(days);
   const prev = statsFor([...Array(7)].map((_, i) => addDays(ui.week, i - 7)));
   const delta = st.avg != null && prev.avg != null ? st.avg - prev.avg : null;
@@ -551,7 +563,7 @@ function renderMonth() {
   const first = ui.month;
   const n = daysInMonth(first);
   const days = [...Array(n)].map((_, i) => addDays(first, i));
-  const isCurrent = dkey(first) === dkey(startOfMonth(new Date()));
+  const isCurrent = dkey(first) === dkey(startOfMonth(today0()));
   const st = statsFor(days);
   const pFirst = new Date(first.getFullYear(), first.getMonth() - 1, 1);
   const prev = statsFor([...Array(daysInMonth(pFirst))].map((_, i) => addDays(pFirst, i)));
@@ -593,49 +605,127 @@ function renderMonth() {
    Widok: Ustawienia
    ========================================================= */
 /* ---------- Ustawienia: pory dnia (okna + przypomnienia) ---------- */
-// Pasek doby 0–24 h: trzy okna w kolorach pór, kropki = godziny przypomnień, kreska = teraz.
-function dayBarSvg(win) {
-  const W = 320, X0 = 10, BW = W - 2 * X0, x = m => X0 + BW * m / DAY_MIN;
-  let s = `<svg class="pd-bar" viewBox="0 0 ${W} 54" role="img" aria-label="Okna pór dnia na osi doby">`
-    + `<defs><clipPath id="pd-clip"><rect x="${X0}" y="8" width="${BW}" height="24" rx="8"/></clipPath></defs><g clip-path="url(#pd-clip)">`;
+// Pasek doby aplikacji: 24 h od „Rano od” (oś) do „Rano od” następnego dnia.
+// Nad paskiem godziny „od” (zmiany pór), pod paskiem kropki = godziny wpisu z podpisem, przerywana kreska = teraz.
+// Uchwyty (przeciąganie i strzałki): kreski z szarą kropką na krawędziach = „Rano od”, szare kropki na granicach = popołudnie / wieczór od,
+// kropki pod paskiem = godziny wpisu. Model paska: { axis, s, a, e, t: {slot: minuta doby}, drag } — minuty doby aplikacji
+// liczone od osi (axis); w trakcie przeciągania „Rano od” s ≠ axis, a oś stoi w miejscu do puszczenia.
+const PD = { W: 320, X0: 16, BY: 20, BH: 24, STEP: 30, HIT: 22 };
+PD.BW = PD.W - 2 * PD.X0;
+const PD_HANDLES = ['ds-l', 'ds-r', 'win-afternoon', 'win-evening', 't-morning', 't-afternoon', 't-evening'];
+const pdX = (m, axis) => PD.X0 + PD.BW * (m - axis) / DAY_MIN;
+// Czyste funkcje (testowane): piksel → minuta doby, przyciąganie, limity uchwytu.
+function barMinFromX(clientX, rect, ds) {
+  const vb = (clientX - rect.left) * PD.W / (rect.width || PD.W);
+  return ds + (vb - PD.X0) / PD.BW * DAY_MIN;
+}
+const snapMin = (m, step = PD.STEP) => Math.round(m / step) * step;
+// Zakres uchwytu w minutach doby (oś = b.s): każda pora min. 1 h, godzina wpisu — dowolna w dobie.
+function clampBound(id, m, b) {
+  const lim = {
+    'ds-l': [b.s, b.a - WIN_MIN],                         // lewa krawędź: tylko w prawo
+    'ds-r': [b.e + WIN_MIN, b.s + DAY_MIN],               // prawa krawędź: tylko w lewo
+    'win-afternoon': [b.s + WIN_MIN, b.e - WIN_MIN],
+    'win-evening': [b.a + WIN_MIN, b.s + DAY_MIN - WIN_MIN],
+  }[id] || [b.s, b.s + DAY_MIN - 1];
+  return Math.min(lim[1], Math.max(lim[0], Math.round(m)));
+}
+function barModel() {
+  const b = slotBounds();
+  return { axis: b.s, s: b.s, a: b.a, e: b.e, drag: null,
+    t: Object.fromEntries(SLOTS.map(sl => [sl.id, logMin(minutesOf(settings.times[sl.id]), b.s)])) };
+}
+const pdHandleMin = (M, id) => (id === 'ds-l' ? M.s : id === 'ds-r' ? M.s + DAY_MIN
+  : id === 'win-afternoon' ? M.a : id === 'win-evening' ? M.e : M.t[id.slice(2)]);
+function pdHandleLabel(id, m) {
+  const t = clockMin(m);
+  if (id === 'ds-l' || id === 'ds-r') return `Rano od ${t} (początek doby)`;
+  if (id.startsWith('win-')) return `${SLOTS.find(x => x.id === id.slice(4)).label} od ${t}`;
+  return `${SLOTS.find(x => x.id === id.slice(2)).label}: godzina wpisu ${t}`;
+}
+// Podpisy bez nachodzenia: najpierw przeciągany, potem w podanej kolejności; zbyt bliskie pomijamy.
+function pdLabels(items, y, drag) {
+  const kept = [];
+  items.sort((p, q) => (q.id === drag) - (p.id === drag)).forEach(it => {
+    if (kept.every(k => Math.abs(k.x - it.x) >= 30)) kept.push(it);
+  });
+  return kept.map(it => {
+    const x = Math.min(PD.X0 + PD.BW - 13, Math.max(PD.X0 + 13, it.x));
+    return `<text x="${x}" y="${y}" text-anchor="middle" font-size="10"${it.bold ? ' font-weight="700"' : ''} style="fill:var(--ink${it.bold ? '' : '-soft'})">${it.t}</text>`;
+  }).join('');
+}
+function dayBarInner(M) {
+  const axis = M.axis, BY = PD.BY, BH = PD.BH, x = m => pdX(m, axis);
+  const win = { morning: [M.s, M.a], afternoon: [M.a, M.e], evening: [M.e, M.s + DAY_MIN] };
+  let s = `<defs><clipPath id="pd-clip"><rect x="${PD.X0}" y="${BY}" width="${PD.BW}" height="${BH}" rx="8"/></clipPath></defs><g clip-path="url(#pd-clip)">`;
+  // okna (z przesunięciem o ±24 h — w trakcie przeciągania „Rano od” fragment osi należy do sąsiedniej doby)
   SLOTS.forEach(sl => {
-    const [f, t] = win[sl.id], w = x(t) - x(f);
-    s += `<rect x="${x(f)}" y="8" width="${w}" height="24" style="fill:var(--c-${sl.id})"/>`;
-    if (w > 26) s += `<text x="${x(f) + w / 2}" y="25" text-anchor="middle" font-size="13">${sl.icon}</text>`;
+    let big = null;
+    [-DAY_MIN, 0, DAY_MIN].forEach(k => {
+      const f = Math.max(win[sl.id][0] + k, axis), t = Math.min(win[sl.id][1] + k, axis + DAY_MIN);
+      if (t <= f) return;
+      s += `<rect x="${x(f)}" y="${BY}" width="${x(t) - x(f)}" height="${BH}" style="fill:var(--c-${sl.id})"/>`;
+      if (!big || t - f > big[1] - big[0]) big = [f, t];
+    });
+    if (big && x(big[1]) - x(big[0]) > 26) s += `<text x="${(x(big[0]) + x(big[1])) / 2}" y="${BY + 17}" text-anchor="middle" font-size="13">${sl.icon}</text>`;
   });
   s += '</g>';
+  const now = x(logMin(nowMinutes(), axis));
+  s += `<line x1="${now}" x2="${now}" y1="${BY - 4}" y2="${BY + BH + 4}" stroke-width="2" stroke-dasharray="3 2" style="stroke:var(--ink)"/>`;
+  // uchwyty
+  const handle = (id, inner) => `<g class="pd-h${M.drag === id ? ' on' : ''}" data-h="${id}" role="slider" tabindex="0"
+    aria-label="${esc(pdHandleLabel(id, pdHandleMin(M, id)))}" aria-valuetext="${esc(pdHandleLabel(id, pdHandleMin(M, id)))}"
+    aria-valuemin="0" aria-valuemax="1439" aria-valuenow="${((pdHandleMin(M, id) % DAY_MIN) + DAY_MIN) % DAY_MIN}">${inner}</g>`;
+  // w trakcie przeciągania jednej krawędzi druga wypada poza oś — nie rysujemy jej
+  const onAxis = m => m >= axis && m <= axis + DAY_MIN;
+  ['ds-l', 'ds-r'].filter(id => onAxis(pdHandleMin(M, id))).forEach(id => {
+    const xx = x(pdHandleMin(M, id));
+    s += handle(id, `<line x1="${xx}" x2="${xx}" y1="${BY}" y2="${BY + BH + 6}" stroke-width="${M.drag === id ? 4 : 3}" stroke-linecap="round" style="stroke:var(--ink${M.drag === id ? '' : '-soft'})"/>`
+      + `<circle cx="${xx}" cy="${BY}" r="${M.drag === id ? 6 : 5}" stroke-width="1.5" style="fill:var(--ink${M.drag === id ? '' : '-soft'});stroke:var(--card)"/>`);
+  });
+  ['win-afternoon', 'win-evening'].forEach(id => {
+    const xx = x(pdHandleMin(M, id));
+    s += `<line x1="${xx}" x2="${xx}" y1="${BY}" y2="${BY + BH}" stroke-width="2" style="stroke:var(--card)"/>`;
+    s += handle(id, `<circle cx="${xx}" cy="${BY}" r="${M.drag === id ? 6 : 5}" stroke-width="1.5" style="fill:var(--ink${M.drag === id ? '' : '-soft'});stroke:var(--card)"/>`);
+  });
   SLOTS.forEach(sl => {
-    s += `<circle cx="${x(minutesOf(settings.times[sl.id]))}" cy="38" r="3.5" style="fill:var(--ink)"/>`;
+    const id = `t-${sl.id}`, xx = x(M.t[sl.id]);
+    s += handle(id, `<circle cx="${xx}" cy="${BY + BH + 8}" r="${M.drag === id ? 5.5 : 4}" style="fill:var(--ink)"/>`);
   });
-  const now = x(nowMinutes());
-  s += `<line x1="${now}" x2="${now}" y1="4" y2="36" stroke-width="2" style="stroke:var(--ink)"/>`;
-  [0, 6, 12, 18, 24].forEach(h => {
-    const anchor = h === 0 ? 'start' : h === 24 ? 'end' : 'middle';
-    s += `<text x="${x(h * 60)}" y="52" text-anchor="${anchor}" font-size="10" style="fill:var(--ink-soft)">${h}:00</text>`;
-  });
-  return s + '</svg>';
+  // podpisy: nad paskiem godziny „od”, pod paskiem godziny wpisu
+  s += pdLabels([
+    { id: 'win-afternoon', x: x(M.a), t: clockMin(M.a), bold: true },
+    { id: 'win-evening', x: x(M.e), t: clockMin(M.e), bold: true },
+    ...(onAxis(M.s) ? [{ id: 'ds-l', x: x(M.s), t: clockMin(M.s), bold: true }] : []),
+    ...(onAxis(M.s + DAY_MIN) ? [{ id: 'ds-r', x: x(M.s + DAY_MIN), t: clockMin(M.s), bold: true }] : []),
+  ], 11, M.drag);
+  s += pdLabels(SLOTS.map(sl => ({ id: `t-${sl.id}`, x: x(M.t[sl.id]), t: clockMin(M.t[sl.id]) })), PD.BY + PD.BH + 25, M.drag);
+  return s;
+}
+function dayBarSvg(M = barModel()) {
+  return `<svg class="pd-bar" viewBox="0 0 ${PD.W} 72" aria-label="Pasek doby od ${clockMin(M.axis)}: przeciągnij uchwyt, żeby zmienić godzinę">${dayBarInner(M)}</svg>`;
 }
 
 function poryCardHtml() {
   const b = slotBounds(), win = slotWindows();
-  const startInput = { afternoon: b.a, evening: b.e };
+  const startInput = { morning: b.s, afternoon: b.a, evening: b.e };
   const warns = SLOTS.filter(s => {
-    const m = minutesOf(settings.times[s.id]), [f, t] = win[s.id];
+    const m = logMin(minutesOf(settings.times[s.id])), [f, t] = win[s.id];
     return m < f || m >= t;
   }).map(s => `<p class="warn">Godzina wpisu „${s.label.toLowerCase()}” (${settings.times[s.id]}) wypada poza okno tej pory.</p>`);
   return `
     <div class="card" id="pory-card">
       <h3>Pory dnia</h3>
-      ${dayBarSvg(win)}
+      ${dayBarSvg()}
       ${SLOTS.map(s => {
         const [f, t] = win[s.id];
         return `
         <div class="pd-row">
-          <div class="pd-name">${s.icon} ${s.label}<small>okno <b>${fmtSlotMin(f)}–${fmtSlotMin(t)}</b></small></div>
+          <div class="pd-name">${s.icon} ${s.label}<small>okno <b>${clockMin(f)}–${fmtSlotMin(t)}</b></small></div>
           <div class="pd-ins">
             <label class="pd-in"><small>od</small>${s.id === 'morning'
-              ? '<span class="pd-fixed">00:00</span>'
-              : `<input type="time" data-win="${s.id}" value="${fmtSlotMin(startInput[s.id])}" aria-label="${s.label}: początek okna">`}</label>
+              ? `<input type="time" data-day-start value="${clockMin(b.s)}" aria-label="Rano: początek okna i początek doby">`
+              : `<input type="time" data-win="${s.id}" value="${clockMin(startInput[s.id])}" aria-label="${s.label}: początek okna">`}</label>
             <label class="pd-in"><small>godzina wpisu</small><input type="time" id="t-${s.id}" data-time="${s.id}" value="${settings.times[s.id]}" aria-label="${s.label}: godzina wpisu"></label>
           </div>
         </div>`;
@@ -643,13 +733,152 @@ function poryCardHtml() {
       ${warns.join('')}
       <p class="note">${b.auto
         ? 'Okna: <b>automatyczne</b> — każda pora zaczyna się 2 h po godzinie wpisu poprzedniej. Zmień „od”, żeby ustawić własne.'
-        : 'Okna: <b>własne</b>. <button class="pd-link" data-act="win-auto">Przywróć automatyczne</button>'}</p>
+        : 'Okna: <b>własne</b>.'}${poryUndo.length ? ' <button class="pd-link" data-act="pory-undo">Cofnij zmianę</button>' : ''}</p>
       <p class="note">Okno decyduje, która pora jest rozwinięta na ekranie Dziś. Ocenę możesz zapisać o każdej godzinie.</p>
+      <p class="note">„Rano od” to też początek doby: ${b.s
+        ? `do ${clockMin(b.s)} „Dziś” pokazuje jeszcze poprzedni dzień, a wpis trafia do wieczoru tego dnia.`
+        : 'doba zaczyna się o północy. Ustaw np. 04:00, jeśli zasypiasz po północy — wpis o 01:00 trafi wtedy do wieczoru poprzedniego dnia.'}</p>
     </div>`;
 }
 function refreshPoryCard() {
   const c = document.getElementById('pory-card');
   if (c) c.outerHTML = poryCardHtml();
+}
+
+// Cofanie zmian pór: stos poprzednich wersji (godziny wpisu, okna, „Rano od”) — tylko w pamięci, do zamknięcia aplikacji.
+const poryUndo = [];
+const poryState = () => JSON.parse(JSON.stringify({ times: settings.times, windows: settings.windows ?? null, dayStart: settings.dayStart ?? null }));
+function undoPory() {
+  const prev = poryUndo.pop();
+  if (!prev) return false;
+  settings.times = prev.times;
+  if (prev.windows) settings.windows = prev.windows; else delete settings.windows;
+  if (prev.dayStart) settings.dayStart = prev.dayStart; else delete settings.dayStart;
+  store(KEY_SETTINGS, settings); syncState();
+  refreshPoryCard();
+  toast('Cofnięto zmianę');
+  return true;
+}
+// Zapis godzin pór — wspólny dla pól godziny i paska doby (walidacja w jednym miejscu).
+// prev = stan sprzed zmiany; trafia na stos „Cofnij zmianę”, jeśli coś się zmieniło.
+function savePory(msg, prev) {
+  if (prev && JSON.stringify(prev) !== JSON.stringify(poryState())) poryUndo.push(prev);
+  store(KEY_SETTINGS, settings); syncState();
+  refreshPoryCard();
+  toast(msg);
+  return true;
+}
+function poryReject() {
+  toast('Każda pora musi trwać co najmniej godzinę');
+  refreshPoryCard();
+  return false;
+}
+function setEntryTime(id, hhmm) {
+  if (!isHHMM(hhmm) || !settings.times[id]) return false;
+  const prev = poryState();
+  settings.times[id] = hhmm;
+  return savePory('Zapisano godzinę wpisu', prev);
+}
+function setWindowBound(id, hhmm) {
+  if (!isHHMM(hhmm) || !['afternoon', 'evening'].includes(id)) return false;
+  const b = slotBounds();
+  // pierwsza zmiana przełącza okna na własne: druga granica przepisana z bieżącego okna
+  const next = { afternoon: clockMin(b.a), evening: clockMin(b.e), [id]: hhmm };
+  if (!validBounds(b.s, logMin(minutesOf(next.afternoon), b.s), logMin(minutesOf(next.evening), b.s))) return poryReject();
+  const prev = poryState();
+  settings.windows = next;
+  return savePory('Zapisano okno pory', prev);
+}
+function setDayStart(hhmm) {
+  if (!isHHMM(hhmm)) return false;
+  const s = minutesOf(hhmm), b = slotBounds();
+  // Własne okna zostają przy swoich godzinach — muszą się zmieścić w nowej dobie.
+  if (!b.auto && !validBounds(s, logMin(minutesOf(settings.windows.afternoon), s), logMin(minutesOf(settings.windows.evening), s))) return poryReject();
+  const prev = poryState();
+  if (s) settings.dayStart = hhmm; else delete settings.dayStart;
+  return savePory('Zapisano początek doby', prev);
+}
+// Zapis wartości uchwytu paska (minuta doby aplikacji).
+function pdCommit(id, m) {
+  const t = clockMin(m);
+  if (id === 'ds-l' || id === 'ds-r') return setDayStart(t);
+  if (id.startsWith('win-')) return setWindowBound(id.slice(4), t);
+  return setEntryTime(id.slice(2), t);
+}
+
+/* ---------- pasek doby: przeciąganie i klawiatura ---------- */
+let pdDrag = null;   // { id, svg, pointerId, M0, M, m0, moved }
+function pdField(id) {
+  if (id === 'ds-l' || id === 'ds-r') return document.querySelector('#pory-card [data-day-start]');
+  if (id.startsWith('win-')) return document.querySelector(`#pory-card [data-win="${id.slice(4)}"]`);
+  return document.getElementById(`t-${id.slice(2)}`);
+}
+function pdApply(M, id, m) {
+  const N = { ...M, t: { ...M.t }, drag: id };
+  if (id === 'ds-l') N.s = m;
+  else if (id === 'ds-r') N.s = m - DAY_MIN;
+  else if (id === 'win-afternoon') N.a = m;
+  else if (id === 'win-evening') N.e = m;
+  else N.t[id.slice(2)] = m;
+  return N;
+}
+function pdShow(svg, M, id, m) {
+  svg.innerHTML = dayBarInner(M);
+  const f = pdField(id);
+  if (f) f.value = clockMin(m);
+}
+// Uchwyt najbliżej punktu dotknięcia (w jednostkach viewBox), w promieniu PD.HIT.
+function pdHit(M, vx, vy) {
+  let best = null, bd = Infinity;
+  for (const id of PD_HANDLES) {
+    const hx = pdX(pdHandleMin(M, id), M.axis);
+    const ds = id === 'ds-l' || id === 'ds-r';
+    const hy = id.startsWith('t-') ? PD.BY + PD.BH + 8 : PD.BY;
+    const dy = ds ? Math.max(0, Math.abs(vy - (PD.BY + PD.BH / 2)) - PD.BH / 2) : vy - hy;
+    const d = Math.hypot(vx - hx, dy);
+    if (d <= PD.HIT && d < bd) { best = id; bd = d; }
+  }
+  return best;
+}
+function pdEnd(commit) {
+  const d = pdDrag;
+  if (!d) return;
+  pdDrag = null;
+  try { d.svg.releasePointerCapture?.(d.pointerId); } catch { /* ignore */ }
+  const m = pdHandleMin(d.M, d.id);
+  if (commit && m !== d.m0) pdCommit(d.id, m);
+  else pdShow(d.svg, d.M0, d.id, d.m0);
+}
+document.addEventListener('pointerdown', ev => {
+  const svg = ev.target.closest?.('.pd-bar');
+  if (!svg || pdDrag || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+  const r = svg.getBoundingClientRect(), k = PD.W / (r.width || PD.W);
+  const M0 = barModel();
+  const id = pdHit(M0, (ev.clientX - r.left) * k, (ev.clientY - r.top) * k);
+  if (!id) return;
+  ev.preventDefault();
+  try { svg.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+  pdDrag = { id, svg, pointerId: ev.pointerId, M0, M: { ...M0, drag: id }, m0: pdHandleMin(M0, id) };
+  pdShow(svg, pdDrag.M, id, pdDrag.m0);
+});
+document.addEventListener('pointermove', ev => {
+  const d = pdDrag;
+  if (!d || ev.pointerId !== d.pointerId) return;
+  ev.preventDefault();
+  const m = clampBound(d.id, snapMin(barMinFromX(ev.clientX, d.svg.getBoundingClientRect(), d.M0.axis)), d.M0);
+  if (m === pdHandleMin(d.M, d.id)) return;
+  d.M = pdApply(d.M0, d.id, m);
+  pdShow(d.svg, d.M, d.id, m);
+});
+document.addEventListener('pointerup', ev => { if (pdDrag && ev.pointerId === pdDrag.pointerId) pdEnd(true); });
+document.addEventListener('pointercancel', ev => { if (pdDrag && ev.pointerId === pdDrag.pointerId) pdEnd(false); });
+// Strzałki na uchwycie: krok przyciągania, zapis od razu; fokus wraca na ten sam uchwyt po przerysowaniu.
+function pdKey(id, dir) {
+  const M = barModel(), m0 = pdHandleMin(M, id);
+  const m = clampBound(id, dir > 0 ? Math.floor(m0 / PD.STEP) * PD.STEP + PD.STEP : Math.ceil(m0 / PD.STEP) * PD.STEP - PD.STEP, M);
+  if (m === m0) return;
+  pdCommit(id, m);
+  document.querySelector(`#pory-card .pd-h[data-h="${id}"]`)?.focus?.();
 }
 
 function renderSettings() {
@@ -1478,12 +1707,7 @@ document.addEventListener('click', async ev => {
 
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); navRateSync(); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); navRateSync(); break;
-    case 'win-auto':
-      delete settings.windows;
-      store(KEY_SETTINGS, settings); syncState();
-      refreshPoryCard();
-      toast('Przywrócono automatyczne okna');
-      break;
+    case 'pory-undo': undoPory(); break;
     case 'sw-back': show('today'); break;
     case 'uni-compl': swCompliment(); break;
     case 'sw-save': swSaveRecord(); break;
@@ -1508,6 +1732,10 @@ document.addEventListener('click', async ev => {
 });
 
 document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && pdDrag) { ev.preventDefault(); pdEnd(false); return; }
+  if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && ev.target.closest?.('.pd-h')) {
+    ev.preventDefault(); pdKey(ev.target.closest('.pd-h').dataset.h, ev.key === 'ArrowRight' ? 1 : -1); return;
+  }
   if (ev.key === 'Escape' && nav.ask) { ev.preventDefault(); navAskStay(); return; }
   if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest?.('.rw-head')) { ev.preventDefault(); swCompliment(); }
 });
@@ -1520,25 +1748,11 @@ document.addEventListener('input', ev => {
 document.addEventListener('change', async ev => {
   const t = ev.target;
   if (t.matches('[data-time]')) {
-    if (!t.value) return;
-    settings.times[t.dataset.time] = t.value;
-    store(KEY_SETTINGS, settings); syncState();
-    refreshPoryCard();
-    toast('Zapisano godzinę wpisu');
+    if (t.value) setEntryTime(t.dataset.time, t.value);
+  } else if (t.matches('[data-day-start]')) {
+    if (isHHMM(t.value)) setDayStart(t.value);
   } else if (t.matches('[data-win]')) {
-    if (!t.value) return;
-    const b = slotBounds();
-    const next = { afternoon: fmtSlotMin(b.a), evening: fmtSlotMin(b.e), [t.dataset.win]: t.value };
-    const a = minutesOf(next.afternoon), e = minutesOf(next.evening);
-    if (a < WIN_MIN || e - a < WIN_MIN || DAY_MIN - e < WIN_MIN) {
-      toast('Każda pora musi trwać co najmniej godzinę');
-      refreshPoryCard();
-      return;
-    }
-    settings.windows = next;
-    store(KEY_SETTINGS, settings); syncState();
-    refreshPoryCard();
-    toast('Zapisano okno pory');
+    if (t.value) setWindowBound(t.dataset.win, t.value);
   } else if (t.id === 'notify') {
     const ok = await setNotifications(t.checked);
     if (!ok) t.checked = false;
@@ -1738,7 +1952,7 @@ async function setNotifications(on) {
 // Stan dla service workera (SW nie ma dostępu do localStorage)
 async function syncState() {
   if (!('caches' in window)) return;
-  const k = dkey(new Date());
+  const k = todayK();
   // dołącz znaczniki wysłanych przez SW powiadomień, by nie dublować przypomnień
   try {
     const prev = await (await caches.open(STATE_CACHE)).match('./__state');
@@ -1750,6 +1964,7 @@ async function syncState() {
   } catch { /* ignore */ }
   const state = {
     times: settings.times,
+    dayStart: clockMin(dayStartMin()),
     notify: settings.notify,
     today: k,
     filled: SLOTS.filter(s => getEntry(k, s.id)).map(s => s.id),
@@ -1764,14 +1979,17 @@ async function syncState() {
 
 // Sprawdzanie przypomnień, gdy aplikacja działa (także w tle, dopóki system jej nie uśpi)
 async function checkReminders() {
-  if (ui.view === 'today' && dkey(ui.day) === dkey(new Date()) && ui.active && currentSlot() !== ui.active
-      && document.visibilityState === 'visible') renderToday();
+  const k = todayK();
+  if (ui.view === 'today' && document.visibilityState === 'visible') {
+    // nowa doba aplikacji (godzina „Rano od”): ekran pokazujący dotąd „dziś” przechodzi na nowy dzień
+    if (ui.todayKey && ui.todayKey !== k && dkey(ui.day) === ui.todayKey) { ui.day = today0(); renderToday(); }
+    else if (dkey(ui.day) === k && ui.active && currentSlot() !== ui.active) renderToday();
+  }
   if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
-  const k = dkey(new Date());
-  const m = nowMinutes();
+  const m = logMin(nowMinutes());
   const notified = load(KEY_NOTIFIED, {});
   for (const s of SLOTS) {
-    const due = minutesOf(settings.times[s.id]);
+    const due = logMin(minutesOf(settings.times[s.id]));
     const tag = `${k}|${s.id}`;
     if (m >= due && m < due + 180 && !getEntry(k, s.id) && !notified[tag]) {
       notified[tag] = true;
@@ -1805,7 +2023,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     // po powrocie do aplikacji (np. następnego dnia) odśwież „dziś”
     const t = today0();
-    if (ui.view === 'today' && ui.day > t) ui.day = t;
+    if (ui.view === 'today' && (ui.day > t || (ui.todayKey && dkey(ui.day) === ui.todayKey))) ui.day = t;
     rerender();
   }
   checkReminders();
