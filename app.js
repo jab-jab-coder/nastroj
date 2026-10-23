@@ -206,12 +206,47 @@ function renderToday() {
       <button class="icon-btn" data-act="day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
     </header>
     ${energyOn() ? saldoChipHtml(key) : ''}
-    <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
-    ${SLOTS.map(s => (s.id !== cur && !ui.open[`${key}|${s.id}`])
-      ? slotCompact(s, key)
-      : slotCard(s, key, s.id === cur, s.id !== cur)).join('')}
+    <div class="tl-wrap">
+      ${dayRailHtml(key, isToday)}
+      <div class="tl-cards">
+        ${SLOTS.map(s => (s.id !== cur && !ui.open[`${key}|${s.id}`])
+          ? slotCompact(s, key)
+          : slotCard(s, key, s.id === cur, s.id !== cur)).join('')}
+      </div>
+    </div>
     ${medsOn() ? medsTodayHtml(key) : ''}
   `;
+}
+
+// Pionowa oś doby obok kart: od „Rano od” (góra) do tej samej godziny następnego dnia (dół),
+// odcinki w kolorach pór (jak pasek w Ustawieniach → Pory dnia), kropki = pomiary.
+// Kropka pełna = wpis (na godzinie zapisu, jeśli zapis był w tej dobie), pusta = planowana godzina wpisu.
+// Kreska przerywana = teraz (tylko dziś). Kropka otwiera kartę danej pory.
+function dayRailHtml(key, isToday) {
+  const b = slotBounds(), win = slotWindows();
+  const pct = m => `${(100 * (m - b.s) / DAY_MIN).toFixed(2)}%`;
+  const dayStart = ui.day.getTime() + b.s * 60000;
+  const entryMin = t => {
+    if (!t || t < dayStart || t >= dayStart + DAY_MIN * 60000) return null;
+    const d = new Date(t);
+    return logMin(d.getHours() * 60 + d.getMinutes(), b.s);
+  };
+  const segs = SLOTS.map(sl => {
+    const [f, t] = win[sl.id];
+    return `<i class="tl-seg" style="top:${pct(f)};height:${(100 * (t - f) / DAY_MIN).toFixed(2)}%;background:var(--c-${sl.id})"></i>`;
+  }).join('');
+  const hours = [[b.s, true], [b.a, false], [b.e, false], [b.s + DAY_MIN, true]]
+    .map(([m, edge]) => `<span class="tl-hr${edge ? ' edge' : ''}" style="top:${pct(m)}">${clockMin(m)}</span>`).join('');
+  const dots = SLOTS.map(sl => {
+    const e = getEntry(key, sl.id);
+    const m = entryMin(e?.t) ?? logMin(minutesOf(settings.times[sl.id]), b.s);
+    const lab = e ? `${sl.label}: wpis${e.t ? ` o ${hhmm(e.t)}` : ''}` : `${sl.label}: planowo ${settings.times[sl.id]}, brak wpisu`;
+    return `<button class="tl-dot${e ? ' on' : ''}" style="top:${pct(m)};--c:var(--c-${sl.id})" data-act="slot-open"
+      data-key="${key}" data-slot="${sl.id}" aria-label="${esc(lab)}. Pokaż kartę" title="${esc(lab)}"></button>`;
+  }).join('');
+  const now = isToday ? `<i class="tl-now" style="top:${pct(logMin(nowMinutes(), b.s))}" aria-hidden="true"></i>` : '';
+  return `<div class="tl-rail" role="group" aria-label="Oś doby od ${clockMin(b.s)} do ${clockMin(b.s)}">
+    <div class="tl-line" aria-hidden="true">${segs}</div>${hours}${now}${dots}</div>`;
 }
 
 // Zwinięta karta: intensywna z wartościami, jeśli jest wpis; wyblakła bez wartości, jeśli nie ma
