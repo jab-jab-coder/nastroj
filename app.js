@@ -197,7 +197,7 @@ function renderToday() {
       </div>
       <button class="icon-btn" data-act="day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
     </header>
-    ${energyOn() ? saldoChipHtml() : ''}
+    ${energyOn() ? saldoChipHtml(key) : ''}
     <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
     <p class="lead">${msg}</p>
     ${SLOTS.map(s => (isToday && s.id !== cur && !ui.open[`${key}|${s.id}`])

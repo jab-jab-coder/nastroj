@@ -1203,9 +1203,14 @@ function todayActivities() {
 }
 
 /* ---------- pasek salda na ekranie „Dziś” ---------- */
-function saldoChipHtml() {
+function saldoChipHtml(key = todayKey()) {
   if (!acts.length) return `<button class="saldo-chip" data-act="go-energy">⚡ Załóż konto energii</button>`;
+  if (key !== todayKey()) {
+    // Dzień inny niż dziś: saldo przeliczone na koniec tego dnia, przygaszone, bez statusu (status dotyczy dziś)
+    const b = ledger(key)[key]?.balance;
+    return `<button class="saldo-chip past" data-act="go-energy">Saldo energii tego dnia: <b>${b != null ? signed(b) : '–'}</b></button>`;
+  }
   const st = status();
-  const b = ledger(todayKey())[todayKey()]?.balance ?? 0;
+  const b = ledger(key)[key]?.balance ?? 0;
   return `<button class="saldo-chip" data-act="go-energy"><i class="dot ${LEVELS[st.level].cls}" aria-hidden="true"></i>Saldo energii: <b>${signed(b)}</b> · ${LEVELS[st.level].text}</button>`;
 }

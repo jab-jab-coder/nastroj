@@ -286,6 +286,8 @@ input[type=range].idle::-moz-range-thumb { border-color: var(--idle); box-shadow
   font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer;
 }
 .saldo-chip b { color: var(--rose-deep); }
+.saldo-chip.past { opacity: .55; box-shadow: none; font-weight: 600; }
+.saldo-chip.past b { color: var(--ink); }
 .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
 .dot.g { background: var(--g); } .dot.a { background: var(--a); } .dot.r { background: var(--r); }
 

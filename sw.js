@@ -1,5 +1,5 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v37';
+const VERSION = 'nastroj-v38';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
