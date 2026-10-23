@@ -509,25 +509,30 @@ function todayPlanHtml() {
 }
 
 function quickLogHtml() {
-  const fixed = settings.energyList?.mode === 'fixed';
   const btn = a => `<button class="qa ${a.kind}" data-act="elog" data-id="${a.id}"><span>${a.pinned ? '<i class="pin" aria-label="przypięta">📌</i>' : ''}${esc(a.name)}</span><small>${a.kind === 'd' ? '+' : '−'}${a.def}</small></button>`;
-  const section = (kind, limit) => {
-    const { top, rest, total } = quickTop(kind, limit);
-    const open = !!settings.energyList?.open?.[kind];
-    const label = kind === 'd' ? '➕ Wpłaty' : '➖ Wypłaty';
+  const q = { w: quickTop('w', TOP_N), d: quickTop('d', TOP_N) };
+  const more = q.w.rest.length > 0 || q.d.rest.length > 0;
+  // jedno rozwinięcie dla obu kolumn; stare ustawienia z jedną stroną otwartą → obie otwarte
+  const open = more && !!(settings.energyList?.open?.w || settings.energyList?.open?.d);
+  const col = kind => {
+    const { top, rest, total } = q[kind];
+    const label = kind === 'd' ? '+ Wpłaty' : '− Wypłaty';
+    const count = rest.length ? `<small>${open ? total : `${top.length} z ${total}`}</small>` : '';
+    const head = more
+      ? `<button class="qhead" data-act="qa-more" aria-expanded="${open}" aria-controls="qa-${kind}"><span>${label}</span>${count}</button>`
+      : `<p class="qhead"><span>${label}</span>${count}</p>`;
     return `
-      <p class="sub qhead"><span>${label}${total > top.length ? ` · ${fixed ? 'skróty' : 'najczęstsze'}` : ''}</span>${total > top.length ? `<small>${top.length} z ${total}</small>` : ''}</p>
-      <div class="qgrid">${(open ? [...top, ...rest] : top).map(btn).join('') || '<span class="muted">brak</span>'}</div>
-      <div class="qfoot">
-        <button class="btn soft sm" data-act="qa-new" data-kind="${kind}">＋ Moja ${kind === 'd' ? 'wpłata' : 'wypłata'}</button>
-        ${rest.length ? `<button class="link" data-act="qa-more" data-kind="${kind}" aria-expanded="${open}">${open ? 'Zwiń ⌃' : `Wszystkie (${total}) ⌄`}</button>` : ''}
+      <div class="qcol ${kind}">
+        ${head}
+        <div class="qlist" id="qa-${kind}">${(open ? [...top, ...rest] : top).map(btn).join('') || '<span class="muted">brak</span>'}</div>
+        <button class="btn soft sm qnew" data-act="qa-new" data-kind="${kind}">＋ Moja ${kind === 'd' ? 'wpłata' : 'wypłata'}</button>
       </div>`;
   };
   return `
-    <div class="card">
-      <h3>Dodaj jednym dotknięciem</h3>
-      ${section('w', TOP_N)}
-      ${section('d', TOP_N)}
+    <div class="card" id="qa-card">
+      <div class="qtitle"><h3>Dodaj jednym dotknięciem</h3>${open ? '<button class="link" data-act="qa-more" aria-expanded="true" aria-controls="qa-w qa-d">Zwiń ⌃</button>' : ''}</div>
+      <div class="qcols">${col('w')}${col('d')}</div>
+      ${more ? `<button class="btn soft block qtoggle" data-act="qa-more" aria-expanded="${open}" aria-controls="qa-w qa-d">${open ? 'Zwiń do najczęstszych ⌃' : `Pokaż wszystkie (${q.w.total} · ${q.d.total}) ⌄`}</button>` : ''}
     </div>`;
 }
 
@@ -987,11 +992,13 @@ function energyClick(act, el) {
       }
       return true;
     }
-    case 'qa-more': {
-      const k = el.dataset.kind;
+    case 'qa-more': {   // jeden przełącznik dla obu kolumn (przycisk, tytuły kolumn, „Zwiń” w nagłówku)
       const cfg = (settings.energyList = { mode: 'freq', ...(settings.energyList || {}) });
-      cfg.open = { ...(cfg.open || {}), [k]: !cfg.open?.[k] };
-      store(KEY_SETTINGS, settings); rerender(); return true;
+      const next = !(cfg.open?.w || cfg.open?.d);
+      cfg.open = { ...(cfg.open || {}), w: next, d: next };
+      store(KEY_SETTINGS, settings); rerender();
+      if (!next) { try { $('#qa-card')?.scrollIntoView?.({ block: 'nearest' }); } catch { /* brak przewijania */ } }
+      return true;
     }
     case 'qa-new': eui.quickAdd = el.dataset.kind === 'd' ? 'd' : 'w'; renderQuickAdd(); return true;
     case 'qa-chip': {
