@@ -76,6 +76,7 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .tl-row { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; padding-bottom: 12px; }
 .tl-row:last-child { padding-bottom: 0; }
 .tl-card { min-width: 0; }
+.tl-card { display: flex; flex-direction: column; gap: 12px; }
 .tl-card > .card { margin-bottom: 0; }
 .tl-seg { position: relative; }
 .tl-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; transform: translateX(-50%); background: var(--c); }
@@ -98,6 +99,12 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .tl-dot.on { background: var(--c); border-color: var(--card); box-shadow: 0 0 0 2px var(--c); }
 .tl-dot::before { content: ""; position: absolute; inset: -12px; }   /* większe pole dotyku */
 .tl-dot:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 3px; }
+.tl-pill {
+  position: absolute; left: 50%; z-index: 2; transform: translate(-50%, -50%);
+  font-size: 13px; line-height: 1; padding: 2px; border-radius: 50%;
+  background: var(--card); box-shadow: 0 0 0 2px var(--c); opacity: .6;
+}
+.tl-pill.done { opacity: 1; }
 
 /* ---------- cards ---------- */
 .card {

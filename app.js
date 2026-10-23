@@ -211,10 +211,9 @@ function renderToday() {
         ${dayRailSeg(s, i, key, isToday)}
         <div class="tl-card">${(s.id !== cur && !ui.open[`${key}|${s.id}`])
           ? slotCompact(s, key)
-          : slotCard(s, key, s.id === cur, s.id !== cur)}</div>
+          : slotCard(s, key, s.id === cur, s.id !== cur)}${medsOn() ? medsTodayHtml(key, s.id) : ''}</div>
       </div>`).join('')}
     </div>
-    ${medsOn() ? medsTodayHtml(key) : ''}
   `;
 }
 
@@ -224,6 +223,8 @@ function renderToday() {
 // Wewnątrz odcinka pozycja jest proporcjonalna do czasu w oknie tej pory.
 // Kropka pełna = wpis (na godzinie zapisu, jeśli zapis był w tej dobie), pusta = planowana godzina wpisu.
 // Kreska przerywana = teraz (tylko dziś). Kropka otwiera kartę danej pory.
+// Moduł Leki: pigułka = godzina planowanych leków (wyblakła, dopóki nie wszystkie zapisane);
+// karta „Leki” danej pory stoi pod kartą pory w tym samym odcinku osi.
 function dayRailSeg(sl, i, key, isToday) {
   const b = slotBounds(), [f, t] = slotWindows()[sl.id];
   const pct = m => `${(100 * Math.min(1, Math.max(0, (m - f) / (t - f)))).toFixed(2)}%`;
@@ -243,6 +244,8 @@ function dayRailSeg(sl, i, key, isToday) {
     ${isToday && nowM >= f && nowM < t ? `<i class="tl-now" style="top:${pct(nowM)}" aria-hidden="true"></i>` : ''}
     <span class="tl-hr${first ? ' edge' : ''}" style="top:0">${clockMin(f)}</span>
     ${last ? `<span class="tl-hr edge" style="top:100%">${clockMin(b.s)}</span>` : ''}
+    ${medsOn() ? medRailTimes(key, sl.id).map(x => `<span class="tl-pill${x.done ? ' done' : ''}" style="top:${pct(logMin(minutesOf(x.s), b.s))}"
+      title="Leki ${x.s}${x.done ? ' — zapisane' : ''}" aria-hidden="true">💊</span>`).join('') : ''}
     <button class="tl-dot${e ? ' on' : ''}" style="top:${pct(m)}" data-act="slot-open" data-key="${key}" data-slot="${sl.id}"
       aria-label="${esc(lab)}. Pokaż kartę" title="${esc(lab)}"></button>
   </div>`;

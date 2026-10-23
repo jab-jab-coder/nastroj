@@ -234,14 +234,40 @@ function packRowHtml(u, k) {
     ${open ? `<div class="mpack-items">${u.members.map(x => medRowHtml(x.m, k, x.s, true)).join('')}</div>` : ''}`;
 }
 
-function medsTodayHtml(k) {
-  const units = medUnits(k);
-  const adhoc = adhocMedsOn(k);
-  const adhocLogged = (medlog[k] || []).filter(x => x.s == null && medById(x.m));
+// Pora dnia (okno samopoczucia), w którą wypada planowana godzina leku „HH:MM”.
+function medSlotOf(s) {
+  const m = logMin(minutesOf(s)), { a, e } = slotBounds();
+  return m < a ? 'morning' : m < e ? 'afternoon' : 'evening';
+}
+// Pora, do której należy ostatnia akcja „Cofnij” (doraźne → wieczór, razem z sekcją „Doraźnie”).
+function medUndoSlot(undo) {
+  const e = undo?.ids?.length ? findMedEntry(undo.ids[0][1])[1] : null;
+  return e?.s ? medSlotOf(e.s) : 'evening';
+}
+// Godziny leków na osi doby dla pory: [{ s, done }] — done = wszystkie dawki o tej godzinie zapisane.
+function medRailTimes(k, slot) {
+  const by = new Map();
+  for (const x of medDoses(k)) {
+    if (medSlotOf(x.s) !== slot) continue;
+    const e = medEntry(k, x.m.id, x.s);
+    by.set(x.s, (by.get(x.s) ?? true) && !!e);
+  }
+  return [...by].map(([s, done]) => ({ s, done }));
+}
+
+// Karta „Leki” na Dziś. slot = pora dnia: tylko dawki z jej okna (doraźne przy wieczorze);
+// bez slot = wszystkie dawki dnia w jednej karcie.
+function medsTodayHtml(k, slot) {
+  const inSlot = s => !slot || medSlotOf(s) === slot;
+  const withAdhoc = !slot || slot === 'evening';
+  const units = medUnits(k).filter(u => inSlot(u.s));
+  const adhoc = withAdhoc ? adhocMedsOn(k) : [];
+  const adhocLogged = withAdhoc ? (medlog[k] || []).filter(x => x.s == null && medById(x.m)) : [];
   if (!units.length && !adhoc.length && !adhocLogged.length) return '';
-  const doses = medDoses(k);
+  const doses = medDoses(k).filter(x => inSlot(x.s));
   const done = doses.filter(x => medEntry(k, x.m.id, x.s)).length;
-  const undo = mui.undo && mui.undo.until > Date.now() ? mui.undo : null;
+  let undo = mui.undo && mui.undo.until > Date.now() ? mui.undo : null;
+  if (undo && slot && medUndoSlot(undo) !== slot) undo = null;
   return `
     <section class="card meds" aria-label="Leki">
       <div class="meds-head"><h3>💊 Leki</h3>${doses.length ? `<small>${done}/${doses.length}</small>` : ''}</div>

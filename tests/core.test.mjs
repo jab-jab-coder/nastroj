@@ -603,3 +603,30 @@ describe('pasek doby: przeciąganie godzin', () => {
     assert.equal(app.stored(K.settings).times.evening, '00:30');
   });
 });
+
+describe('Dziś: leki przy porach dnia', () => {
+  const MED = { id: 'm1', name: 'Lek', unit: 'mg', doses: [1], color: '#e75a8d', onTime: 30, late: 120, note: '',
+    from: '2020-01-01', sched: [{ from: '2020-01-01', times: ['08:00', '15:00'] }] };
+  const storage = log => ({
+    [K.settings]: { onboarded: true, dayStart: '00:00', windows: { afternoon: '12:00', evening: '14:00' } },
+    'nastroj.meds.v1': [MED], 'nastroj.medpacks.v1': [], 'nastroj.medlog.v1': log || {},
+  });
+
+  test('godzina leku trafia do okna pory (rano 00–12, popołudnie 12–14, wieczór 14–24)', () => {
+    const app = boot({ storage: storage() });
+    assert.equal(app.call('medSlotOf', '08:00'), 'morning');
+    assert.equal(app.call('medSlotOf', '12:00'), 'afternoon');
+    assert.equal(app.call('medSlotOf', '15:00'), 'evening');
+  });
+
+  test('pigułki na osi i karty leków tylko przy porach z dawkami', () => {
+    const app = boot({ storage: storage({ [TODAY]: [{ id: 'x1', m: 'm1', s: '08:00', t: 1, src: 'tap', d: 1 }] }) });
+    assert.deepEqual(plain(app.call('medRailTimes', TODAY, 'morning')), [{ s: '08:00', done: true }]);
+    assert.deepEqual(plain(app.call('medRailTimes', TODAY, 'afternoon')), []);
+    assert.deepEqual(plain(app.call('medRailTimes', TODAY, 'evening')), [{ s: '15:00', done: false }]);
+    assert.match(app.call('medsTodayHtml', TODAY, 'morning'), /08:00/);
+    assert.doesNotMatch(app.call('medsTodayHtml', TODAY, 'morning'), /15:00/);
+    assert.equal(app.call('medsTodayHtml', TODAY, 'afternoon'), '');
+    assert.match(app.call('medsTodayHtml', TODAY, 'evening'), /15:00/);
+  });
+});
