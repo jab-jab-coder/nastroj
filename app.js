@@ -1073,7 +1073,8 @@ function renderAnimals() {
 }
 
 
-function show(view) {
+// Samo przełączenie widoku (bez historii). Z reszty kodu używaj show()/go().
+function showView(view) {
   if (ui.view === 'stopwatch' && view !== 'stopwatch') stopwatchStop();
   if (view !== 'oddech') oddechStop();
   if (view !== 'tama') tamaStop();
@@ -1089,10 +1090,243 @@ function show(view) {
   window.scrollTo({ top: 0 });
 }
 const rerender = () => renderers[ui.view]();
+
+/* ---------- Historia przeglądarki: „wstecz” / „dalej” (model androidowy) ----------
+   Wpis bazowy (d = 0) to „Dziś”. Nad nim leżą wpisy z nav.stack (rodzaj = k):
+     'view'  — karta inna niż Dziś (zmiana karty PODMIENIA ten wpis, więc „wstecz” zawsze wraca do Dziś),
+     'sub'   — podwidok nad kartą (Leki nad Ustawieniami, Oddech nad Energią),
+     'rate'  — formularz oceny na Dziś (szkic suwaków albo ręcznie rozwinięta karta),
+     'act'   — edycja/dodawanie czynności (Energia),
+     'sheet' — arkusz (#sheet), 'tut' — samouczek.
+   Zasady: najpierw zmieniamy UI, potem historię. Obsługa popstate tylko doprowadza UI do stanu wpisu
+   i nigdy nie robi pushState (wyjątek: „Wróć do oceny” w okienku — to kliknięcie użytkownika). */
+const NAV_HASH = { energy: 'energia', week: 'tydzien', month: 'miesiac', settings: 'ustawienia',
+  leki: 'leki', stopwatch: 'stoper', oddech: 'oddech' };                // widoki, które można otworzyć z adresu
+const NAV_HASH_PARENT = { dzik: 'month', animals: 'week', 'animals-together': 'week', tama: 'energy' }; // ukryte ekrany: w adresie karta-rodzic
+const NAV_SUB = { leki: 'settings', oddech: 'energy' };
+const NAV_LAYERS = ['rate', 'act', 'sheet', 'tut'];
+const nav = { stack: [], pending: 0, queue: [], ask: null };
+
+function navUrl(v) {
+  const h = NAV_HASH[v] || NAV_HASH[NAV_HASH_PARENT[v]];
+  return h ? `#/${h}` : location.pathname + location.search;
+}
+function navViewFromHash() {
+  const h = location.hash.replace(/^#\/?/, '');
+  return Object.keys(NAV_HASH).find(v => NAV_HASH[v] === h) || 'today';
+}
+const navState = () => ({ nav: 1, d: nav.stack.length, k: nav.stack[nav.stack.length - 1] || 'base', v: ui.view });
+function navReplace() { if (!nav.pending) history.replaceState(navState(), '', navUrl(ui.view)); }
+function navPush(k) {
+  if (nav.pending) { nav.queue.push(k); return; }     // trwa history.go() — dopiszemy po popstate
+  nav.stack.push(k);
+  history.pushState(navState(), '', navUrl(ui.view));
+}
+function navGo(n) { if (n > 0) { nav.pending++; history.go(-n); } else navReplace(); }
+
+// Czy formularz oceny ma coś „otwartego” (szkic albo ręcznie rozwinięta karta)
+const rateActive = () => Object.keys(ui.drafts).length > 0 || Object.keys(ui.open).length > 0;
+// Czy szkic różni się od zapisanej oceny (wtedy „wstecz” pyta)
+function unsavedRating() {
+  return Object.entries(ui.drafts).some(([dk, val]) => {
+    const [key, slot, e] = dk.split('|');
+    const saved = getEntry(key, slot);
+    return val !== (e ? saved?.e : saved?.v);
+  });
+}
+
+// Docelowy stos wpisów dla widoku (warstwy „w pamięci” — szkic oceny, edycja czynności — wracają razem z widokiem)
+function navTarget(v) {
+  const t = v === 'today' ? [] : NAV_SUB[v] ? ['view', 'sub'] : ['view'];
+  if (v === 'today' && rateActive()) t.push('rate');
+  if (v === 'energy' && typeof eui !== 'undefined' && eui.editAct != null) t.push('act');
+  return t;
+}
+
+// Dopasowuje historię do stosu t: zdejmuje nadmiarowe wpisy, jeden wpis podmienia zamiast zdjąć-i-dodać.
+function navReconcile(t) {
+  const s = nav.stack;
+  let p = 0;
+  while (p < s.length && p < t.length && s[p] === t[p]) p++;
+  let pops = s.length - p;
+  if (pops && p < t.length) { pops--; p++; }
+  nav.stack = t.slice(0, p);
+  const rest = t.slice(p);
+  if (pops) { nav.queue.push(...rest); navGo(pops); }
+  else { navReplace(); rest.forEach(navPush); }
+}
+
+// Zamyka UI warstwy bez ruszania historii (wpis jest już zdjęty z nav.stack)
+function navCloseUI(k) {
+  if (k === 'sheet') {
+    if (!$('#sheet').hidden) closeSheet();
+    if (typeof mui !== 'undefined') { mui.form = null; mui.pack = null; mui.es = null; }
+  } else if (k === 'act') {
+    if (eui.editAct != null) { eui.editAct = null; if (ui.view === 'energy') rerender(); }
+  } else if (k === 'rate') {
+    ui.drafts = {}; ui.open = {};
+    if (ui.view === 'today') renderToday();
+  } else if (k === 'tut') {
+    if (!$('#tut').hidden) tutClose();
+  } else if (k === 'sub') {
+    showView(NAV_SUB[ui.view] || 'today');
+  } else if (k === 'view') {
+    showView('today');
+  }
+}
+
+// Przejście do widoku z zapisem w historii (zastępuje dawne show()).
+function go(view) {
+  if (!renderers[view]) view = 'today';
+  // arkusz i samouczek nie przechodzą między kartami
+  for (const k of ['tut', 'sheet']) if (nav.stack.includes(k) || nav.queue.includes(k)) {
+    nav.stack = nav.stack.filter(x => x !== k); nav.queue = nav.queue.filter(x => x !== k);
+    navCloseUI(k);
+  }
+  // podwidok tylko nad swoją kartą-rodzicem; w innym wypadku zwykła podmiana karty
+  const from = ui.view;
+  const keepSub = from === NAV_SUB[view] || (from === view && nav.stack[1] === 'sub');
+  showView(view);
+  const t = navTarget(view);
+  if (NAV_SUB[view] && !keepSub) t.splice(1, 1);
+  navReconcile(t);
+}
+function show(view) { go(view); }
+
+// Warstwa otwarta przez kliknięcie → nowy wpis; zamknięta z UI (×, Zapisz) → zdejmujemy jej wpis.
+function navLayerOpen(k) {
+  if (!nav.stack.includes(k) && !nav.queue.includes(k)) navPush(k);
+}
+function navLayerClosed(k) {
+  if (nav.queue.includes(k)) { nav.queue = nav.queue.filter(x => x !== k); return; }
+  const i = nav.stack.lastIndexOf(k);
+  if (i < 0) return;
+  const above = nav.stack.slice(i + 1);
+  const n = nav.stack.length - i;
+  nav.stack.length = i;
+  above.reverse().forEach(navCloseUI);
+  navGo(n);
+}
+// Wywoływane po każdej zmianie szkicu / rozwinięcia kart na Dziś
+function navRateSync() {
+  const on = ui.view === 'today' && rateActive();
+  if (on) navLayerOpen('rate'); else navLayerClosed('rate');
+}
+
+// Okienko: „wstecz” przy niezapisanej ocenie
+function navAskOpen(d) {
+  nav.ask = { d };
+  const el = $('#ask');
+  el.innerHTML = `
+    <div class="sheet-in ask-in">
+      <h2 id="ask-t">Ocena nie jest zapisana</h2>
+      <p class="note" id="ask-d">Jeśli teraz wyjdziesz, ustawione suwaki przepadną. Co robimy?</p>
+      <div class="stack">
+        <button class="btn primary block" data-act="ask-stay">Wróć do oceny</button>
+        <button class="btn soft block" data-act="ask-drop">Porzuć zmiany</button>
+      </div>
+    </div>`;
+  el.hidden = false;
+  document.body.classList.add('locked');
+  $('[data-act="ask-stay"]', el).focus({ preventScroll: true });
+}
+function navAskHide() {
+  const el = $('#ask');
+  el.hidden = true; el.innerHTML = '';
+  if ($('#sheet').hidden) document.body.classList.remove('locked');
+  const a = nav.ask; nav.ask = null;
+  return a;
+}
+function navAskStay() {
+  const a = navAskHide();
+  if (!a) return;
+  // historia jest o poziom niżej niż UI — odtwarzamy brakujące wpisy (to kliknięcie, więc pushState jest bezpieczny)
+  const missing = nav.stack.slice(a.d);
+  nav.stack.length = a.d;
+  missing.forEach(navPush);
+}
+function navAskDrop() {
+  const a = navAskHide();
+  if (!a) return;
+  while (nav.stack.length > a.d) navCloseUI(nav.stack.pop());
+  navReplace();
+}
+
+window.addEventListener('popstate', ev => {
+  const s = ev.state;
+  if (nav.pending) nav.pending--;
+  if (nav.ask) navAskHide();                       // kolejne „wstecz”/„dalej” przy otwartym okienku
+  if (!s || !s.nav) {                              // ręcznie wpisany adres / obcy wpis — traktujemy jako nową bazę
+    while (nav.stack.length) navCloseUI(nav.stack.pop());
+    nav.queue = [];
+    showView(navViewFromHash());
+    history.replaceState(navState(), '', navUrl(ui.view));
+    return;
+  }
+  const d = s.d;
+  // „wstecz”: zdejmujemy warstwy/widoki powyżej wpisu, na który wróciliśmy
+  while (nav.stack.length > d) {
+    const k = nav.stack[nav.stack.length - 1];
+    if (k === 'rate' && ui.view === 'today' && unsavedRating()) { navAskOpen(d); return; }
+    nav.stack.pop();
+    navCloseUI(k);
+  }
+  // „dalej”: odtwarzamy tylko to, co da się odtworzyć (karta, podwidok, otwarty formularz oceny)
+  if (d > nav.stack.length) {
+    const ok = d === nav.stack.length + 1 && (
+      ((s.k === 'view' || s.k === 'sub') && renderers[s.v]) ||
+      (s.k === 'rate' && ui.view === 'today' && rateActive()));
+    if (!ok) { navGo(d - nav.stack.length); return; }   // arkusza ani edycji nie odtworzymy — cofamy się
+    if (s.k !== 'rate') {
+      const v = NAV_HASH[s.v] ? s.v : NAV_HASH_PARENT[s.v] || s.v;
+      if (v === 'dzik') dzikReset();
+      if (v === 'tama') tamaReset();
+      showView(v);
+    }
+    nav.stack.push(s.k);
+  }
+  navReplace();
+  if (nav.queue.length && !nav.pending) { const q = nav.queue; nav.queue = []; q.forEach(navPush); }
+});
+
+// Start: wpis bazowy „Dziś” + ewentualnie widok z adresu (?widok=…, #/…). Po odświeżeniu (history.state) bez nowych wpisów.
+function navInit() {
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const s = history.state;
+  const t = navTarget(ui.view);
+  if (s && s.nav && s.d > 0) {
+    // odświeżenie strony nad bazą: dopasowujemy głębokość do widoku
+    nav.stack = t.slice(0, s.d);
+    if (s.d > t.length) { nav.queue = []; navGo(s.d - t.length); }
+    else { navReplace(); t.slice(s.d).forEach(navPush); }
+  } else {
+    const v = ui.view;
+    ui.view = 'today';
+    history.replaceState(navState(), '', navUrl('today'));   // baza zawsze jako Dziś
+    ui.view = v;
+    t.forEach(navPush);
+  }
+}
+
+// Kliknięcie powiadomienia, gdy aplikacja jest otwarta: sw.js prosi o przejście do Dziś
+navigator.serviceWorker?.addEventListener('message', ev => {
+  if (ev.data?.type !== 'nav') return;
+  // nie przerywamy otwartego arkusza, edycji czynności ani samouczka
+  if (['sheet', 'act', 'tut'].some(k => nav.stack.includes(k))) return;
+  if (ev.data.view === 'today') ui.day = today0();
+  go(ev.data.view || 'today');
+});
+
 const TRIPLE_MS = 450;               // maks. odstęp między dotknięciami przy potrójnym kliknięciu
 let tapEnergy = { n: 0, last: 0 };
 
 document.addEventListener('click', async ev => {
+  if (nav.ask) {                                   // okienko „Ocena nie jest zapisana”
+    const a = ev.target.closest('[data-act]')?.dataset.act;
+    if (a === 'ask-drop') navAskDrop();
+    else if (a === 'ask-stay' || ev.target.id === 'ask') navAskStay();
+    return;
+  }
   const tab = ev.target.closest('.tab');
   if (tab) {
     const now = Date.now();
@@ -1206,6 +1440,7 @@ document.addEventListener('click', async ev => {
         ui.drafts[dk] = Number($('input[data-kind="mood"]', card).value);
         ui.drafts[`${dk}|e`] = Number($('input[data-kind="energy"]', card).value);
         renderToday();
+        navRateSync();
         break;
       }
       // Zapisujemy tylko kategorie ustawione przez użytkownika (szkic) albo już zapisane wcześniej.
@@ -1215,6 +1450,7 @@ document.addEventListener('click', async ev => {
       delete ui.drafts[dk];
       delete ui.drafts[`${dk}|e`];
       renderToday();
+      navRateSync();
       const what = v != null ? `${v}/10` : `energia ${en}/10`;
       toast(`${v != null ? mood(v)[0] : '⚡'} Zapisano: ${SLOTS.find(s => s.id === slot).label.toLowerCase()} — ${what}`);
       break;
@@ -1226,12 +1462,13 @@ document.addEventListener('click', async ev => {
         delete ui.drafts[`${key}|${slot}`];
         delete ui.drafts[`${key}|${slot}|e`];
         renderToday();
+        navRateSync();
       }
       break;
     }
 
-    case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); break;
-    case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); break;
+    case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); navRateSync(); break;
+    case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); navRateSync(); break;
     case 'win-auto':
       delete settings.windows;
       store(KEY_SETTINGS, settings); syncState();
@@ -1262,11 +1499,12 @@ document.addEventListener('click', async ev => {
 });
 
 document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && nav.ask) { ev.preventDefault(); navAskStay(); return; }
   if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.closest?.('.rw-head')) { ev.preventDefault(); swCompliment(); }
 });
 
 document.addEventListener('input', ev => {
-  if (ev.target.matches('.slot input[type=range]')) onSlider(ev.target);
+  if (ev.target.matches('.slot input[type=range]')) { onSlider(ev.target); navRateSync(); }
   else if (ev.target.id === 'af-def') { /* bez akcji — wartość czytana przy zapisie */ }
 });
 
@@ -1577,7 +1815,8 @@ medsInit();
 const DEEP_LINKS = { stoper: 'stopwatch' };
 const startView = DEEP_LINKS[new URLSearchParams(location.search).get('widok')] || 'today';
 if (location.search) history.replaceState(null, '', location.pathname + location.hash);
-show(startView);
+showView(startView === 'today' ? navViewFromHash() : startView);
+navInit();
 tutMaybeStart();
 syncState();
 checkReminders();

@@ -51,6 +51,7 @@ function tutOpen(from) {
   $('#tut').hidden = false;
   document.body.classList.add('tut-on');
   tutRender();
+  navLayerOpen('tut');                       // „wstecz” zamyka samouczek (app.js)
 }
 
 function tutClose() {
@@ -59,6 +60,7 @@ function tutClose() {
   $('#tut').hidden = true;
   $('#tut').innerHTML = '';
   document.body.classList.remove('tut-on');
+  navLayerClosed('tut');
   tutApplyModules();
   rerender();
 }
