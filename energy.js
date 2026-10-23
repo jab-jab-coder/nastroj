@@ -1204,13 +1204,15 @@ function todayActivities() {
 
 /* ---------- pasek salda na ekranie „Dziś” ---------- */
 function saldoChipHtml(key = todayKey()) {
+  // Wygaszone tylko, gdy saldo 0 (lub brak) i tego dnia nie ma żadnego wpisu energii
+  const dim = b => (!b && !elog[key]?.length ? ' dim' : '');
   if (!acts.length) return `<button class="saldo-chip" data-act="go-energy">⚡ Załóż konto energii</button>`;
   if (key !== todayKey()) {
-    // Dzień inny niż dziś: saldo przeliczone na koniec tego dnia, przygaszone, bez statusu (status dotyczy dziś)
+    // Dzień inny niż dziś: saldo przeliczone na koniec tego dnia, bez statusu (status dotyczy dziś)
     const b = ledger(key)[key]?.balance;
-    return `<button class="saldo-chip past" data-act="go-energy">Saldo energii tego dnia: <b>${b != null ? signed(b) : '–'}</b></button>`;
+    return `<button class="saldo-chip past${dim(b)}" data-act="go-energy">Saldo energii tego dnia: <b>${b != null ? signed(b) : '–'}</b></button>`;
   }
   const st = status();
   const b = ledger(key)[key]?.balance ?? 0;
-  return `<button class="saldo-chip" data-act="go-energy"><i class="dot ${LEVELS[st.level].cls}" aria-hidden="true"></i>Saldo energii: <b>${signed(b)}</b> · ${LEVELS[st.level].text}</button>`;
+  return `<button class="saldo-chip${dim(b)}" data-act="go-energy"><i class="dot ${LEVELS[st.level].cls}" aria-hidden="true"></i>Saldo energii: <b>${signed(b)}</b> · ${LEVELS[st.level].text}</button>`;
 }
