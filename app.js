@@ -181,12 +181,8 @@ let installPrompt = null;
 function renderToday() {
   const key = dkey(ui.day);
   const isToday = key === dkey(new Date());
-  const filled = SLOTS.filter(s => getEntry(key, s.id)).length;
   const cur = isToday ? currentSlot() : null;
   ui.active = cur;
-  const msg = filled === 3 ? 'Wszystkie oceny zapisane — brawo! 💗'
-    : filled === 0 ? (isToday ? 'Jak się dziś czujesz?' : 'Brak wpisów tego dnia')
-    : `Zapisano ${filled} z 3 ocen`;
 
   $('#view-today').innerHTML = `
     <header class="head">
@@ -199,7 +195,6 @@ function renderToday() {
     </header>
     ${energyOn() ? saldoChipHtml(key) : ''}
     <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
-    <p class="lead">${msg}</p>
     ${SLOTS.map(s => (s.id !== cur && !ui.open[`${key}|${s.id}`])
       ? slotCompact(s, key)
       : slotCard(s, key, s.id === cur, s.id !== cur)).join('')}

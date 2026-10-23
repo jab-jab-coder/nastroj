@@ -70,7 +70,7 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .icon-btn:disabled { opacity: .35; box-shadow: none; cursor: default; }
 
 /* ---------- progress dots ---------- */
-.dots { display: flex; justify-content: center; gap: 8px; margin: 10px 0 2px; }
+.dots { display: flex; justify-content: center; gap: 8px; margin: 10px 0 18px; }
 .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
 .dots i.on { background: var(--rose); }
 
