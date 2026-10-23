@@ -698,3 +698,20 @@ describe('Energia: wartości przy dzisiejszych operacjach', () => {
     assert.equal(app.call('opChips', { a: 'a1' }).length, 4);
   });
 });
+
+describe('Energia: rozmiar znaczników i suma dnia', () => {
+  test('znacznik rośnie z wartością w wąskim zakresie', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });
+    assert.equal(app.call('opSize', 10), 16);
+    assert.equal(app.call('opSize', 80), 26);
+    assert.ok(app.call('opSize', 25) < app.call('opSize', 50));
+    assert.equal(app.call('opSize', 200), 26);
+    assert.equal(app.call('opSize', 1), 16);
+  });
+  test('suma dnia = wpłaty − wypłaty, w tytule ze znakiem', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });
+    assert.equal(app.call('opsSum', [{ k: 'w', v: 80 }, { k: 'd', v: 10 }, { k: 'd', v: 25 }]), -45);
+    assert.equal(app.call('signed', 15), '+15');
+    assert.equal(app.call('signed', -45), '−45');
+  });
+});

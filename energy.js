@@ -605,7 +605,7 @@ function opsTimelineHtml(list) {
           <i class="tl-line" aria-hidden="true"></i>
           <span class="tl-hr${first ? ' edge' : ''}" style="top:0">${clockMin(f)}</span>
           ${last ? `<span class="tl-hr edge" style="top:100%">${clockMin(s0)}</span>` : ''}
-          ${ops.map(x => { const lab = `${x.k === 'd' ? 'Wpłata' : 'Wypłata'} „${x.n}”, godzina ${hhmm(x.t)}`; return `<button class="tl-op ${x.k === 'd' ? 'd' : 'w'}" style="top:${pct(opMin(x.t))}"
+          ${ops.map(x => { const lab = `${x.k === 'd' ? 'Wpłata' : 'Wypłata'} „${x.n}”, godzina ${hhmm(x.t)}`; return `<button class="tl-op ${x.k === 'd' ? 'd' : 'w'}" style="top:${pct(opMin(x.t))};--s:${opSize(x.v)}px"
             data-op="${x.id}" data-time="${hhmm(x.t)}" role="slider" aria-label="${esc(lab)}. Przeciągnij albo strzałki w górę i w dół, co 30 minut"
             aria-valuetext="${hhmm(x.t)}" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="${opMin(x.t) % DAY_MIN}">${x.k === 'd' ? '+' : '−'}</button>`; }).join('')}
         </div>
@@ -617,6 +617,10 @@ function opsTimelineHtml(list) {
 
 /* ---------- oś operacji: przeciąganie ⊖/⊕ zmienia godzinę ---------- */
 const OP_STEP = 30;
+// Średnica znacznika na osi: rośnie z wartością (mała 10 → 16 px, ogromna 80 → 26 px), poza zakresem przycięta.
+const opSize = v => Math.round(16 + 10 * Math.min(1, Math.max(0, ((Number(v) || 0) - 10) / 70)));
+// Suma dnia: wpłaty − wypłaty
+const opsSum = list => list.reduce((s, x) => s + (x.k === 'd' ? 1 : -1) * (Number(x.v) || 0), 0);
 // Zapis nowej godziny operacji: min = minuta doby aplikacji (od północy dnia wpisu, może przekroczyć 24:00).
 // Dzień wpisu (klucz w nastroj.energy.v1) się nie zmienia, zmienia się tylko t.
 function opSetTime(id, min) {
@@ -704,7 +708,7 @@ function todayLogHtml() {
   const list = (elog[todayKey()] || []).slice().sort((a, b) => a.t - b.t);
   return `
     <div class="card">
-      <h3>Dzisiejsze operacje</h3>
+      <h3>Dzisiejsze operacje${list.length ? ` <span class="ops-sum ${opsSum(list) < 0 ? 'neg' : ''}">${signed(opsSum(list))}</span>` : ''}</h3>
       ${list.length ? opsTimelineHtml(list)
       : '<p class="note" style="margin:0">Nic jeszcze dziś. Dotknij czynności powyżej — zapisze się z domyślną wartością, którą możesz potem zmienić.</p>'}
     </div>`;
