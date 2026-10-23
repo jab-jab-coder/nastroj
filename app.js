@@ -347,6 +347,16 @@ function segments(points) {
 }
 const pathOf = seg => seg.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
 
+// Pomiary tygodnia w kolejności chronologicznej: { i: indeks dnia, j: indeks pory, v: wartość }.
+function weekPoints(keys, kind) {
+  const f = SERIES[kind].field, out = [];
+  keys.forEach((k, i) => SLOTS.forEach((sl, j) => {
+    const v = getEntry(k, sl.id)?.[f];
+    if (v != null) out.push({ i, j, v });
+  }));
+  return out;
+}
+
 function weekChart(days, kind = 'mood') {
   const S = SERIES[kind], g = geom(kind), { H, IH, yOf } = g;
   const todayK = dkey(new Date());
@@ -360,18 +370,17 @@ function weekChart(days, kind = 'mood') {
     s += `<rect class="hit ${ui.selWeek === k ? 'sel' : ''}" x="${L + colW * i}" y="${T - 6}" width="${colW}" height="${IH + 12}" rx="10" data-act="pick-week" data-day="${k}"/>`;
   });
 
-  const avgPts = keys.map((k, i) => { const a = seriesAvg(k, kind); return a == null ? null : [xOf(i), yOf(a)]; });
-  for (const seg of segments(avgPts)) {
-    if (seg.length > 1) s += `<path d="${pathOf(seg)}" fill="none" stroke="${S.avg}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".55" pointer-events="none"/>`;
-  }
-
+  // Ciągła kreska przez wszystkie pomiary po kolei (dni bez wpisów są pomijane, bez przerwy).
+  // Każdy odcinek ma kolor punktu, do którego dochodzi.
   const off = [-9, 0, 9];
-  keys.forEach((k, i) => {
-    SLOTS.forEach((sl, j) => {
-      const val = getEntry(k, sl.id)?.[S.field];
-      if (val != null) s += `<circle cx="${xOf(i) + off[j]}" cy="${yOf(val)}" r="5" fill="${S.slots[j]}" stroke="#fff" stroke-width="1.5" pointer-events="none"/>`;
-    });
-  });
+  const pts = weekPoints(keys, kind).map(p => ({ x: xOf(p.i) + off[p.j], y: yOf(p.v), c: S.slots[p.j] }));
+  for (let n = 1; n < pts.length; n++) {
+    const a = pts[n - 1], b = pts[n];
+    s += `<line x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" stroke="${b.c}" stroke-width="3" stroke-linecap="round" opacity=".75" pointer-events="none"/>`;
+  }
+  for (const p of pts) {
+    s += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="${p.c}" stroke="#fff" stroke-width="1.5" pointer-events="none"/>`;
+  }
 
   days.forEach((d, i) => {
     const k = keys[i];
@@ -523,11 +532,11 @@ function renderWeek() {
     <div class="card chart-card">
       ${chartTitle('Samopoczucie', AVG_COLOR)}
       ${weekChart(days, 'mood')}
-      ${legendHtml(`<span><i class="line" style="background:${AVG_COLOR};opacity:.55"></i>średnia dnia</span>`)}
+      ${legendHtml('')}
       <div class="chart-sep"></div>
       ${chartTitle('Energia', SERIES.energy.avg, 'odczuwana, 1–10')}
       ${weekChart(days, 'energy')}
-      ${legendHtml(`<span><i class="line" style="background:${SERIES.energy.avg};opacity:.55"></i>średnia dnia</span>`, SERIES.energy.slots)}
+      ${legendHtml('', SERIES.energy.slots)}
       <div class="detail" id="week-detail">${detailHtml(ui.selWeek)}</div>
     </div>
     ${medsOn() ? medsChartCard(days.map(dkey), 'week') : ''}
