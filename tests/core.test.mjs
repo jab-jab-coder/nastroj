@@ -715,3 +715,31 @@ describe('Energia: rozmiar znaczników i suma dnia', () => {
     assert.equal(app.call('signed', -45), '−45');
   });
 });
+
+describe('Dziś: skala energii (hasła i ikony)', () => {
+  test('każdy poziom 1–10 ma hasło i ikonę baterii SVG', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });
+    for (let n = 1; n <= 10; n++) {
+      const [, label] = app.call('energyLevel', n);
+      assert.ok(label && label.length > 3, `hasło dla ${n}`);
+      assert.match(app.call('energyIcon', n), /^<svg class="bat"/, `bateria dla ${n}`);
+    }
+    assert.equal(app.call('energyLevel', 1)[1], 'Shutdown, meltdown, zero mocy');
+    assert.equal(app.call('energyLevel', 10)[1], 'Mogę góry przenosić');
+  });
+  test('wartości spoza skali i ułamki są przycinane i zaokrąglane', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });
+    assert.equal(app.call('energyLevel', 0)[1], app.call('energyLevel', 1)[1]);
+    assert.equal(app.call('energyLevel', 14)[1], app.call('energyLevel', 10)[1]);
+    assert.equal(app.call('energyLevel', 4.6)[1], app.call('energyLevel', 5)[1]);
+  });
+  test('bateria: pusta na 1, ⅓ na 3, ½ na 5, pełna na 10, rośnie z każdym poziomem', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });
+    const fill = n => { const m = app.call('energyIcon', n).match(/x="5" y="7" width="([\d.]+)"/); return m ? Number(m[1]) : 0; };
+    assert.equal(fill(1), 0);
+    assert.equal(fill(3), 8.3);
+    assert.equal(fill(5), 12.5);
+    assert.equal(fill(10), 25);
+    for (let n = 2; n <= 10; n++) assert.ok(fill(n) > fill(n - 1), `rośnie ${n - 1}→${n}`);
+  });
+});
