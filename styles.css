@@ -70,20 +70,28 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .icon-btn:disabled { opacity: .35; box-shadow: none; cursor: default; }
 
 /* ---------- Dziś: pionowa oś doby ---------- */
-/* Oś rozciąga się na wysokość kart; pozycje w % doby (0% = „Rano od”, 100% = ta sama godzina jutro). */
-.tl-wrap { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 8px; margin-top: 14px; }
-.tl-cards { min-width: 0; }
-.tl-rail { position: relative; margin: 8px 0 22px; min-height: 240px; }
-.tl-line { position: absolute; left: 36px; top: 0; bottom: 0; width: 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
-.tl-seg { position: absolute; left: 0; right: 0; }
+/* Wiersz = odcinek osi + karta pory; odcinek ma wysokość karty (z odstępem do następnej).
+   Pozycje w odcinku: % okna pory (0% = początek pory, 100% = początek następnej). */
+.tl { margin-top: 18px; margin-bottom: 14px; }
+.tl-row { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; padding-bottom: 12px; }
+.tl-row:last-child { padding-bottom: 0; }
+.tl-card { min-width: 0; }
+.tl-card > .card { margin-bottom: 0; }
+.tl-seg { position: relative; }
+.tl-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; transform: translateX(-50%); background: var(--c); }
+.tl-seg.first .tl-line { border-radius: 3px 3px 0 0; }
+.tl-seg.last .tl-line { border-radius: 0 0 3px 3px; }
 .tl-hr {
-  position: absolute; right: 18px; transform: translateY(-50%);
+  position: absolute; left: 50%; z-index: 2; transform: translate(-50%, -50%);
+  padding: 2px 4px; border-radius: 6px;
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 280px) fixed;   /* to samo tło co body — etykieta „wtapia się” w tło */
   font-size: 10px; font-weight: 700; color: var(--ink-soft); line-height: 1; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .tl-hr.edge { color: var(--ink); font-weight: 800; }
-.tl-now { position: absolute; left: 28px; width: 22px; border-top: 2px dashed var(--ink); transform: translateY(-1px); }
+.tl-now { position: absolute; left: 50%; z-index: 1; width: 26px; border-top: 2px dashed var(--ink); transform: translate(-50%, -1px); }
 .tl-dot {
-  position: absolute; left: 39px; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; z-index: 3; transform: translate(-50%, -50%);
   width: 16px; height: 16px; padding: 0; border-radius: 50%; cursor: pointer;
   background: var(--card); border: 3px solid var(--c);
 }
