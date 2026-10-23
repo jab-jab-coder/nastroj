@@ -722,16 +722,19 @@ function inventoryHtml() {
    ========================================================= */
 function openSheet(html) {
   const sh = $('#sheet');
+  const was = !sh.hidden;
   sh.innerHTML = `<div class="sheet-in">${html}</div>`;
   sh.hidden = false;
   document.body.classList.add('locked');
   sh.scrollTop = 0;
+  if (!was) navLayerOpen('sheet');           // „wstecz” zamyka arkusz (app.js)
 }
 function closeSheet() {
   const sh = $('#sheet');
   sh.hidden = true; sh.innerHTML = '';
   document.body.classList.remove('locked');
   eui.survey = null; eui.stmt = null; eui.quickAdd = null;
+  navLayerClosed('sheet');
 }
 
 function renderSurvey() {
@@ -952,9 +955,9 @@ function energyClick(act, el) {
       return true;
     }
     case 'strat-del': strategies.splice(Number(el.dataset.i), 1); saveStrat(); rerender(); return true;
-    case 'act-new': eui.editAct = 'new'; rerender(); return true;
-    case 'act-edit': eui.editAct = el.dataset.id; rerender(); return true;
-    case 'act-cancel': eui.editAct = null; rerender(); return true;
+    case 'act-new': eui.editAct = 'new'; rerender(); navLayerOpen('act'); return true;
+    case 'act-edit': eui.editAct = el.dataset.id; rerender(); navLayerOpen('act'); return true;
+    case 'act-cancel': eui.editAct = null; rerender(); navLayerClosed('act'); return true;
     case 'act-save': {
       const name = $('#af-name').value.trim();
       const def = Math.max(1, Math.min(100, Math.round(Number($('#af-def').value) || 25)));
@@ -969,7 +972,7 @@ function energyClick(act, el) {
         if (pinned) a.pinned = true; else delete a.pinned;
       }
       else acts.push({ id: uid(), name, kind, cat, def, archived: false, addedAt: todayKey(), ...(pinned ? { pinned: true } : {}) });
-      saveActs(); eui.editAct = null; rerender(); toast('Zapisano czynność');
+      saveActs(); eui.editAct = null; rerender(); navLayerClosed('act'); toast('Zapisano czynność');
       return true;
     }
     case 'act-pin': {
