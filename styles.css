@@ -925,6 +925,8 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 #view-tama .hop { animation: tb-hop .36s ease-out; }
 #view-tama .huh, #view-tama .wig { animation: tb-huh .5s ease-in-out; }
 #view-tama .oak-in { transform-box: fill-box; transform-origin: 50% 100%; }
+#view-tama .joy { transform-box: fill-box; transform-origin: 50% 100%; animation: tb-joy .45s ease-in-out 4; }
+#view-tama .acornT { cursor: pointer; }
 #view-tama .sway { animation: tb-sway .7s ease-in-out; }
 #view-tama .shake { animation: tb-shake .9s ease-in-out; }
 #view-tama .walk { animation: tb-walk .32s ease-in-out infinite; }
@@ -936,6 +938,7 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 @keyframes tb-huh { 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
 @keyframes tb-walk { 50% { transform: translateY(-4px); } }
 @keyframes tb-tw { 50% { opacity: .25; } }
+@keyframes tb-joy { 50% { transform: translateY(-7px) scale(1.05); } }
 @keyframes tb-sway { 30% { transform: rotate(-1.6deg); } 65% { transform: rotate(1.1deg); } 100% { transform: none; } }
 @keyframes tb-shake { 10% { transform: rotate(-7deg) translateX(-3px); } 25% { transform: rotate(6deg) translateX(3px); } 40% { transform: rotate(-5deg) translateX(-2px); }
   55% { transform: rotate(4deg) translateX(2px); } 70% { transform: rotate(-2.5deg); } 85% { transform: rotate(1.2deg); } 100% { transform: none; } }
