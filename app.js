@@ -206,12 +206,49 @@ function renderToday() {
       <button class="icon-btn" data-act="day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
     </header>
     ${energyOn() ? saldoChipHtml(key) : ''}
-    <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
-    ${SLOTS.map(s => (s.id !== cur && !ui.open[`${key}|${s.id}`])
-      ? slotCompact(s, key)
-      : slotCard(s, key, s.id === cur, s.id !== cur)).join('')}
-    ${medsOn() ? medsTodayHtml(key) : ''}
+    <div class="tl" role="group" aria-label="Oś doby od ${clockMin(dayStartMin())} do ${clockMin(dayStartMin())}">
+      ${SLOTS.map((s, i) => `<div class="tl-row">
+        ${dayRailSeg(s, i, key, isToday)}
+        <div class="tl-card">${(s.id !== cur && !ui.open[`${key}|${s.id}`])
+          ? slotCompact(s, key)
+          : slotCard(s, key, s.id === cur, s.id !== cur)}${medsOn() ? medsTodayHtml(key, s.id) : ''}</div>
+      </div>`).join('')}
+    </div>
   `;
+}
+
+// Pionowa oś doby obok kart: od „Rano od” (góra) do tej samej godziny następnego dnia (dół).
+// Każda pora ma swój odcinek o wysokości swojej karty (zwinięta = krótki, rozwinięta = długi),
+// w kolorze pory jak pasek w Ustawieniach → Pory dnia. Godziny zmiany pór na kresce, na tle aplikacji.
+// Wewnątrz odcinka pozycja jest proporcjonalna do czasu w oknie tej pory.
+// Kropka pełna = wpis (na godzinie zapisu, jeśli zapis był w tej dobie), pusta = planowana godzina wpisu.
+// Kreska przerywana = teraz (tylko dziś). Kropka otwiera kartę danej pory.
+// Moduł Leki: pigułka = godzina planowanych leków (stan w podpowiedzi: zapisane / nie);
+// karta „Leki” danej pory stoi pod kartą pory w tym samym odcinku osi.
+function dayRailSeg(sl, i, key, isToday) {
+  const b = slotBounds(), [f, t] = slotWindows()[sl.id];
+  const pct = m => `${(100 * Math.min(1, Math.max(0, (m - f) / (t - f)))).toFixed(2)}%`;
+  const dayStart = ui.day.getTime() + b.s * 60000;
+  const entryMin = ts => {
+    if (!ts || ts < dayStart || ts >= dayStart + DAY_MIN * 60000) return null;
+    const d = new Date(ts);
+    return logMin(d.getHours() * 60 + d.getMinutes(), b.s);
+  };
+  const e = getEntry(key, sl.id);
+  const m = entryMin(e?.t) ?? logMin(minutesOf(settings.times[sl.id]), b.s);
+  const lab = e ? `${sl.label}: wpis${e.t ? ` o ${hhmm(e.t)}` : ''}` : `${sl.label}: planowo ${settings.times[sl.id]}, brak wpisu`;
+  const nowM = logMin(nowMinutes(), b.s);
+  const first = i === 0, last = i === SLOTS.length - 1;
+  return `<div class="tl-seg${first ? ' first' : ''}${last ? ' last' : ''}" style="--c:var(--c-${sl.id})">
+    <i class="tl-line" aria-hidden="true"></i>
+    ${isToday && nowM >= f && nowM < t ? `<i class="tl-now" style="top:${pct(nowM)}" aria-hidden="true"></i>` : ''}
+    <span class="tl-hr${first ? ' edge' : ''}" style="top:0">${clockMin(f)}</span>
+    ${last ? `<span class="tl-hr edge" style="top:100%">${clockMin(b.s)}</span>` : ''}
+    ${medsOn() ? medRailTimes(key, sl.id).map(x => `<span class="tl-pill${x.done ? ' done' : ''}" style="top:${pct(logMin(minutesOf(x.s), b.s))}"
+      title="Leki ${x.s}${x.done ? ' — zapisane' : ''}" aria-hidden="true">💊</span>`).join('') : ''}
+    <button class="tl-dot${e ? ' on' : ''}" style="top:${pct(m)}" data-act="slot-open" data-key="${key}" data-slot="${sl.id}"
+      aria-label="${esc(lab)}. Pokaż kartę" title="${esc(lab)}"></button>
+  </div>`;
 }
 
 // Zwinięta karta: intensywna z wartościami, jeśli jest wpis; wyblakła bez wartości, jeśli nie ma
