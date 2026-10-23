@@ -93,7 +93,7 @@ function reset() {
   $('acorns').innerHTML = ''; $('bubbles').innerHTML = '';
   Object.assign(S, { acornsIn: 0, sauna: false, waveA: 1.2, bubs: [], nextBub: 0 });
   $('capyJoy').classList.remove('joy');
-  clearTimeout(S.faceT); setFace(false);
+  clearTimeout(S.faceT); setFace(false); $('beaver').firstElementChild.classList.remove('joy');
   $('endTxt').textContent = 'Kapibara moczy się w ciepłej wodzie, a bóbr pilnuje tamy. Dobra robota.';
   ['capyBath', 'capyWalk', 'sparks', 'say', 'sayC', 'steam'].forEach(id => $(id).setAttribute('opacity', 0));
   $('peek').setAttribute('opacity', 1);
@@ -230,6 +230,24 @@ function splashAt(x, y) {
     tween(650 + i * 250, t => { e.setAttribute('rx', 4 + (22 + i * 10) * t); e.setAttribute('ry', 1.5 + (6 + i * 3) * t); e.setAttribute('opacity', 1 - t); }, () => e.remove());
   }
 }
+function laughUp(x, y, txt, delay) {      // unoszące się „ha” / „hi”
+  later(() => {
+    const t = mk('text', { x, y, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 900, fill: '#e75a8d' }, fx); t.textContent = txt;
+    const dx = rnd(-18, 18);
+    tween(1300, k => { t.setAttribute('x', (x + dx * k).toFixed(1)); t.setAttribute('y', (y - 46 * k).toFixed(1)); t.setAttribute('opacity', k < .6 ? 1 : (1 - k) / .4); }, () => t.remove());
+  }, delay);
+}
+function bounce(el) { el.classList.remove('joy', 'hop', 'huh', 'walk'); void el.getBBox(); el.classList.add('joy'); }
+function laughTogether() {
+  const bb = $('beaver').firstElementChild;
+  clearTimeout(S.faceT); setFace(true); bounce(bb);
+  say('Ha ha ha!', 2600);
+  bounce($('capyJoy'));
+  for (let i = 0; i < 4; i++) {
+    laughUp(S.bx + (i % 2 ? -50 : -70), S.by - 30, 'ha', i * 320);   // obok buzi bobra, pod dymkiem
+    laughUp(196 + (i % 2 ? -34 : 34), 392, 'hi', 160 + i * 320);
+  }
+}
 function heartUp(x, y, delay) {
   later(() => {
     const h = mk('path', { d: 'M0 4 C-5.5 0.2 -5.6 -5 -2.6 -5 C-1.1 -5 0 -4 0 -2.7 C0 -4 1.1 -5 2.6 -5 C5.6 -5 5.5 0.2 0 4 Z', fill: '#ff9bb5', stroke: '#5b3a55', 'stroke-width': .8 }, fx);
@@ -301,6 +319,7 @@ function bath() {
       for (let i = 0; i < 6; i++) heartUp(196 + (i % 2 ? 26 : -26), 410, i * 260); }, 900);
     $('endTxt').textContent = 'Kapibara moczy się w bąbelkach i cieszy się podwójnie, a bóbr pilnuje tamy. Dobra robota.';
   }
+  later(laughTogether, 1900);              // na koniec bóbr i kapibara śmieją się razem
   later(() => tween(800, k => $('sparks').setAttribute('opacity', k)), 1700);
   later(() => { $('end').hidden = false; $('again').focus({ preventScroll: true }); }, 3400);
 }
