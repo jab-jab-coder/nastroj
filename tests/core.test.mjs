@@ -647,3 +647,39 @@ describe('Energia: dzisiejsze operacje na osi doby', () => {
     assert.doesNotMatch(html, /tl-dot|tl-pill/);
   });
 });
+
+describe('Energia: zmiana godziny operacji z osi doby', () => {
+  const at = (h, m) => { const d = new Date(`${TODAY}T00:00:00`); d.setHours(h, m); return d.getTime(); };
+  const st = () => ({
+    [K.settings]: { onboarded: true, dayStart: '06:00' },
+    'nastroj.energy.v1': { [TODAY]: [{ id: 'l1', a: 'a', n: 'Praca', k: 'w', v: 20, t: at(9, 10) }] },
+  });
+
+  test('opSetTime zapisuje nową godzinę w tym samym dniu (także po północy przed „Rano od”)', () => {
+    const app = boot({ storage: st() });
+    assert.equal(app.call('opSetTime', 'l1', 13 * 60 + 30), true);
+    assert.equal(app.stored('nastroj.energy.v1')[TODAY][0].t, at(13, 30));
+    app.call('opSetTime', 'l1', 24 * 60 + 60);              // 01:00 następnego dnia kalendarzowego
+    const t = app.stored('nastroj.energy.v1')[TODAY][0].t;
+    assert.equal(t, at(13, 30) + (11 * 60 + 30) * 60000);
+    assert.deepEqual(Object.keys(app.stored('nastroj.energy.v1')), [TODAY]);
+  });
+
+  test('opSetTime trzyma się doby aplikacji, bez zmiany nic nie zapisuje', () => {
+    const app = boot({ storage: st() });
+    app.call('opSetTime', 'l1', 2 * 60);                    // przed „Rano od” → początek doby
+    assert.equal(app.stored('nastroj.energy.v1')[TODAY][0].t, at(6, 0));
+    const before = app.ls.snapshot();
+    assert.equal(app.call('opSetTime', 'l1', 6 * 60), false);
+    assert.deepEqual(app.ls.snapshot(), before);
+    assert.equal(app.call('opSetTime', 'brak', 600), false);
+  });
+
+  test('opStep skacze do pełnych półgodzin', () => {
+    const app = boot({ storage: st() });
+    assert.equal(app.call('opStep', 9 * 60 + 10, 1), 9 * 60 + 30);
+    assert.equal(app.call('opStep', 9 * 60 + 10, -1), 9 * 60);
+    assert.equal(app.call('opStep', 9 * 60 + 30, 1), 10 * 60);
+    assert.equal(app.call('opStep', 6 * 60, -1), 6 * 60);
+  });
+});
