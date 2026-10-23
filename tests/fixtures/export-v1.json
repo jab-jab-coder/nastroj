@@ -1,0 +1,18 @@
+{
+  "app": "nastroj",
+  "version": 1,
+  "exportedAt": "2026-01-15T20:00:00.000Z",
+  "settings": {
+    "times": { "morning": "09:00", "afternoon": "14:00", "evening": "21:00" },
+    "notify": false
+  },
+  "entries": {
+    "2026-01-14": {
+      "morning": { "v": 6, "t": 1768377900000 },
+      "evening": { "v": 4, "t": 1768421400000 }
+    },
+    "2026-01-15": {
+      "afternoon": { "v": 7, "t": 1768482120000 }
+    }
+  }
+}
