@@ -160,12 +160,37 @@ describe('czynności (nastroj.activities.v1)', () => {
     assert.deepEqual(app.stored(K.acts), []);
   });
 
-  test('„Wszystkie (N)” zapamiętuje rozwinięcie w settings.energyList.open', async () => {
+  test('„Pokaż wszystkie” rozwija i zwija obie kolumny naraz w settings.energyList.open', async () => {
     const app = boot({ storage: ON });
-    await app.click('qa-more', { kind: 'w' });
-    assert.deepEqual(app.stored(K.settings).energyList, { mode: 'freq', open: { w: true } });
-    await app.click('qa-more', { kind: 'w' });
-    assert.deepEqual(app.stored(K.settings).energyList, { mode: 'freq', open: { w: false } });
+    await app.click('qa-more');
+    assert.deepEqual(app.stored(K.settings).energyList, { mode: 'freq', open: { w: true, d: true } });
+    await app.click('qa-more');
+    assert.deepEqual(app.stored(K.settings).energyList, { mode: 'freq', open: { w: false, d: false } });
+  });
+
+  test('stare ustawienie z jedną otwartą stroną: kliknięcie zwija obie, tryb zostaje', async () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true, energyList: { mode: 'fixed', open: { d: true } } } } });
+    await app.click('qa-more');
+    assert.deepEqual(app.stored(K.settings).energyList, { mode: 'fixed', open: { w: false, d: false } });
+  });
+
+  test('widok: dwie kolumny po 6, rozwinięcie pokazuje wszystkie, stare open.d otwiera obie', () => {
+    const acts = [...Array.from({ length: 8 }, (_, i) => act(`w${i}`)), ...Array.from({ length: 7 }, (_, i) => act(`d${i}`, 'd'))];
+    const tiles = (html, kind) => (html.split(`id="qa-${kind}"`)[1].split('</div>')[0].match(/data-act="elog"/g) || []).length;
+    const zw = boot({ storage: withActs(acts) }).call('quickLogHtml');
+    assert.equal(tiles(zw, 'w'), 6); assert.equal(tiles(zw, 'd'), 6);
+    assert.match(zw, /Pokaż wszystkie \(8 · 7\)/);
+    assert.match(zw, /6 z 8/);
+    const ro = boot({ storage: withActs(acts, { [K.settings]: { onboarded: true, energyList: { open: { d: true } } } }) }).call('quickLogHtml');
+    assert.equal(tiles(ro, 'w'), 8); assert.equal(tiles(ro, 'd'), 7);
+    assert.match(ro, /Zwiń do najczęstszych/);
+    assert.equal((ro.match(/data-act="qa-more"/g) || []).length, 4, 'przycisk, dwa tytuły, „Zwiń” w nagłówku');
+  });
+
+  test('widok: przy ≤ 6 pozycjach w każdej kolumnie nie ma przycisku rozwijania', () => {
+    const html = boot({ storage: withActs([act('a'), act('b', 'd')], { [K.settings]: { onboarded: true, energyList: { open: { w: true } } } }) }).call('quickLogHtml');
+    assert.doesNotMatch(html, /qa-more/);
+    assert.equal((html.match(/data-act="qa-new"/g) || []).length, 2);
   });
 });
 
