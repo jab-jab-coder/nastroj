@@ -126,7 +126,7 @@ function lastValue(f) {
   return best;
 }
 
-// Okna pór dnia — decydują, która karta jest rozwinięta na ekranie Dziś (wpis można zrobić zawsze).
+// Okna pór dnia — decydują, która karta jest rozwinięta na ekranie Dziś (tylko dziś, bieżąca pora; pozostałe karty — także w innych dniach — są zwinięte; wpis można zrobić zawsze).
 // Doba dzielona jest dwiema granicami na trzy przylegające przedziały:
 //   rano       — 00:00 → granica „popołudnie”
 //   popołudnie — granica „popołudnie” → granica „wieczór”
@@ -200,9 +200,9 @@ function renderToday() {
     ${energyOn() ? saldoChipHtml(key) : ''}
     <div class="dots" aria-hidden="true">${SLOTS.map(s => `<i class="${getEntry(key, s.id) ? 'on' : ''}"></i>`).join('')}</div>
     <p class="lead">${msg}</p>
-    ${SLOTS.map(s => (isToday && s.id !== cur && !ui.open[`${key}|${s.id}`])
+    ${SLOTS.map(s => (s.id !== cur && !ui.open[`${key}|${s.id}`])
       ? slotCompact(s, key)
-      : slotCard(s, key, s.id === cur, isToday && s.id !== cur)).join('')}
+      : slotCard(s, key, s.id === cur, s.id !== cur)).join('')}
     ${medsOn() ? medsTodayHtml(key) : ''}
   `;
 }
