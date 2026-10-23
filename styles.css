@@ -909,7 +909,6 @@ body.animals-on #app { padding: calc(env(safe-area-inset-top) + 8px) 16px 0; }
 .pd-in { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pd-in small { font-size: 11px; color: var(--ink-soft); }
 .pd-in input[type=time] { width: 100%; min-width: 0; box-sizing: border-box; }
-.pd-fixed { padding: 8px 4px; color: var(--ink-soft); font-weight: 700; }
 .pd-link { background: none; border: 0; padding: 0; color: var(--rose-deep); font-weight: 700; text-decoration: underline; cursor: pointer; }
 
 /* ---------- ukryty widok: Tama Bobra (podwójne dotknięcie „Energia”, bóbr w Samouczku) ---------- */

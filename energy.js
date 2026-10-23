@@ -147,8 +147,8 @@ const savePlans = () => store(KEY_PLAN, plans);
 const saveSurveys = () => store(KEY_SURV, surveys);
 const saveStrat = () => store(KEY_STRAT, strategies);
 const signed = n => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
-const todayKey = () => dkey(new Date());
-const tomorrowKey = () => dkey(addDays(new Date(), 1));
+const todayKey = () => dkey(today0());   // dzień aplikacji (patrz „Rano od” w app.js)
+const tomorrowKey = () => dkey(addDays(today0(), 1));
 
 function applyCalm() {
   document.documentElement.dataset.calm = settings.lowSensory ? '1' : '';
@@ -199,7 +199,7 @@ function valuesByAct(fromKey, toKey) {
 }
 
 function learned(id) {
-  const vs = valuesByAct(dkey(addDays(new Date(), -29)), todayKey())[id];
+  const vs = valuesByAct(dkey(addDays(today0(), -29)), todayKey())[id];
   return vs?.length ? Math.round(avg(vs)) : (actById(id)?.def ?? 25);
 }
 
@@ -224,7 +224,7 @@ function findKind(id) { for (const l of Object.values(elog)) for (const x of l) 
 
 // wpłaty, które „słabną”: ostatnie 14 dni wyraźnie niżej niż 15–42 dni temu
 function fadingDeposits() {
-  const t = new Date();
+  const t = today0();
   const recent = valuesByAct(dkey(addDays(t, -13)), dkey(t));
   const before = valuesByAct(dkey(addDays(t, -41)), dkey(addDays(t, -14)));
   const out = [];
@@ -282,7 +282,7 @@ function quickTop(kind, limit, tk = todayKey()) {
    ========================================================= */
 function moodAvg(days) {
   const vals = [];
-  for (let i = 0; i < days; i++) vals.push(...dayValues(dkey(addDays(new Date(), -i))));
+  for (let i = 0; i < days; i++) vals.push(...dayValues(dkey(addDays(today0(), -i))));
   return avg(vals);
 }
 function feltEnergy(k) {
@@ -307,7 +307,7 @@ function status() {
 
   let neg = 0;
   for (let i = 0; i < 30; i++) {
-    const b = L[dkey(addDays(new Date(), -i))]?.balance;
+    const b = L[dkey(addDays(today0(), -i))]?.balance;
     if (b != null && b < 0) neg++; else break;
   }
   const bal = L[tk]?.balance ?? null;
@@ -352,7 +352,7 @@ function renderEnergy() {
 
   v.innerHTML = `
     <header class="head"><span></span><div><div class="eyebrow">Energia</div><h1>Saldo energii</h1></div><span></span></header>
-    <p class="lead">${esc(fmt(new Date(), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
+    <p class="lead">${esc(fmt(today0(), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
     ${saldoCard(day, st)}
     ${calibrationHtml(day.balance)}
     ${surveyDueHtml()}
@@ -473,7 +473,7 @@ function surveyDueHtml() {
 }
 
 function recoveryHtml(st) {
-  const r = rankings(dkey(addDays(new Date(), -29)), todayKey());
+  const r = rankings(dkey(addDays(today0(), -29)), todayKey());
   const deps = r.deposits.length ? r.deposits.slice(0, 3)
     : acts.filter(a => a.kind === 'd' && !a.archived).sort((a, b) => b.def - a.def).slice(0, 3).map(a => ({ id: a.id, name: a.name, mean: a.def }));
   const tomorrow = (plans[tomorrowKey()] || []).map(p => ({ ...p, a: actById(p.a) })).filter(p => p.a?.kind === 'w')
@@ -588,7 +588,7 @@ function planHtml(todayBal) {
   const carry = Math.round(todayBal * c);
   const proj = carry + dep - wd;
   const inPlan = new Set(list.map(p => p.a));
-  const r = rankings(dkey(addDays(new Date(), -29)), todayKey());
+  const r = rankings(dkey(addDays(today0(), -29)), todayKey());
   const sugg = (r.deposits.length ? r.deposits.map(d => actById(d.id)).filter(Boolean)
     : acts.filter(a => a.kind === 'd' && !a.archived).sort((a, b) => b.def - a.def))
     .filter(a => !inPlan.has(a.id) && !a.archived).slice(0, 3);
@@ -620,7 +620,7 @@ function trendHtml() {
   const N = 28;
   const tk = todayKey();
   const L = ledger(tk);
-  const days = [...Array(N)].map((_, i) => dkey(addDays(new Date(), i - N + 1)));
+  const days = [...Array(N)].map((_, i) => dkey(addDays(today0(), i - N + 1)));
   const bals = days.map(k => L[k]?.balance ?? null);
   if (!bals.some(b => b != null)) return '';
   const W = 360, H = 190, l = 34, r = 10, t = 22, bt = 24;
@@ -664,7 +664,7 @@ function trendHtml() {
 
 function rankingHtml() {
   const tk = todayKey();
-  const r = rankings(dkey(addDays(new Date(), -29)), tk);
+  const r = rankings(dkey(addDays(today0(), -29)), tk);
   const fading = fadingDeposits();
   if (!r.drains.length && !r.deposits.length) return '';
   const row = (x, sign) => `<li><span>${esc(x.name)}</span><small>${x.count}× · śr. ${sign}${x.mean} · razem ${sign}${x.total}</small></li>`;
@@ -809,7 +809,7 @@ function renderStatement() {
   const first = eui.stmt;
   const m = monthData(first);
   const title = fmt(first, { month: 'long', year: 'numeric' });
-  const isCur = dkey(first) === dkey(startOfMonth(new Date()));
+  const isCur = dkey(first) === dkey(startOfMonth(today0()));
   const withMeds = settings.meds?.share && meds.length > 0;   // leki tylko po zaznaczeniu
   openSheet(`
     <div class="sheet-head noprint">
@@ -951,7 +951,7 @@ function energyClick(act, el) {
       return true;
     }
     case 'sheet-close': closeSheet(); return true;
-    case 'stmt': eui.stmt = startOfMonth(new Date()); renderStatement(); return true;
+    case 'stmt': eui.stmt = startOfMonth(today0()); renderStatement(); return true;
     case 'stmt-prev': eui.stmt = new Date(eui.stmt.getFullYear(), eui.stmt.getMonth() - 1, 1); renderStatement(); return true;
     case 'stmt-next': eui.stmt = new Date(eui.stmt.getFullYear(), eui.stmt.getMonth() + 1, 1); renderStatement(); return true;
     case 'stmt-print': window.print(); return true;

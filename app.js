@@ -127,46 +127,57 @@ function lastValue(f) {
 }
 
 // Okna pór dnia — decydują, która karta jest rozwinięta na ekranie Dziś (tylko dziś, bieżąca pora; pozostałe karty — także w innych dniach — są zwinięte; wpis można zrobić zawsze).
+// Doba aplikacji zaczyna się o godzinie „Rano od” (settings.dayStart, domyślnie 00:00) i trwa 24 h,
+// więc przy np. 04:00 sobota 03:00 to jeszcze piątek: „Dziś” pokazuje piątek, a wpis trafia do piątku.
 // Doba dzielona jest dwiema granicami na trzy przylegające przedziały:
-//   rano       — 00:00 → granica „popołudnie”
+//   rano       — początek doby → granica „popołudnie”
 //   popołudnie — granica „popołudnie” → granica „wieczór”
-//   wieczór    — granica „wieczór” → 24:00
-// settings.windows = { afternoon: 'HH:MM', evening: 'HH:MM' } — ustawione ręcznie.
+//   wieczór    — granica „wieczór” → początek następnej doby (24:00 przy początku 00:00)
+// settings.windows = { afternoon: 'HH:MM', evening: 'HH:MM' } — ustawione ręcznie (godziny zegarowe;
+// godzina przed początkiem doby oznacza noc po północy, np. wieczór od 00:30).
 // Brak pola = okna automatyczne: każda pora zaczyna się 2 h po godzinie wpisu poprzedniej
 // (tak działała aplikacja przed wprowadzeniem okien). Przypomnienia (settings.times) są niezależne.
+// Wewnątrz liczymy w „minutach doby aplikacji”: od północy dnia, do którego należy wpis (0…2879).
 const WIN_AUTO_OFFSET = 120;
 const WIN_MIN = 60;          // minimalna długość okna
 const DAY_MIN = 1440;
 const isHHMM = s => typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
-const fmtSlotMin = m => m >= DAY_MIN ? '24:00' : `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
-function slotBounds() {
-  const w = settings.windows;
+const clockMin = m => { const c = ((m % DAY_MIN) + DAY_MIN) % DAY_MIN; return `${pad2(Math.floor(c / 60))}:${pad2(c % 60)}`; };
+const fmtSlotMin = m => m === DAY_MIN ? '24:00' : clockMin(m);
+// Początek doby aplikacji w minutach od północy (0 = jak dotąd, o północy).
+const dayStartMin = () => (isHHMM(settings.dayStart) ? minutesOf(settings.dayStart) : 0);
+// Godzina zegarowa → minuta doby aplikacji (godziny przed początkiem doby należą do jej końca).
+const logMin = (m, s = dayStartMin()) => (m < s ? m + DAY_MIN : m);
+const validBounds = (s, a, e) => a - s >= WIN_MIN && e - a >= WIN_MIN && s + DAY_MIN - e >= WIN_MIN;
+function slotBounds(s = dayStartMin(), w = settings.windows) {
   if (w && isHHMM(w.afternoon) && isHHMM(w.evening)) {
-    const a = minutesOf(w.afternoon), e = minutesOf(w.evening);
-    if (a >= WIN_MIN && e - a >= WIN_MIN && DAY_MIN - e >= WIN_MIN) return { a, e, auto: false };
+    const a = logMin(minutesOf(w.afternoon), s), e = logMin(minutesOf(w.evening), s);
+    if (validBounds(s, a, e)) return { s, a, e, auto: false };
   }
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
-  const a = clamp(minutesOf(settings.times.morning) + WIN_AUTO_OFFSET, WIN_MIN, DAY_MIN - 2 * WIN_MIN);
-  const e = clamp(minutesOf(settings.times.afternoon) + WIN_AUTO_OFFSET, a + WIN_MIN, DAY_MIN - WIN_MIN);
-  return { a, e, auto: true };
+  const a = clamp(logMin(minutesOf(settings.times.morning), s) + WIN_AUTO_OFFSET, s + WIN_MIN, s + DAY_MIN - 2 * WIN_MIN);
+  const e = clamp(logMin(minutesOf(settings.times.afternoon), s) + WIN_AUTO_OFFSET, a + WIN_MIN, s + DAY_MIN - WIN_MIN);
+  return { s, a, e, auto: true };
 }
-// Okna jako [od, do) w minutach od północy.
+// Okna jako [od, do) w minutach doby aplikacji.
 function slotWindows() {
-  const { a, e } = slotBounds();
-  return { morning: [0, a], afternoon: [a, e], evening: [e, DAY_MIN] };
+  const { s, a, e } = slotBounds();
+  return { morning: [s, a], afternoon: [a, e], evening: [e, s + DAY_MIN] };
 }
 function currentSlot() {
-  const m = nowMinutes(), { a, e } = slotBounds();
+  const m = logMin(nowMinutes()), { a, e } = slotBounds();
   return m < a ? 'morning' : m < e ? 'afternoon' : 'evening';
 }
 
 /* ---------- UI state ---------- */
-const today0 = () => startOfDay(new Date());
+// „Dziś” aplikacji: przed godziną „Rano od” to jeszcze poprzedni dzień kalendarzowy.
+const today0 = () => startOfDay(nowMinutes() < dayStartMin() ? addDays(new Date(), -1) : new Date());
+const todayK = () => dkey(today0());
 const ui = {
   view: 'today',
   day: today0(),
-  week: startOfWeek(new Date()),
-  month: startOfMonth(new Date()),
+  week: startOfWeek(today0()),
+  month: startOfMonth(today0()),
   drafts: {},          // niezapisane wartości suwaków: "YYYY-MM-DD|slot" -> v
   selWeek: null,       // zaznaczony dzień na wykresie tygodniowym
   selMonth: null,
@@ -180,9 +191,10 @@ let installPrompt = null;
    ========================================================= */
 function renderToday() {
   const key = dkey(ui.day);
-  const isToday = key === dkey(new Date());
+  const isToday = key === todayK();
   const cur = isToday ? currentSlot() : null;
   ui.active = cur;
+  ui.todayKey = todayK();
 
   $('#view-today').innerHTML = `
     <header class="head">
@@ -359,7 +371,7 @@ function weekPoints(keys, kind) {
 
 function weekChart(days, kind = 'mood') {
   const S = SERIES[kind], g = geom(kind), { H, IH, yOf } = g;
-  const todayK = dkey(new Date());
+  const curKey = todayK();
   const colW = IW / 7;
   const xOf = i => L + colW * (i + 0.5);
   const keys = days.map(dkey);
@@ -384,7 +396,7 @@ function weekChart(days, kind = 'mood') {
 
   days.forEach((d, i) => {
     const k = keys[i];
-    const cls = k === todayK ? 'today-lbl' : '';
+    const cls = k === curKey ? 'today-lbl' : '';
     s += `<text class="${cls}" x="${xOf(i)}" y="${H - 18}" text-anchor="middle">${esc(fmt(d, { weekday: 'short' }).replace('.', ''))}</text>`;
     s += `<text class="${cls}" x="${xOf(i)}" y="${H - 4}" text-anchor="middle">${d.getDate()}</text>`;
   });
@@ -396,7 +408,7 @@ function weekChart(days, kind = 'mood') {
 function monthChart(first, kind = 'mood') {
   const S = SERIES[kind], g = geom(kind), { H, IH, yOf } = g;
   const n = daysInMonth(first);
-  const todayK = dkey(new Date());
+  const curKey = todayK();
   const colW = IW / n;
   const xOf = i => L + colW * (i + 0.5);
   const days = [...Array(n)].map((_, i) => addDays(first, i));
@@ -429,7 +441,7 @@ function monthChart(first, kind = 'mood') {
   days.forEach((d, i) => {
     const day = d.getDate();
     if (day === 1 || day % 5 === 0) {
-      s += `<text class="${keys[i] === todayK ? 'today-lbl' : ''}" x="${xOf(i)}" y="${H - 10}" text-anchor="middle">${day}</text>`;
+      s += `<text class="${keys[i] === curKey ? 'today-lbl' : ''}" x="${xOf(i)}" y="${H - 10}" text-anchor="middle">${day}</text>`;
     }
   });
 
@@ -443,8 +455,8 @@ function chartTitle(text, color, note = '') {
 }
 
 function statsFor(days) {
-  const todayK = dkey(new Date());
-  const past = days.filter(d => dkey(d) <= todayK);
+  const curKey = todayK();
+  const past = days.filter(d => dkey(d) <= curKey);
   const vals = []; const per = { morning: [], afternoon: [], evening: [] };
   let best = null, worst = null;
   for (const d of past) {
@@ -508,7 +520,7 @@ function monthLegendHtml(kind) {
    ========================================================= */
 function renderWeek() {
   const days = [...Array(7)].map((_, i) => addDays(ui.week, i));
-  const isCurrent = dkey(ui.week) === dkey(startOfWeek(new Date()));
+  const isCurrent = dkey(ui.week) === dkey(startOfWeek(today0()));
   const st = statsFor(days);
   const prev = statsFor([...Array(7)].map((_, i) => addDays(ui.week, i - 7)));
   const delta = st.avg != null && prev.avg != null ? st.avg - prev.avg : null;
@@ -551,7 +563,7 @@ function renderMonth() {
   const first = ui.month;
   const n = daysInMonth(first);
   const days = [...Array(n)].map((_, i) => addDays(first, i));
-  const isCurrent = dkey(first) === dkey(startOfMonth(new Date()));
+  const isCurrent = dkey(first) === dkey(startOfMonth(today0()));
   const st = statsFor(days);
   const pFirst = new Date(first.getFullYear(), first.getMonth() - 1, 1);
   const prev = statsFor([...Array(daysInMonth(pFirst))].map((_, i) => addDays(pFirst, i)));
@@ -598,10 +610,14 @@ function dayBarSvg(win) {
   const W = 320, X0 = 10, BW = W - 2 * X0, x = m => X0 + BW * m / DAY_MIN;
   let s = `<svg class="pd-bar" viewBox="0 0 ${W} 54" role="img" aria-label="Okna pór dnia na osi doby">`
     + `<defs><clipPath id="pd-clip"><rect x="${X0}" y="8" width="${BW}" height="24" rx="8"/></clipPath></defs><g clip-path="url(#pd-clip)">`;
+  // Okna liczone w minutach doby aplikacji; część po północy (≥ 24:00) rysujemy od lewej krawędzi paska.
   SLOTS.forEach(sl => {
-    const [f, t] = win[sl.id], w = x(t) - x(f);
-    s += `<rect x="${x(f)}" y="8" width="${w}" height="24" style="fill:var(--c-${sl.id})"/>`;
-    if (w > 26) s += `<text x="${x(f) + w / 2}" y="25" text-anchor="middle" font-size="13">${sl.icon}</text>`;
+    const [f, t] = win[sl.id];
+    const parts = [[f, Math.min(t, DAY_MIN)], [Math.max(f, DAY_MIN) - DAY_MIN, t - DAY_MIN]].filter(([a, b]) => b > a);
+    const big = parts.reduce((m, p) => (p[1] - p[0] > m[1] - m[0] ? p : m), parts[0]);
+    parts.forEach(([a, b]) => { s += `<rect x="${x(a)}" y="8" width="${x(b) - x(a)}" height="24" style="fill:var(--c-${sl.id})"/>`; });
+    const w = x(big[1]) - x(big[0]);
+    if (w > 26) s += `<text x="${x(big[0]) + w / 2}" y="25" text-anchor="middle" font-size="13">${sl.icon}</text>`;
   });
   s += '</g>';
   SLOTS.forEach(sl => {
@@ -618,9 +634,9 @@ function dayBarSvg(win) {
 
 function poryCardHtml() {
   const b = slotBounds(), win = slotWindows();
-  const startInput = { afternoon: b.a, evening: b.e };
+  const startInput = { morning: b.s, afternoon: b.a, evening: b.e };
   const warns = SLOTS.filter(s => {
-    const m = minutesOf(settings.times[s.id]), [f, t] = win[s.id];
+    const m = logMin(minutesOf(settings.times[s.id])), [f, t] = win[s.id];
     return m < f || m >= t;
   }).map(s => `<p class="warn">Godzina wpisu „${s.label.toLowerCase()}” (${settings.times[s.id]}) wypada poza okno tej pory.</p>`);
   return `
@@ -631,11 +647,11 @@ function poryCardHtml() {
         const [f, t] = win[s.id];
         return `
         <div class="pd-row">
-          <div class="pd-name">${s.icon} ${s.label}<small>okno <b>${fmtSlotMin(f)}–${fmtSlotMin(t)}</b></small></div>
+          <div class="pd-name">${s.icon} ${s.label}<small>okno <b>${clockMin(f)}–${fmtSlotMin(t)}</b></small></div>
           <div class="pd-ins">
             <label class="pd-in"><small>od</small>${s.id === 'morning'
-              ? '<span class="pd-fixed">00:00</span>'
-              : `<input type="time" data-win="${s.id}" value="${fmtSlotMin(startInput[s.id])}" aria-label="${s.label}: początek okna">`}</label>
+              ? `<input type="time" data-day-start value="${clockMin(b.s)}" aria-label="Rano: początek okna i początek doby">`
+              : `<input type="time" data-win="${s.id}" value="${clockMin(startInput[s.id])}" aria-label="${s.label}: początek okna">`}</label>
             <label class="pd-in"><small>godzina wpisu</small><input type="time" id="t-${s.id}" data-time="${s.id}" value="${settings.times[s.id]}" aria-label="${s.label}: godzina wpisu"></label>
           </div>
         </div>`;
@@ -645,6 +661,9 @@ function poryCardHtml() {
         ? 'Okna: <b>automatyczne</b> — każda pora zaczyna się 2 h po godzinie wpisu poprzedniej. Zmień „od”, żeby ustawić własne.'
         : 'Okna: <b>własne</b>. <button class="pd-link" data-act="win-auto">Przywróć automatyczne</button>'}</p>
       <p class="note">Okno decyduje, która pora jest rozwinięta na ekranie Dziś. Ocenę możesz zapisać o każdej godzinie.</p>
+      <p class="note">„Rano od” to też początek doby: ${b.s
+        ? `do ${clockMin(b.s)} „Dziś” pokazuje jeszcze poprzedni dzień, a wpis trafia do wieczoru tego dnia.`
+        : 'doba zaczyna się o północy. Ustaw np. 04:00, jeśli zasypiasz po północy — wpis o 01:00 trafi wtedy do wieczoru poprzedniego dnia.'}</p>
     </div>`;
 }
 function refreshPoryCard() {
@@ -1525,12 +1544,25 @@ document.addEventListener('change', async ev => {
     store(KEY_SETTINGS, settings); syncState();
     refreshPoryCard();
     toast('Zapisano godzinę wpisu');
+  } else if (t.matches('[data-day-start]')) {
+    if (!isHHMM(t.value)) return;
+    const s = minutesOf(t.value), b = slotBounds();
+    // Własne okna zostają przy swoich godzinach — muszą się zmieścić w nowej dobie.
+    if (!b.auto && !validBounds(s, logMin(minutesOf(settings.windows.afternoon), s), logMin(minutesOf(settings.windows.evening), s))) {
+      toast('Każda pora musi trwać co najmniej godzinę');
+      refreshPoryCard();
+      return;
+    }
+    if (s) settings.dayStart = t.value; else delete settings.dayStart;
+    store(KEY_SETTINGS, settings); syncState();
+    refreshPoryCard();
+    toast('Zapisano początek doby');
   } else if (t.matches('[data-win]')) {
     if (!t.value) return;
     const b = slotBounds();
-    const next = { afternoon: fmtSlotMin(b.a), evening: fmtSlotMin(b.e), [t.dataset.win]: t.value };
-    const a = minutesOf(next.afternoon), e = minutesOf(next.evening);
-    if (a < WIN_MIN || e - a < WIN_MIN || DAY_MIN - e < WIN_MIN) {
+    const next = { afternoon: clockMin(b.a), evening: clockMin(b.e), [t.dataset.win]: t.value };
+    const a = logMin(minutesOf(next.afternoon), b.s), e = logMin(minutesOf(next.evening), b.s);
+    if (!validBounds(b.s, a, e)) {
       toast('Każda pora musi trwać co najmniej godzinę');
       refreshPoryCard();
       return;
@@ -1738,7 +1770,7 @@ async function setNotifications(on) {
 // Stan dla service workera (SW nie ma dostępu do localStorage)
 async function syncState() {
   if (!('caches' in window)) return;
-  const k = dkey(new Date());
+  const k = todayK();
   // dołącz znaczniki wysłanych przez SW powiadomień, by nie dublować przypomnień
   try {
     const prev = await (await caches.open(STATE_CACHE)).match('./__state');
@@ -1750,6 +1782,7 @@ async function syncState() {
   } catch { /* ignore */ }
   const state = {
     times: settings.times,
+    dayStart: clockMin(dayStartMin()),
     notify: settings.notify,
     today: k,
     filled: SLOTS.filter(s => getEntry(k, s.id)).map(s => s.id),
@@ -1764,14 +1797,17 @@ async function syncState() {
 
 // Sprawdzanie przypomnień, gdy aplikacja działa (także w tle, dopóki system jej nie uśpi)
 async function checkReminders() {
-  if (ui.view === 'today' && dkey(ui.day) === dkey(new Date()) && ui.active && currentSlot() !== ui.active
-      && document.visibilityState === 'visible') renderToday();
+  const k = todayK();
+  if (ui.view === 'today' && document.visibilityState === 'visible') {
+    // nowa doba aplikacji (godzina „Rano od”): ekran pokazujący dotąd „dziś” przechodzi na nowy dzień
+    if (ui.todayKey && ui.todayKey !== k && dkey(ui.day) === ui.todayKey) { ui.day = today0(); renderToday(); }
+    else if (dkey(ui.day) === k && ui.active && currentSlot() !== ui.active) renderToday();
+  }
   if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
-  const k = dkey(new Date());
-  const m = nowMinutes();
+  const m = logMin(nowMinutes());
   const notified = load(KEY_NOTIFIED, {});
   for (const s of SLOTS) {
-    const due = minutesOf(settings.times[s.id]);
+    const due = logMin(minutesOf(settings.times[s.id]));
     const tag = `${k}|${s.id}`;
     if (m >= due && m < due + 180 && !getEntry(k, s.id) && !notified[tag]) {
       notified[tag] = true;
@@ -1805,7 +1841,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     // po powrocie do aplikacji (np. następnego dnia) odśwież „dziś”
     const t = today0();
-    if (ui.view === 'today' && ui.day > t) ui.day = t;
+    if (ui.view === 'today' && (ui.day > t || (ui.todayKey && dkey(ui.day) === ui.todayKey))) ui.day = t;
     rerender();
   }
   checkReminders();

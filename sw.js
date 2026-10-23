@@ -1,5 +1,5 @@
 /* Service worker: tryb offline + przypomnienia (periodic background sync) */
-const VERSION = 'nastroj-v47';
+const VERSION = 'nastroj-v48';
 const STATE_CACHE = 'nastroj-state';
 const SHELL = [
   './',
@@ -70,14 +70,19 @@ async function remind() {
   const st = await res.json();
   if (!st.notify) return;
 
+  // Doba aplikacji zaczyna się o „Rano od” (st.dayStart); wcześniej to jeszcze poprzedni dzień.
   const now = new Date();
-  const k = dkey(now);
-  const m = now.getHours() * 60 + now.getMinutes();
+  const ds = /^\d\d:\d\d$/.test(st.dayStart || '') ? minutesOf(st.dayStart) : 0;
+  const clock = now.getHours() * 60 + now.getMinutes();
+  const logMin = x => (x < ds ? x + 1440 : x);
+  const day = new Date(now); if (clock < ds) day.setDate(day.getDate() - 1);
+  const k = dkey(day);
+  const m = logMin(clock);
   const filled = st.today === k ? st.filled : [];
   st.notified = st.notified || {};
 
   for (const [slot, time] of Object.entries(st.times)) {
-    const due = minutesOf(time);
+    const due = logMin(minutesOf(time));
     const tag = `${k}|${slot}`;
     if (m >= due && m < due + 180 && !filled.includes(slot) && !st.notified[tag]) {
       st.notified[tag] = true;
