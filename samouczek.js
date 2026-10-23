@@ -134,13 +134,10 @@ function tutStep3() {
       <input type="range" class="${im.trim()}" min="1" max="10" step="1" value="${tut.v}" data-tut-kind="mood" style="--p:${((tut.v - 1) / 9) * 100}%"
              aria-label="Samopoczucie teraz, skala 1–10">
       <div class="scale"><span>1 · myśli i próby sb</span><span>10 · euforycznie</span></div>
-      <div class="energy-row">
-        <span class="en-lbl">⚡ Energia</span>
-        <span class="en-val${ie}">${tut.e}</span>
-      </div>
+      ${energyRowHtml(tut.e, !!ie)}
       <input type="range" class="en${ie}" min="1" max="10" step="1" value="${tut.e}" data-tut-kind="energy" style="--p:${((tut.e - 1) / 9) * 100}%"
              aria-label="Energia teraz, skala 1–10">
-      <div class="scale"><span>1 · pusta bateria</span><span>10 · pełna</span></div>
+      <div class="scale"><span>1 · shutdown</span><span>10 · aż mnie nosi</span></div>
     </section>
     <div class="tut-nav">
       <button class="btn ghost" data-act="tut-back">Wstecz</button>
@@ -157,8 +154,7 @@ function tutSlider(input) {
   input.classList.remove('idle');   // dotknięty suwak staje się aktywny; drugi zostaje szary
   if (input.dataset.tutKind === 'energy') {
     tut.e = v; tut.te = true;
-    const ev = $('.en-val', box);
-    ev.textContent = v; ev.classList.remove('idle');
+    energyRowUpdate(box, v);
   } else {
     tut.v = v; tut.tv = true;
     $('.emo', box).classList.remove('idle');

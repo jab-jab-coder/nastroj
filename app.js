@@ -63,6 +63,55 @@ function mood(v) {
   return MOODS[Math.max(1, Math.min(10, Math.round(v)))];
 }
 
+// Skala energii 1–10: [ikona, hasło]. Liczba = bateria SVG naładowana w tym ułamku (1–7),
+// tekst = emoji „ponad pełną baterię” (8–10). Kolory baterii: --bat-1…--bat-7 w styles.css.
+const ENERGIES = [
+  null,
+  [0, 'Shutdown, zero mocy'],
+  [0.12, 'Ledwo zipię'],
+  [1 / 3, 'Jadę na oparach'],
+  [0.42, 'Ślimacze tempo'],
+  [0.5, 'Na pół gwizdka'],
+  [0.75, 'Daję radę'],
+  [1, 'Bateria trzyma'],
+  ['💪', 'Mam moc'],
+  ['🏃', 'Pełna para'],
+  ['🌪️', 'Aż mnie nosi'],
+];
+const energyN = v => Math.max(1, Math.min(10, Math.round(v)));
+function energyLevel(v) {
+  return ENERGIES[energyN(v)];
+}
+function batterySvg(n, fill) {
+  const w = Math.round(25 * fill * 10) / 10;
+  const stroke = n === 1 ? 'var(--bat-1)' : 'currentColor';   // pusta bateria: czerwony obrys
+  return `<svg class="bat" viewBox="0 0 40 24" aria-hidden="true">`
+    + `<rect x="1.5" y="3.5" width="32" height="17" rx="4.5" fill="none" stroke="${stroke}" stroke-width="2.5"/>`
+    + `<rect x="35" y="9" width="3.5" height="6" rx="1.5" fill="${stroke}"/>`
+    + (w ? `<rect x="5" y="7" width="${w}" height="10" rx="2" fill="var(--bat-${n})"/>` : '')
+    + `</svg>`;
+}
+function energyIcon(v) {
+  const n = energyN(v), ic = ENERGIES[n][0];
+  return typeof ic === 'number' ? batterySvg(n, ic) : ic;
+}
+// Wiersz energii jak wiersz nastroju: ikona, liczba, hasło (karta pory i samouczek).
+function energyRowHtml(en, idle) {
+  const ie = idle ? ' idle' : '';
+  return `<div class="en-head">⚡ Energia</div>
+      <div class="en-mood" aria-live="polite">
+        <span class="en-emo${ie}" aria-hidden="true">${energyIcon(en)}</span>
+        <span class="en-val${ie}">${en}</span>
+        <span class="en-txt">${energyLevel(en)[1]}</span>
+      </div>`;
+}
+function energyRowUpdate(box, v) {
+  const ev = $('.en-val', box), ic = $('.en-emo', box);
+  ev.textContent = v; ev.classList.remove('idle');
+  ic.innerHTML = energyIcon(v); ic.classList.remove('idle');
+  $('.en-txt', box).textContent = energyLevel(v)[1];
+}
+
 function load(k, def) {
   try { const v = JSON.parse(localStorage.getItem(k)); return v ?? def; } catch { return def; }
 }
@@ -259,7 +308,7 @@ function slotCompact(s, key) {
     : `<span class="c-vals c-none"><span class="c-dim" aria-hidden="true">${mood(5)[0]} ⚡</span>brak wpisu</span>`;
   return `
     <button class="card slot-compact ${e ? 'filled' : 'empty'}" data-act="slot-open" data-key="${key}" data-slot="${s.id}"
-            aria-label="${s.label}: ${e ? `nastrój ${e.v ?? 'brak'}, energia ${e.e ?? 'brak'}` : 'brak wpisu'}. Rozwiń">
+            aria-label="${s.label}: ${e ? `nastrój ${e.v ?? 'brak'}, energia ${e.e != null ? `${e.e} (${energyLevel(e.e)[1]})` : 'brak'}` : 'brak wpisu'}. Rozwiń">
       <span class="slot-icon" aria-hidden="true">${s.icon}</span>
       <span class="c-name">${s.label}<small>${e ? `o ${hhmm(e.t)}` : `około ${settings.times[s.id]}`}</small></span>
       ${vals}
@@ -300,13 +349,10 @@ function slotCard(s, key, isNow, collapsible = false) {
       <input type="range" class="${im.trim()}" min="1" max="10" step="1" value="${v}" data-kind="mood" style="--p:${((v - 1) / 9) * 100}%"
              aria-label="Samopoczucie: ${s.label}, skala 1–10">
       <div class="scale"><span>1 · myśli i próby sb</span><span>10 · euforycznie</span></div>
-      <div class="energy-row">
-        <span class="en-lbl">⚡ Energia</span>
-        <span class="en-val${ie}">${en}</span>
-      </div>
+      ${energyRowHtml(en, idleE)}
       <input type="range" class="en${ie}" min="1" max="10" step="1" value="${en}" data-kind="energy" style="--p:${((en - 1) / 9) * 100}%"
              aria-label="Energia: ${s.label}, skala 1–10">
-      <div class="scale"><span>1 · pusta bateria</span><span>10 · pełna</span></div>
+      <div class="scale"><span>1 · shutdown</span><span>10 · aż mnie nosi</span></div>
       <div class="actions">
         ${e ? '<button class="btn ghost" data-act="del">Usuń</button>' : ''}
         <button class="btn primary" data-act="save" ${e && !dirty ? 'disabled' : ''}>${btn}</button>
@@ -323,8 +369,7 @@ function onSlider(input) {
   input.classList.remove('idle');   // dotknięty suwak staje się aktywny (różowy)
   if (input.dataset.kind === 'energy') {
     ui.drafts[`${key}|${slot}|e`] = v;
-    const ev = $('.en-val', card);
-    ev.textContent = v; ev.classList.remove('idle');
+    energyRowUpdate(card, v);
   } else {
     ui.drafts[`${key}|${slot}`] = v;
     const [emo, label] = mood(v);
