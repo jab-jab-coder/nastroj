@@ -27,7 +27,7 @@ const CATS = {
 const CHIPS = [[10, 'mała'], [25, 'średnia'], [50, 'duża'], [80, 'ogromna']];
 
 // Skróty „Dodaj jednym dotknięciem”: najczęstsze czynności
-const TOP_WINDOW = 28;   // okno częstości (dni), liczone do wczoraj włącznie → układ stały przez cały dzień
+const TOP_WINDOW = 30;   // okno częstości (dni), liczone do wczoraj włącznie → układ stały przez cały dzień
 const TOP_NEW = 14;      // nowa czynność (pole addedAt) jest w skrótach przez tyle dni
 const TOP_N = 6;         // ile skrótów widać w sekcji (wypłaty i wpłaty, niezależnie od statusu)
 
@@ -203,6 +203,10 @@ function learned(id) {
   return vs?.length ? Math.round(avg(vs)) : (actById(id)?.def ?? 25);
 }
 
+// Kolejność rankingów: liczba zapisów (każde dotknięcie, także kilka razy dziennie),
+// niezależnie od wartości; remis → większa suma, potem nazwa.
+const byCount = (a, b) => b.count - a.count || b.total - a.total || String(a.name).localeCompare(String(b.name), 'pl');
+
 function rankings(fromKey, toKey) {
   const m = valuesByAct(fromKey, toKey);
   const rows = Object.entries(m).map(([id, vs]) => {
@@ -211,8 +215,8 @@ function rankings(fromKey, toKey) {
     return { id, name: a?.name ?? findName(id), kind, mean: Math.round(avg(vs)), count: vs.length, total: vs.reduce((s, v) => s + v, 0) };
   });
   return {
-    drains: rows.filter(r => r.kind === 'w').sort((a, b) => b.total - a.total).slice(0, 5),
-    deposits: rows.filter(r => r.kind === 'd').sort((a, b) => b.mean - a.mean || b.count - a.count).slice(0, 5),
+    drains: rows.filter(r => r.kind === 'w').sort(byCount).slice(0, 5),
+    deposits: rows.filter(r => r.kind === 'd').sort(byCount).slice(0, 5),
   };
 }
 function findName(id) { for (const l of Object.values(elog)) for (const x of l) if (x.a === id) return x.n; return '?'; }
@@ -236,8 +240,8 @@ function fadingDeposits() {
 
 /* =========================================================
    Skróty: najczęstsze czynności
-   Częstość = liczba DNI z co najmniej jednym zapisem czynności w ostatnich
-   TOP_WINDOW dniach, bez dzisiejszego dnia. Dzięki temu układ skrótów nie
+   Częstość = liczba ZAPISÓW czynności (każde dotknięcie, także kilka razy
+   tego samego dnia) w ostatnich TOP_WINDOW dniach, bez dzisiejszego dnia. Dzięki temu układ skrótów nie
    zmienia się w trakcie dnia (dotknięcie nie przesuwa kafelków), a liczba
    nie wymaga nowego klucza danych — jest liczona z nastroj.energy.v1.
    Pola czynności (nowe, opcjonalne):
@@ -250,7 +254,7 @@ function useDays(tk = todayKey()) {
   const m = {};
   for (const [k, list] of Object.entries(elog)) {
     if (k < from || k > to) continue;
-    for (const id of new Set(list.map(x => x.a))) m[id] = (m[id] || 0) + 1;
+    for (const x of list) m[x.a] = (m[x.a] || 0) + 1;
   }
   return m;
 }
@@ -478,7 +482,7 @@ function recoveryHtml(st) {
     <section class="card recovery ${st.level === 2 ? 'red' : ''}">
       <h3>${st.level === 2 ? '🛟 Tryb regeneracji' : '🌿 Czas zwolnić'}</h3>
       ${strategies.length ? `<p class="sub">Twoje strategie</p><ul class="plain">${strategies.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : '<p class="note">Dopisz swoje strategie niżej („Moje strategie”) — pojawią się tutaj, gdy będą potrzebne.</p>'}
-      ${deps.length ? `<p class="sub">Najskuteczniejsze wpłaty</p>
+      ${deps.length ? `<p class="sub">Twoje najczęstsze wpłaty</p>
         <div class="chips">${deps.map(d => `<button class="chip" data-act="elog" data-id="${d.id}">＋ ${esc(d.name)} <small>${d.mean}</small></button>`).join('')}</div>` : ''}
       ${tomorrow.length ? `<p class="sub">Może przełożyć z jutra?</p>
         <ul class="plain">${tomorrow.map(p => `<li>${esc(p.a.name)} (−${learned(p.a.id)}) <button class="link" data-act="plan-del" data-id="${p.id}">usuń z planu</button></li>`).join('')}</ul>` : ''}
@@ -658,12 +662,12 @@ function rankingHtml() {
   const r = rankings(dkey(addDays(new Date(), -29)), tk);
   const fading = fadingDeposits();
   if (!r.drains.length && !r.deposits.length) return '';
-  const row = (x, sign) => `<li><span>${esc(x.name)}</span><small>śr. ${sign}${x.mean} · ${x.count}×${sign === '−' ? ` · razem −${x.total}` : ''}</small></li>`;
+  const row = (x, sign) => `<li><span>${esc(x.name)}</span><small>${x.count}× · śr. ${sign}${x.mean} · razem ${sign}${x.total}</small></li>`;
   return `
     <div class="card">
       <h3>Ranking z 30 dni</h3>
-      ${r.drains.length ? `<p class="sub">Największe wypłaty</p><ol class="rank">${r.drains.map(x => row(x, '−')).join('')}</ol>` : ''}
-      ${r.deposits.length ? `<p class="sub">Najskuteczniejsze wpłaty</p><ol class="rank">${r.deposits.map(x => row(x, '+')).join('')}</ol>` : ''}
+      ${r.drains.length ? `<p class="sub">Najczęstsze wypłaty</p><ol class="rank">${r.drains.map(x => row(x, '−')).join('')}</ol>` : ''}
+      ${r.deposits.length ? `<p class="sub">Najczęstsze wpłaty</p><ol class="rank">${r.deposits.map(x => row(x, '+')).join('')}</ol>` : ''}
       ${fading.length ? `<p class="sub">Wpłaty, które słabną</p>
         <ul class="plain">${fading.map(f => `<li>${esc(f.name)}: ${f.from} → ${f.to}</li>`).join('')}</ul>
         <p class="note">Gdy to, co zwykle pomaga, przestaje działać, bywa to wczesny sygnał wypalenia.</p>` : ''}
@@ -819,8 +823,8 @@ function renderStatement() {
       </div>
       <p class="note">Wpłaty razem <b>+${m.dep}</b> · wypłaty razem <b>−${m.wd}</b> · przeniesienie salda ${Math.round((settings.carry ?? 0.5) * 100)}%</p>
       ${m.sv.length ? `<h3>Badania</h3><ul class="plain">${m.sv.map(s => `<li>${esc(fmt(new Date(s.t), { day: 'numeric', month: 'short' }))} — ${SURVEYS[s.type].title}: <b>${s.score}</b>/100</li>`).join('')}</ul>` : ''}
-      ${m.rank.drains.length ? `<h3>Największe wypłaty</h3><ol class="rank">${m.rank.drains.map(x => `<li><span>${esc(x.name)}</span><small>${x.count}× · razem −${x.total}</small></li>`).join('')}</ol>` : ''}
-      ${m.rank.deposits.length ? `<h3>Najskuteczniejsze wpłaty</h3><ol class="rank">${m.rank.deposits.map(x => `<li><span>${esc(x.name)}</span><small>śr. +${x.mean} · ${x.count}×</small></li>`).join('')}</ol>` : ''}
+      ${m.rank.drains.length ? `<h3>Najczęstsze wypłaty</h3><ol class="rank">${m.rank.drains.map(x => `<li><span>${esc(x.name)}</span><small>${x.count}× · razem −${x.total}</small></li>`).join('')}</ol>` : ''}
+      ${m.rank.deposits.length ? `<h3>Najczęstsze wpłaty</h3><ol class="rank">${m.rank.deposits.map(x => `<li><span>${esc(x.name)}</span><small>${x.count}× · razem +${x.total}</small></li>`).join('')}</ol>` : ''}
       ${medsStatementHtml(m.rows.map(r => r.k))}
       <h3>Dzień po dniu</h3>
       <table class="tbl">

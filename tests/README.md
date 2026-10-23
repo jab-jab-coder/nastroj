@@ -44,9 +44,10 @@ Opcjonalnie: Settings → Branches → reguła dla `main` → *Require status ch
 | `energy.test.mjs` | 38 | migracja i `backup.pre-v2`, dopasowanie `tpl`, założenie konta, czynności (dodaj, edytuj, zmiana typu, przypnij, archiwum, szybkie dodanie), dziennik wpłat i wypłat, plan na jutro, ankiety CBI i wypalenia autystycznego, strategie, rekordy stopera, ustawienia energii |
 | `leki.test.mjs` | 38 | `medPut`/`medDel`, odhaczanie pojedyncze, pakietem i doraźne, „Cofnij”, ręczny wpis, pominięcie, dawka po północy, formularz leku z walidacją, wersjonowanie planu (od dziś, od jutra, cała historia), zakończenie, wznowienie, usunięcie z kaskadą, pakiety, ustawienia leków |
 | `export-import.test.mjs` | 23 | kompletność eksportu v2, import plików v1 i v2, round-trip (eksport → usunięcie → import = te same dane), brak duplikatów przy ponownym imporcie, walidacja każdej sekcji pliku, odrzucanie złych plików |
+| `czestosc.test.mjs` | 8 | kolejność w karcie Energia: skróty i ranking wg liczby dotknięć z 30 dni (kilka dziennie liczy się osobno, wartość bez znaczenia), granice okien, remisy, limit 5 pozycji |
 | `contract.test.mjs` | 8 | strażnik zasad danych (opis niżej) |
 
-Razem **149 testów**. `tests/pokrycie.mjs` dodatkowo potwierdza, że każde z **109 miejsc w kodzie**, które czyta lub zapisuje localStorage, jest wykonywane przez co najmniej jeden test.
+Razem **157 testów**. `tests/pokrycie.mjs` dodatkowo potwierdza, że każde z **109 miejsc w kodzie**, które czyta lub zapisuje localStorage, jest wykonywane przez co najmniej jeden test.
 
 Testy nie obejmują wyglądu ani układu ekranów, wykresów SVG, ukrytych gier (dzik, tama, zwierzaki), service workera ani działania na prawdziwym telefonie. Do tego dalej służy kopia testowa w artefakcie.
 
