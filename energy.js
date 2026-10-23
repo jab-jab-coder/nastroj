@@ -561,12 +561,9 @@ function renderQuickAdd() {
   setTimeout(() => $('#qa-name')?.focus(), 50);
 }
 
-function todayLogHtml() {
-  const list = (elog[todayKey()] || []).slice().sort((a, b) => b.t - a.t);
+// Wiersz operacji z dnia (wspólny dla listy i osi doby)
+function opRowHtml(x) {
   return `
-    <div class="card">
-      <h3>Dzisiejsze operacje</h3>
-      ${list.length ? list.map(x => `
         <div class="logrow col">
           <div class="logline">
             <span class="k ${x.k}">${x.k === 'd' ? '+' : '−'}${x.v}</span>
@@ -574,7 +571,45 @@ function todayLogHtml() {
             <button class="x" data-act="e-del" data-entry="${x.id}" aria-label="Usuń">×</button>
           </div>
           <div class="chips">${CHIPS.map(([v, l]) => `<button class="chip ${x.v === v ? 'on' : ''}" data-act="e-chip" data-entry="${x.id}" data-v="${v}">${l} ${v}</button>`).join('')}</div>
-        </div>`).join('')
+        </div>`;
+}
+
+// Minuta doby aplikacji dla czasu operacji (ms)
+const opMin = t => { const d = new Date(t); return logMin(d.getHours() * 60 + d.getMinutes()); };
+
+// Operacje dnia przy pionowej osi doby (jak na Dziś): odcinek pory ma wysokość jej operacji
+// (pora bez operacji = krótki odcinek), godziny zmiany pór na kresce.
+// Na osi: wypłata = ⊖ po lewej, wpłata = ⊕ po prawej, proporcjonalnie do godziny w oknie pory.
+// Kolejność chronologiczna (od początku doby), żeby lista szła z osią.
+function opsTimelineHtml(list) {
+  const win = slotWindows(), s0 = dayStartMin();
+  const slotOf = x => { const m = opMin(x.t); return SLOTS.find(sl => m >= win[sl.id][0] && m < win[sl.id][1])?.id ?? 'evening'; };
+  return `<div class="tl tl-ops" role="group" aria-label="Operacje na osi doby od ${clockMin(s0)}">
+    ${SLOTS.map((sl, i) => {
+      const [f, t] = win[sl.id];
+      const pct = m => `${(100 * Math.min(1, Math.max(0, (m - f) / (t - f)))).toFixed(2)}%`;
+      const ops = list.filter(x => slotOf(x) === sl.id);
+      const first = i === 0, last = i === SLOTS.length - 1;
+      return `<div class="tl-row">
+        <div class="tl-seg${first ? ' first' : ''}${last ? ' last' : ''}" style="--c:var(--c-${sl.id})">
+          <i class="tl-line" aria-hidden="true"></i>
+          <span class="tl-hr${first ? ' edge' : ''}" style="top:0">${clockMin(f)}</span>
+          ${last ? `<span class="tl-hr edge" style="top:100%">${clockMin(s0)}</span>` : ''}
+          ${ops.map(x => `<span class="tl-op ${x.k === 'd' ? 'd' : 'w'}" style="top:${pct(opMin(x.t))}" aria-hidden="true"
+            title="${esc(`${x.k === 'd' ? 'Wpłata' : 'Wypłata'} ${hhmm(x.t)}: ${x.n}`)}">${x.k === 'd' ? '+' : '−'}</span>`).join('')}
+        </div>
+        <div class="tl-card${ops.length ? '' : ' tl-empty'}">${ops.map(opRowHtml).join('')}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function todayLogHtml() {
+  const list = (elog[todayKey()] || []).slice().sort((a, b) => a.t - b.t);
+  return `
+    <div class="card">
+      <h3>Dzisiejsze operacje</h3>
+      ${list.length ? opsTimelineHtml(list)
       : '<p class="note" style="margin:0">Nic jeszcze dziś. Dotknij czynności powyżej — zapisze się z domyślną wartością, którą możesz potem zmienić.</p>'}
     </div>`;
 }
