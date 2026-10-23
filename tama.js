@@ -2,7 +2,8 @@
    Ukryty widok „Tama Bobra” (podwójne dotknięcie „Energia”
    albo bóbr w Samouczku). Łap patyki, zbuduj tamę, kapibara
    przychodzi się wykąpać. Stan tylko w pamięci, nic nie trafia
-   do localStorage. Plik generowany z makiety (scene + logika).
+   do localStorage. Scena SVG (TAMA_SVG) + logika gry; zmiany wprowadzaj
+   bezpośrednio w tym pliku, a style w sekcji „Tama Bobra” w styles.css.
    ========================================================= */
 (() => {
 'use strict';
