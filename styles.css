@@ -99,6 +99,36 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .tl-dot.on { background: var(--c); border-color: var(--card); box-shadow: 0 0 0 2px var(--c); }
 .tl-dot::before { content: ""; position: absolute; inset: -12px; }   /* większe pole dotyku */
 .tl-dot:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 3px; }
+/* Energia → Dzisiejsze operacje: ta sama oś w karcie */
+.tl-ops { margin: 14px 0 6px; }
+.tl-ops .tl-card { display: block; gap: 0; }
+.tl-ops .tl-empty { min-height: 34px; }
+.tl-ops .tl-row { padding-bottom: 0; grid-template-columns: 54px minmax(0, 1fr); }
+.tl-ops .tl-row + .tl-row .tl-card { border-top: 1px solid var(--line); }
+.tl-ops .logrow:first-child { padding-top: 10px; }
+.card .tl-hr { background: var(--card); }
+.ops-sum { margin-left: 6px; font-variant-numeric: tabular-nums; color: var(--rose-deep); }
+.ops-sum.neg { color: var(--neg); }
+.tl-ops .chips { gap: 4px; }
+.tl-ops .chip { padding: 6px 8px; font-size: 12px; white-space: nowrap; }
+.tl-op {
+  position: absolute; z-index: 3; transform: translate(-50%, -50%);
+  width: var(--s, 18px); height: var(--s, 18px); padding: 0; border-radius: 50%; display: grid; place-items: center;
+  font: inherit; font-size: calc(var(--s, 18px) * .7); font-weight: 900; line-height: 1; border: 2px solid currentColor; background: var(--card);
+  cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.tl-op::before { content: ""; position: absolute; inset: calc((var(--s, 18px) - 44px) / 2); }   /* pole dotyku zawsze ok. 44 px */
+.tl-op:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 2px; }
+.tl-op.on { z-index: 4; cursor: grabbing; transform: translate(-50%, -50%) scale(1.3); color: var(--card); }
+.tl-op.w.on { background: var(--neg); border-color: var(--neg); color: var(--card); }
+.tl-op.d.on { background: var(--rose-deep); border-color: var(--rose-deep); color: var(--card); }
+.tl-op.on::after {   /* godzina w trakcie przeciągania */
+  content: attr(data-time); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  padding: 3px 6px; border-radius: 8px; background: var(--ink); color: var(--card);
+  font-size: 11px; font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.tl-op.w { left: calc(50% - var(--s, 18px) / 2 - 3px); color: var(--neg); }
+.tl-op.d { left: calc(50% + var(--s, 18px) / 2 + 3px); color: var(--rose-deep); }
 .tl-pill { position: absolute; left: 50%; z-index: 2; transform: translate(-50%, -50%); font-size: 14px; line-height: 1; }
 
 /* ---------- cards ---------- */

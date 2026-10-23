@@ -630,3 +630,88 @@ describe('Dziś: leki przy porach dnia', () => {
     assert.match(app.call('medsTodayHtml', TODAY, 'evening'), /15:00/);
   });
 });
+
+describe('Energia: dzisiejsze operacje na osi doby', () => {
+  test('operacje chronologicznie, wypłata ⊖ i wpłata ⊕ na osi, godziny pór bez pomiarów i leków', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true, dayStart: '00:00', windows: { afternoon: '12:00', evening: '14:00' } } } });
+    const at = (h, m) => { const d = new Date(`${TODAY}T00:00:00`); d.setHours(h, m); return d.getTime(); };
+    const list = [
+      { id: 'l2', a: 'a', n: 'Spacer', k: 'd', v: 10, t: at(15, 0) },
+      { id: 'l1', a: 'b', n: 'Praca', k: 'w', v: 20, t: at(9, 0) },
+    ];
+    const html = app.call('opsTimelineHtml', list.slice().sort((a, b) => a.t - b.t));
+    assert.equal((html.match(/class="tl-op w"/g) || []).length, 1);
+    assert.equal((html.match(/class="tl-op d"/g) || []).length, 1);
+    assert.ok(html.indexOf('Praca') < html.indexOf('Spacer'));
+    for (const h of ['00:00', '12:00', '14:00']) assert.match(html, new RegExp(`tl-hr[^>]*>${h}<`));
+    assert.doesNotMatch(html, /tl-dot|tl-pill/);
+  });
+});
+
+describe('Energia: zmiana godziny operacji z osi doby', () => {
+  const at = (h, m) => { const d = new Date(`${TODAY}T00:00:00`); d.setHours(h, m); return d.getTime(); };
+  const st = () => ({
+    [K.settings]: { onboarded: true, dayStart: '06:00' },
+    'nastroj.energy.v1': { [TODAY]: [{ id: 'l1', a: 'a', n: 'Praca', k: 'w', v: 20, t: at(9, 10) }] },
+  });
+
+  test('opSetTime zapisuje nową godzinę w tym samym dniu (także po północy przed „Rano od”)', () => {
+    const app = boot({ storage: st() });
+    assert.equal(app.call('opSetTime', 'l1', 13 * 60 + 30), true);
+    assert.equal(app.stored('nastroj.energy.v1')[TODAY][0].t, at(13, 30));
+    app.call('opSetTime', 'l1', 24 * 60 + 60);              // 01:00 następnego dnia kalendarzowego
+    const t = app.stored('nastroj.energy.v1')[TODAY][0].t;
+    assert.equal(t, at(13, 30) + (11 * 60 + 30) * 60000);
+    assert.deepEqual(Object.keys(app.stored('nastroj.energy.v1')), [TODAY]);
+  });
+
+  test('opSetTime trzyma się doby aplikacji, bez zmiany nic nie zapisuje', () => {
+    const app = boot({ storage: st() });
+    app.call('opSetTime', 'l1', 2 * 60);                    // przed „Rano od” → początek doby
+    assert.equal(app.stored('nastroj.energy.v1')[TODAY][0].t, at(6, 0));
+    const before = app.ls.snapshot();
+    assert.equal(app.call('opSetTime', 'l1', 6 * 60), false);
+    assert.deepEqual(app.ls.snapshot(), before);
+    assert.equal(app.call('opSetTime', 'brak', 600), false);
+  });
+
+  test('opStep skacze do pełnych półgodzin', () => {
+    const app = boot({ storage: st() });
+    assert.equal(app.call('opStep', 9 * 60 + 10, 1), 9 * 60 + 30);
+    assert.equal(app.call('opStep', 9 * 60 + 10, -1), 9 * 60);
+    assert.equal(app.call('opStep', 9 * 60 + 30, 1), 10 * 60);
+    assert.equal(app.call('opStep', 6 * 60, -1), 6 * 60);
+  });
+});
+
+describe('Energia: wartości przy dzisiejszych operacjach', () => {
+  const st = def => ({
+    [K.settings]: { onboarded: true },
+    'nastroj.activities.v1': [{ id: 'a1', name: 'Praca', kind: 'w', cat: 'praca', def, archived: false }],
+  });
+  test('skrócone etykiety, domyślna spoza podstawowych jako sama liczba w kolejności', () => {
+    const app = boot({ storage: st(15) });
+    assert.deepEqual(plain(app.call('opChips', { a: 'a1' })), [[10, 'mała'], [15, ''], [25, 'śred'], [50, 'duża'], [80, 'ogro']]);
+  });
+  test('domyślna równa podstawowej — bez dodatkowej wartości', () => {
+    const app = boot({ storage: st(25) });
+    assert.equal(app.call('opChips', { a: 'a1' }).length, 4);
+  });
+});
+
+describe('Energia: rozmiar znaczników i suma dnia', () => {
+  test('znacznik rośnie z wartością w wąskim zakresie', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });
+    assert.equal(app.call('opSize', 10), 16);
+    assert.equal(app.call('opSize', 80), 26);
+    assert.ok(app.call('opSize', 25) < app.call('opSize', 50));
+    assert.equal(app.call('opSize', 200), 26);
+    assert.equal(app.call('opSize', 1), 16);
+  });
+  test('suma dnia = wpłaty − wypłaty, w tytule ze znakiem', () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });
+    assert.equal(app.call('opsSum', [{ k: 'w', v: 80 }, { k: 'd', v: 10 }, { k: 'd', v: 25 }]), -45);
+    assert.equal(app.call('signed', 15), '+15');
+    assert.equal(app.call('signed', -45), '−45');
+  });
+});

@@ -25,6 +25,7 @@ const CATS = {
   spol: 'Społeczne', sens: 'Sensoryczne', pozn: 'Poznawcze', fiz: 'Fizyczne', emoc: 'Emocjonalne',
 };
 const CHIPS = [[10, 'mała'], [25, 'średnia'], [50, 'duża'], [80, 'ogromna']];
+const CHIP_SHORT = { 10: 'mała', 25: 'śred', 50: 'duża', 80: 'ogro' };   // skróty w „Dzisiejszych operacjach”
 
 // Skróty „Dodaj jednym dotknięciem”: najczęstsze czynności
 const TOP_WINDOW = 30;   // okno częstości (dni), liczone do wczoraj włącznie → układ stały przez cały dzień
@@ -351,7 +352,7 @@ function renderEnergy() {
   const st = status();
 
   v.innerHTML = `
-    <header class="head"><span></span><div><div class="eyebrow">Energia</div><h1>Saldo energii</h1></div><span></span></header>
+    <header class="head"><span></span><div><div class="eyebrow">Energia</div><h1>Księgowość Energetyczna</h1></div><span></span></header>
     <p class="lead">${esc(fmt(today0(), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
     ${saldoCard(day, st)}
     ${calibrationHtml(day.balance)}
@@ -561,20 +562,154 @@ function renderQuickAdd() {
   setTimeout(() => $('#qa-name')?.focus(), 50);
 }
 
-function todayLogHtml() {
-  const list = (elog[todayKey()] || []).slice().sort((a, b) => b.t - a.t);
+// Wartości do wyboru przy operacji: cztery podstawowe (skrócone) + domyślna czynności,
+// jeśli jest inna niż podstawowe — sama liczba, w kolejności wartości.
+function opChips(x) {
+  const def = actById(x.a)?.def;
+  const list = CHIPS.map(([v]) => [v, CHIP_SHORT[v]]);
+  if (Number.isFinite(def) && !list.some(([v]) => v === def)) list.push([def, '']);
+  return list.sort((a, b) => a[0] - b[0]);
+}
+// Wiersz operacji z dnia (wspólny dla listy i osi doby)
+function opRowHtml(x) {
   return `
-    <div class="card">
-      <h3>Dzisiejsze operacje</h3>
-      ${list.length ? list.map(x => `
         <div class="logrow col">
           <div class="logline">
             <span class="k ${x.k}">${x.k === 'd' ? '+' : '−'}${x.v}</span>
             <span class="nm">${esc(x.n)}<small>${hhmm(x.t)}</small></span>
             <button class="x" data-act="e-del" data-entry="${x.id}" aria-label="Usuń">×</button>
           </div>
-          <div class="chips">${CHIPS.map(([v, l]) => `<button class="chip ${x.v === v ? 'on' : ''}" data-act="e-chip" data-entry="${x.id}" data-v="${v}">${l} ${v}</button>`).join('')}</div>
-        </div>`).join('')
+          <div class="chips">${opChips(x).map(([v, l]) => `<button class="chip ${x.v === v ? 'on' : ''}" data-act="e-chip" data-entry="${x.id}" data-v="${v}"${l ? '' : ` aria-label="domyślna ${v}"`}>${l ? `${l} ${v}` : v}</button>`).join('')}</div>
+        </div>`;
+}
+
+// Minuta doby aplikacji dla czasu operacji (ms)
+const opMin = t => { const d = new Date(t); return logMin(d.getHours() * 60 + d.getMinutes()); };
+
+// Operacje dnia przy pionowej osi doby (jak na Dziś): odcinek pory ma wysokość jej operacji
+// (pora bez operacji = krótki odcinek), godziny zmiany pór na kresce.
+// Na osi: wypłata = ⊖ po lewej, wpłata = ⊕ po prawej, proporcjonalnie do godziny w oknie pory.
+// Znacznik da się przeciągnąć w górę/dół (albo strzałkami) — zmienia godzinę operacji co 30 min.
+// Kolejność chronologiczna (od początku doby), żeby lista szła z osią.
+function opsTimelineHtml(list) {
+  const win = slotWindows(), s0 = dayStartMin();
+  const slotOf = x => { const m = opMin(x.t); return SLOTS.find(sl => m >= win[sl.id][0] && m < win[sl.id][1])?.id ?? 'evening'; };
+  return `<div class="tl tl-ops" role="group" aria-label="Operacje na osi doby od ${clockMin(s0)}">
+    ${SLOTS.map((sl, i) => {
+      const [f, t] = win[sl.id];
+      const pct = m => `${(100 * Math.min(1, Math.max(0, (m - f) / (t - f)))).toFixed(2)}%`;
+      const ops = list.filter(x => slotOf(x) === sl.id);
+      const first = i === 0, last = i === SLOTS.length - 1;
+      return `<div class="tl-row">
+        <div class="tl-seg${first ? ' first' : ''}${last ? ' last' : ''}" style="--c:var(--c-${sl.id})">
+          <i class="tl-line" aria-hidden="true"></i>
+          <span class="tl-hr${first ? ' edge' : ''}" style="top:0">${clockMin(f)}</span>
+          ${last ? `<span class="tl-hr edge" style="top:100%">${clockMin(s0)}</span>` : ''}
+          ${ops.map(x => { const lab = `${x.k === 'd' ? 'Wpłata' : 'Wypłata'} „${x.n}”, godzina ${hhmm(x.t)}`; return `<button class="tl-op ${x.k === 'd' ? 'd' : 'w'}" style="top:${pct(opMin(x.t))};--s:${opSize(x.v)}px"
+            data-op="${x.id}" data-time="${hhmm(x.t)}" role="slider" aria-label="${esc(lab)}. Przeciągnij albo strzałki w górę i w dół, co 30 minut"
+            aria-valuetext="${hhmm(x.t)}" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="${opMin(x.t) % DAY_MIN}">${x.k === 'd' ? '+' : '−'}</button>`; }).join('')}
+        </div>
+        <div class="tl-card${ops.length ? '' : ' tl-empty'}">${ops.map(opRowHtml).join('')}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ---------- oś operacji: przeciąganie ⊖/⊕ zmienia godzinę ---------- */
+const OP_STEP = 30;
+// Średnica znacznika na osi: rośnie z wartością (mała 10 → 16 px, ogromna 80 → 26 px), poza zakresem przycięta.
+const opSize = v => Math.round(16 + 10 * Math.min(1, Math.max(0, ((Number(v) || 0) - 10) / 70)));
+// Suma dnia: wpłaty − wypłaty
+const opsSum = list => list.reduce((s, x) => s + (x.k === 'd' ? 1 : -1) * (Number(x.v) || 0), 0);
+// Zapis nowej godziny operacji: min = minuta doby aplikacji (od północy dnia wpisu, może przekroczyć 24:00).
+// Dzień wpisu (klucz w nastroj.energy.v1) się nie zmienia, zmienia się tylko t.
+function opSetTime(id, min) {
+  const [k, i] = findEntry(id);
+  if (!k) return false;
+  const s0 = dayStartMin();
+  const m = Math.min(s0 + DAY_MIN - 1, Math.max(s0, Math.round(min)));
+  const d = parseKey(k); d.setHours(0, 0, 0, 0); d.setMinutes(m);
+  if (elog[k][i].t === d.getTime()) return false;
+  elog[k][i].t = d.getTime();
+  saveLog();
+  return true;
+}
+// Następna / poprzednia pełna półgodzina w dobie aplikacji
+function opStep(m0, dir) {
+  const s0 = dayStartMin();
+  const m = dir > 0 ? Math.floor(m0 / OP_STEP) * OP_STEP + OP_STEP : Math.ceil(m0 / OP_STEP) * OP_STEP - OP_STEP;
+  return Math.min(s0 + DAY_MIN - 1, Math.max(s0, m));
+}
+// Piksel (clientY) → minuta doby: odcinki pór mają różne wysokości, więc liczymy w odcinku pod palcem.
+function opMinFromY(rail, y) {
+  const segs = [...rail.querySelectorAll('.tl-seg')], win = slotWindows();
+  for (let i = 0; i < segs.length; i++) {
+    const r = segs[i].getBoundingClientRect();
+    if (y <= r.bottom || i === segs.length - 1) {
+      const [f, t] = win[SLOTS[i].id];
+      return f + Math.min(1, Math.max(0, (y - r.top) / (r.height || 1))) * (t - f);
+    }
+  }
+  return dayStartMin();
+}
+let opDrag = null;   // { el, id, rail, pointerId, m0, m }
+function opShow(d) {
+  const win = slotWindows(), i = SLOTS.findIndex(sl => d.m >= win[sl.id][0] && d.m < win[sl.id][1]);
+  const sl = SLOTS[i < 0 ? SLOTS.length - 1 : i], [f, t] = win[sl.id];
+  const seg = d.rail.querySelectorAll('.tl-seg')[SLOTS.indexOf(sl)];
+  if (seg && d.el.parentNode !== seg) seg.appendChild(d.el);
+  d.el.style.top = `${(100 * (d.m - f) / (t - f)).toFixed(2)}%`;
+  d.el.dataset.time = clockMin(d.m);
+  const small = d.rail.querySelector(`[data-act="e-del"][data-entry="${d.id}"]`)?.closest('.logline')?.querySelector('.nm small');
+  if (small) small.textContent = clockMin(d.m);
+}
+function opEnd(commit) {
+  const d = opDrag;
+  if (!d) return;
+  opDrag = null;
+  try { d.el.releasePointerCapture?.(d.pointerId); } catch { /* ignore */ }
+  if (commit && d.m !== d.m0 && opSetTime(d.id, d.m)) toast(`Godzina zmieniona: ${clockMin(d.m)}`);
+  rerender();
+}
+document.addEventListener('pointerdown', ev => {
+  const el = ev.target.closest?.('.tl-op');
+  if (!el || opDrag || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+  const [k, i] = findEntry(el.dataset.op);
+  if (!k) return;
+  ev.preventDefault();
+  try { el.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+  const m0 = opMin(elog[k][i].t);
+  opDrag = { el, id: el.dataset.op, rail: el.closest('.tl-ops'), pointerId: ev.pointerId, m0, m: m0 };
+  el.classList.add('on');
+});
+document.addEventListener('pointermove', ev => {
+  const d = opDrag;
+  if (!d || ev.pointerId !== d.pointerId) return;
+  ev.preventDefault();
+  const s0 = dayStartMin();
+  const m = Math.min(s0 + DAY_MIN - 1, Math.max(s0, Math.round(opMinFromY(d.rail, ev.clientY) / OP_STEP) * OP_STEP));
+  if (m === d.m) return;
+  d.m = m;
+  opShow(d);
+});
+document.addEventListener('pointerup', ev => { if (opDrag && ev.pointerId === opDrag.pointerId) opEnd(true); });
+document.addEventListener('pointercancel', ev => { if (opDrag && ev.pointerId === opDrag.pointerId) opEnd(false); });
+document.addEventListener('keydown', ev => {
+  const el = ev.target?.closest?.('.tl-op');
+  if (!el || (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown')) return;
+  const [k, i] = findEntry(el.dataset.op);
+  if (!k) return;
+  ev.preventDefault();
+  const id = el.dataset.op, m = opStep(opMin(elog[k][i].t), ev.key === 'ArrowDown' ? 1 : -1);
+  if (opSetTime(id, m)) { rerender(); document.querySelector(`.tl-op[data-op="${id}"]`)?.focus(); }
+});
+
+function todayLogHtml() {
+  const list = (elog[todayKey()] || []).slice().sort((a, b) => a.t - b.t);
+  return `
+    <div class="card">
+      <h3>Dzisiejsze operacje${list.length ? ` <span class="ops-sum ${opsSum(list) < 0 ? 'neg' : ''}">${signed(opsSum(list))}</span>` : ''}</h3>
+      ${list.length ? opsTimelineHtml(list)
       : '<p class="note" style="margin:0">Nic jeszcze dziś. Dotknij czynności powyżej — zapisze się z domyślną wartością, którą możesz potem zmienić.</p>'}
     </div>`;
 }
