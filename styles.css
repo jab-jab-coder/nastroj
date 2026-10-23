@@ -99,12 +99,7 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .tl-dot.on { background: var(--c); border-color: var(--card); box-shadow: 0 0 0 2px var(--c); }
 .tl-dot::before { content: ""; position: absolute; inset: -12px; }   /* większe pole dotyku */
 .tl-dot:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 3px; }
-.tl-pill {
-  position: absolute; left: 50%; z-index: 2; transform: translate(-50%, -50%);
-  font-size: 13px; line-height: 1; padding: 2px; border-radius: 50%;
-  background: var(--card); box-shadow: 0 0 0 2px var(--c); opacity: .6;
-}
-.tl-pill.done { opacity: 1; }
+.tl-pill { position: absolute; left: 50%; z-index: 2; transform: translate(-50%, -50%); font-size: 14px; line-height: 1; }
 
 /* ---------- cards ---------- */
 .card {

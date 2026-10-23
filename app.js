@@ -223,7 +223,7 @@ function renderToday() {
 // Wewnątrz odcinka pozycja jest proporcjonalna do czasu w oknie tej pory.
 // Kropka pełna = wpis (na godzinie zapisu, jeśli zapis był w tej dobie), pusta = planowana godzina wpisu.
 // Kreska przerywana = teraz (tylko dziś). Kropka otwiera kartę danej pory.
-// Moduł Leki: pigułka = godzina planowanych leków (wyblakła, dopóki nie wszystkie zapisane);
+// Moduł Leki: pigułka = godzina planowanych leków (stan w podpowiedzi: zapisane / nie);
 // karta „Leki” danej pory stoi pod kartą pory w tym samym odcinku osi.
 function dayRailSeg(sl, i, key, isToday) {
   const b = slotBounds(), [f, t] = slotWindows()[sl.id];
