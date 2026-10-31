@@ -121,6 +121,23 @@ Drobne obserwacje, opisane w samych testach:
 
 Po decyzji wystarczy zmienić kod i odpowiedni test.
 
+## Dane testowe do ręcznego testu UI
+
+`tests/dane-testowe/generuj.mjs` tworzy wymyśloną, ale realistyczną historię z 61 dni: Bartek, 34 lata, Warszawa. Są w niej oceny nastroju i energii, operacje energii, plan dnia, 5 leków z punktualnością (także pominięte i brakujące dawki), badania wypalenia, strategie i rekordy stopera. Fabuła ma wyraźne fazy (spokój, przeciążenie w pracy, kryzys po rozstaniu, zwolnienie lekarskie, powolna poprawa), więc wykresy Tydzień i Miesiąc mają co pokazać. To nie jest test automatyczny: `node --test` i CI go nie uruchamiają.
+
+```bash
+node tests/dane-testowe/generuj.mjs                      # historia kończąca się dziś
+node tests/dane-testowe/generuj.mjs --koniec=2026-10-15  # kończąca się wskazanego dnia (nie w przyszłości)
+node tests/dane-testowe/generuj.mjs --out=/inny/katalog  # gdzie zapisać pliki (domyślnie katalog główny repo)
+```
+
+Powstają dwa pliki w katalogu głównym repo, oba w `.gitignore`:
+
+- `dane-testowe.html`: opis fabuły i przycisk „Wczytaj dane i otwórz aplikację”. Przycisk **zastępuje** wszystkie dane „Nastroju” pod tym adresem, np. `http://localhost:8123/dane-testowe.html` po `python3 -m http.server 8123`. Działa tylko na tym samym adresie co aplikacja.
+- `dane-testowe.json`: zwykła kopia v2 do importu w Ustawieniach. Nadaje się np. do kopii testowej PR (artefakt), gdzie strona `.html` nie ma dostępu do pamięci aplikacji.
+
+Dane są powtarzalne (stałe ziarno losowania). Fabuła jest przesuwana w czasie tak, żeby kończyła się dniem `--koniec`. Wpisy z dzisiejszego dnia zależą od bieżącej godziny: późniejsze pory zostają puste. Przy nowym kluczu albo polu danych warto dopisać je do generatora, żeby ręczny test od razu je pokazał.
+
 ## Pliki
 
 ```
@@ -133,6 +150,8 @@ tests/
 ├── leki.test.mjs           moduł Leki
 ├── export-import.test.mjs  kopia JSON
 ├── contract.test.mjs       strażnik zasad danych
+├── dane-testowe/
+│   └── generuj.mjs         generator danych do ręcznego testu UI (nie jest testem)
 └── fixtures/
     ├── export-v1.json      przykładowa kopia z wersji 1
     └── export-v2.json      przykładowa kopia v2 z danymi w każdej sekcji

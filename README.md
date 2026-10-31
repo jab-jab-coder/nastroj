@@ -51,6 +51,8 @@ python3 -m http.server 8080
 
 Otwórz `http://localhost:8080`. Service worker działa na `localhost` bez HTTPS.
 
+Przykładowe dane do ręcznego testu (61 dni historii z lekami, energią i badaniami): `node tests/dane-testowe/generuj.mjs`, potem `http://localhost:8080/dane-testowe.html` → „Wczytaj dane”. Szczegóły: [tests/README.md](tests/README.md#dane-testowe-do-ręcznego-testu-ui).
+
 ## Instalacja na Androidzie
 
 PWA wymaga HTTPS. Najprościej:

@@ -79,6 +79,7 @@ gałąź → commit (testy przed każdym commitem) → push (GitHub Actions „T
 | `pobierz.html` | strona instalacji dla znajomych |
 | `icons/` | ikony, mordki zwierząt, QR |
 | `tests/`, `.github/workflows/testy.yml` | testy i CI |
+| `tests/dane-testowe/generuj.mjs` | generator przykładowych danych do ręcznego testu UI (nie test; wynik w `.gitignore`) |
 
 - **Kolejność skryptów** (wszystkie `defer`, wspólny zakres globalny):
   `komplementy.js → energy.js → leki.js → dzik.js → animals-together.js → tama.js → samouczek.js → app.js`.
@@ -99,6 +100,9 @@ gałąź → commit (testy przed każdym commitem) → push (GitHub Actions „T
 - Nowy **klucz techniczny**: `TECHNICAL` w `tests/contract.test.mjs` z uzasadnieniem, dlaczego nie trafia do kopii.
 - Nowe **pole w zapisywanym obiekcie**: `FIELDS` w `tests/contract.test.mjs` + opis formatu w `README.md`.
 - Testy nie obejmują wyglądu, wykresów SVG, gier, service workera ani telefonu — do tego jest kopia testowa.
+- **Dane do ręcznego testu:** `node tests/dane-testowe/generuj.mjs` → `dane-testowe.html` (wczytanie na lokalnym serwerze)
+  i `dane-testowe.json` (import, np. do kopii testowej). Nowy klucz lub pole danych — dopisz też do generatora.
+  Opis: `tests/README.md` → „Dane testowe do ręcznego testu UI”.
 
 ## Dane — zasady nienaruszalne
 
