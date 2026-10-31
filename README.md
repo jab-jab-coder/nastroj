@@ -18,7 +18,7 @@ Aplikacja do oceny samopoczucia 3× dziennie (rano, popołudnie, wieczór) w ska
 
 ## Funkcje
 
-- **Dziś** — trzy karty z suwakiem 1–10, emotka i opis nastroju, zapis/aktualizacja/usunięcie; nawigacja po poprzednich dniach (uzupełnianie zaległych wpisów).
+- **Dziś** — trzy karty z suwakiem 1–10, emotka i opis nastroju, zapis/aktualizacja/usunięcie; nawigacja po poprzednich dniach (uzupełnianie zaległych wpisów). Obok kart pionowa oś doby: kropka rozwija i zwija kartę pory, 💊 oznacza godzinę leków, a dotknięcie przerywanej kreski „teraz” pokazuje obok niej dzień tygodnia, datę i godzinę.
 - **Tydzień** — punkty dla każdej pory + linia średniej dnia, średnia tygodnia vs poprzedni, liczba wpisów, najlepszy dzień, średnie wg pory; dotknięcie dnia pokazuje szczegóły.
 - **Miesiąc** — słupki średniej dziennej + trend (średnia krocząca 7 dni), te same statystyki.
 - **Ustawienia** — godziny trzech pór, powiadomienia, plik `.ics` z codziennymi alarmami do kalendarza, eksport/import kopii JSON, usuwanie danych.
