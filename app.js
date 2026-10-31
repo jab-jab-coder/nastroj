@@ -42,6 +42,23 @@ const fmt = (d, o) => d.toLocaleDateString('pl-PL', o);
 const hhmm = ts => { const d = new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
 const minutesOf = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 const nowMinutes = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); };
+const DOW_FULL = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+// Dymek po dotknięciu kreski „teraz” na osi doby: „Sobota, 31-10-2026, 14:52. Miłego dnia!”
+const nowText = (d = new Date()) => `${DOW_FULL[d.getDay()]}, ${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}, ${hhmm(d)}. Miłego dnia!`;
+// Dymek stoi tuż obok klikniętej kreski (w tym samym odcinku osi); ponowne dotknięcie lub 4 s — znika
+let nowTipTimer;
+function nowTipToggle(btn) {
+  const old = document.querySelector('.tl-tip');
+  clearTimeout(nowTipTimer);
+  if (old) { const same = old.previousElementSibling === btn; old.remove(); if (same) return; }
+  const tip = document.createElement('span');
+  tip.className = 'tl-tip';
+  tip.setAttribute('role', 'status');
+  tip.style.top = btn.style.top;
+  tip.textContent = nowText();
+  btn.after(tip);
+  nowTipTimer = setTimeout(() => tip.remove(), 4000);
+}
 const round1 = v => (v == null ? '–' : (Math.round(v * 10) / 10).toLocaleString('pl-PL'));
 const avg = arr => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -273,7 +290,8 @@ function renderToday() {
 // w kolorze pory jak pasek w Ustawieniach → Pory dnia. Godziny zmiany pór na kresce, na tle aplikacji.
 // Wewnątrz odcinka pozycja jest proporcjonalna do czasu w oknie tej pory.
 // Kropka pełna = wpis (na godzinie zapisu, jeśli zapis był w tej dobie), pusta = planowana godzina wpisu.
-// Kreska przerywana = teraz (tylko dziś). Kropka otwiera kartę danej pory.
+// Kreska przerywana = teraz (tylko dziś); dotknięcie pokazuje datę i godzinę.
+// Kropka rozwija kartę danej pory, ponowne dotknięcie ją zwija (bieżąca pora jest zawsze rozwinięta).
 // Moduł Leki: pigułka = godzina planowanych leków (stan w podpowiedzi: zapisane / nie);
 // karta „Leki” danej pory stoi pod kartą pory w tym samym odcinku osi.
 function dayRailSeg(sl, i, key, isToday) {
@@ -289,16 +307,17 @@ function dayRailSeg(sl, i, key, isToday) {
   const m = entryMin(e?.t) ?? logMin(minutesOf(settings.times[sl.id]), b.s);
   const lab = e ? `${sl.label}: wpis${e.t ? ` o ${hhmm(e.t)}` : ''}` : `${sl.label}: planowo ${settings.times[sl.id]}, brak wpisu`;
   const nowM = logMin(nowMinutes(), b.s);
+  const open = !!ui.open[`${key}|${sl.id}`];
   const first = i === 0, last = i === SLOTS.length - 1;
   return `<div class="tl-seg${first ? ' first' : ''}${last ? ' last' : ''}" style="--c:var(--c-${sl.id})">
     <i class="tl-line" aria-hidden="true"></i>
-    ${isToday && nowM >= f && nowM < t ? `<i class="tl-now" style="top:${pct(nowM)}" aria-hidden="true"></i>` : ''}
+    ${isToday && nowM >= f && nowM < t ? `<button class="tl-now" style="top:${pct(nowM)}" data-act="now-time" aria-label="Teraz: pokaż datę i godzinę"></button>` : ''}
     <span class="tl-hr${first ? ' edge' : ''}" style="top:0">${clockMin(f)}</span>
     ${last ? `<span class="tl-hr edge" style="top:100%">${clockMin(b.s)}</span>` : ''}
     ${medsOn() ? medRailTimes(key, sl.id).map(x => `<span class="tl-pill${x.done ? ' done' : ''}" style="top:${pct(logMin(minutesOf(x.s), b.s))}"
       title="Leki ${x.s}${x.done ? ' — zapisane' : ''}" aria-hidden="true">💊</span>`).join('') : ''}
-    <button class="tl-dot${e ? ' on' : ''}" style="top:${pct(m)}" data-act="slot-open" data-key="${key}" data-slot="${sl.id}"
-      aria-label="${esc(lab)}. Pokaż kartę" title="${esc(lab)}"></button>
+    <button class="tl-dot${e ? ' on' : ''}" style="top:${pct(m)}" data-act="slot-dot" data-key="${key}" data-slot="${sl.id}"
+      aria-label="${esc(lab)}. ${open ? 'Zwiń' : 'Pokaż'} kartę" title="${esc(lab)}"></button>
   </div>`;
 }
 
@@ -1791,6 +1810,12 @@ document.addEventListener('click', async ev => {
     }
 
     case 'slot-open': ui.open[`${el.dataset.key}|${el.dataset.slot}`] = true; renderToday(); navRateSync(); break;
+    case 'slot-dot': {   // kropka na osi: rozwiń / zwiń kartę pory
+      const k = `${el.dataset.key}|${el.dataset.slot}`;
+      if (ui.open[k]) delete ui.open[k]; else ui.open[k] = true;
+      renderToday(); navRateSync(); break;
+    }
+    case 'now-time': nowTipToggle(el); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); navRateSync(); break;
     case 'pory-undo': undoPory(); break;
     case 'sw-back': show('today'); break;
