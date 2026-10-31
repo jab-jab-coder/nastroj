@@ -99,7 +99,8 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 .tl-tip {   /* data i godzina obok kreski „teraz”, nad kartą pory */
   position: absolute; left: calc(50% + 20px); z-index: 5; transform: translateY(-50%);
   padding: 6px 10px; border-radius: 10px; background: var(--ink); color: var(--card);
-  font-size: 13px; font-weight: 700; line-height: 1.2; white-space: nowrap; font-variant-numeric: tabular-nums;
+  font-size: 13px; font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums;
+  width: max-content; max-width: min(320px, calc(100vw - 96px));   /* na wąskim ekranie zawija się, nie wychodzi poza ekran */
   box-shadow: var(--shadow); pointer-events: none; animation: tl-tip-in .15s ease-out;
 }
 .tl-tip::before {   /* ogonek w stronę kreski */
