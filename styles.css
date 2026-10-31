@@ -90,7 +90,12 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
   font-variant-numeric: tabular-nums;
 }
 .tl-hr.edge { color: var(--ink); font-weight: 800; }
-.tl-now { position: absolute; left: 50%; z-index: 1; width: 26px; border-top: 2px dashed var(--ink); transform: translate(-50%, -1px); }
+.tl-now {
+  position: absolute; left: 50%; z-index: 1; width: 26px; height: 0; padding: 0; cursor: pointer;
+  background: none; border: 0; border-top: 2px dashed var(--ink); transform: translate(-50%, -1px);
+}
+.tl-now::before { content: ""; position: absolute; inset: -12px -6px; }   /* większe pole dotyku */
+.tl-now:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 4px; }
 .tl-dot {
   position: absolute; left: 50%; z-index: 3; transform: translate(-50%, -50%);
   width: 16px; height: 16px; padding: 0; border-radius: 50%; cursor: pointer;

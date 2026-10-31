@@ -743,3 +743,21 @@ describe('Dziś: skala energii (hasła i ikony)', () => {
     for (let n = 2; n <= 10; n++) assert.ok(fill(n) > fill(n - 1), `rośnie ${n - 1}→${n}`);
   });
 });
+
+describe('Dziś: kropka i kreska „teraz” na osi doby', () => {
+  test('kropka rozwija kartę pory, ponowne dotknięcie ją zwija', async () => {
+    const app = boot({ storage: { [K.settings]: { onboarded: true } } });   // 23.10, 12:00 — bieżąca pora to nie „rano”
+    const k = `${TODAY}|morning`;
+    await app.click('slot-dot', { key: TODAY, slot: 'morning' });
+    assert.equal(app.g('ui.open')[k], true);
+    await app.click('slot-dot', { key: TODAY, slot: 'morning' });
+    assert.equal(app.g('ui.open')[k], undefined);
+  });
+
+  test('kreska „teraz” pokazuje dzień tygodnia, datę i godzinę', async () => {
+    const app = boot({ now: new Date(2026, 9, 31, 9, 5), storage: { [K.settings]: { onboarded: true } } });
+    await app.click('now-time');
+    assert.equal(app.toasts.at(-1), 'so, 31-10-2026, 09:05. Miłego dnia!');
+    assert.equal(app.call('nowText', new Date(2026, 10, 2, 23, 59)), 'pn, 02-11-2026, 23:59. Miłego dnia!');
+  });
+});
