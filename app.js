@@ -42,9 +42,9 @@ const fmt = (d, o) => d.toLocaleDateString('pl-PL', o);
 const hhmm = ts => { const d = new Date(ts); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
 const minutesOf = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 const nowMinutes = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); };
-const DOW_SHORT = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'so'];
-// Dymek po dotknięciu kreski „teraz” na osi doby: „so, 31-10-2026, 14:52. Miłego dnia!”
-const nowText = (d = new Date()) => `${DOW_SHORT[d.getDay()]}, ${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}, ${hhmm(d)}. Miłego dnia!`;
+const DOW_FULL = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+// Dymek po dotknięciu kreski „teraz” na osi doby: „Sobota, 31-10-2026, 14:52. Miłego dnia!”
+const nowText = (d = new Date()) => `${DOW_FULL[d.getDay()]}, ${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}, ${hhmm(d)}. Miłego dnia!`;
 // Dymek stoi tuż obok klikniętej kreski (w tym samym odcinku osi); ponowne dotknięcie lub 4 s — znika
 let nowTipTimer;
 function nowTipToggle(btn) {
