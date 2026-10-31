@@ -275,7 +275,7 @@ input[type=time] {
 
 /* ---------- tabbar ---------- */
 .tabbar {
-  position: fixed; left: 50%; transform: translateX(-50%);
+  position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);   /* nad osią doby (.tl-*), pod .fab, #sheet i dialogami */
   bottom: calc(env(safe-area-inset-bottom) + 12px);
   width: min(448px, calc(100% - 24px));
   display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;   /* ukryta zakładka nie zostawia dziury */
@@ -298,7 +298,7 @@ input[type=time] {
 
 /* ---------- toast ---------- */
 #toast {
-  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px);
+  position: fixed; z-index: 10; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px);
   transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
   background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 99px;
   font-weight: 700; font-size: 14px; transition: opacity .2s, transform .2s;
