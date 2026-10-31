@@ -45,6 +45,20 @@ const nowMinutes = () => { const n = new Date(); return n.getHours() * 60 + n.ge
 const DOW_SHORT = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'so'];
 // Dymek po dotknięciu kreski „teraz” na osi doby: „so, 31-10-2026, 14:52. Miłego dnia!”
 const nowText = (d = new Date()) => `${DOW_SHORT[d.getDay()]}, ${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}, ${hhmm(d)}. Miłego dnia!`;
+// Dymek stoi tuż obok klikniętej kreski (w tym samym odcinku osi); ponowne dotknięcie lub 4 s — znika
+let nowTipTimer;
+function nowTipToggle(btn) {
+  const old = document.querySelector('.tl-tip');
+  clearTimeout(nowTipTimer);
+  if (old) { const same = old.previousElementSibling === btn; old.remove(); if (same) return; }
+  const tip = document.createElement('span');
+  tip.className = 'tl-tip';
+  tip.setAttribute('role', 'status');
+  tip.style.top = btn.style.top;
+  tip.textContent = nowText();
+  btn.after(tip);
+  nowTipTimer = setTimeout(() => tip.remove(), 4000);
+}
 const round1 = v => (v == null ? '–' : (Math.round(v * 10) / 10).toLocaleString('pl-PL'));
 const avg = arr => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1801,7 +1815,7 @@ document.addEventListener('click', async ev => {
       if (ui.open[k]) delete ui.open[k]; else ui.open[k] = true;
       renderToday(); navRateSync(); break;
     }
-    case 'now-time': toast(nowText()); break;
+    case 'now-time': nowTipToggle(el); break;
     case 'slot-close': delete ui.open[`${card.dataset.key}|${card.dataset.slot}`]; renderToday(); navRateSync(); break;
     case 'pory-undo': undoPory(); break;
     case 'sw-back': show('today'); break;

@@ -757,7 +757,8 @@ describe('Dziś: kropka i kreska „teraz” na osi doby', () => {
   test('kreska „teraz” pokazuje dzień tygodnia, datę i godzinę', async () => {
     const app = boot({ now: new Date(2026, 9, 31, 9, 5), storage: { [K.settings]: { onboarded: true } } });
     await app.click('now-time');
-    assert.equal(app.toasts.at(-1), 'so, 31-10-2026, 09:05. Miłego dnia!');
+    assert.equal(app.toasts.length, 0, 'dymek obok kreski, nie na dole ekranu');
+    assert.equal(app.call('nowText'), 'so, 31-10-2026, 09:05. Miłego dnia!');
     assert.equal(app.call('nowText', new Date(2026, 10, 2, 23, 59)), 'pn, 02-11-2026, 23:59. Miłego dnia!');
   });
 });

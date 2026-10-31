@@ -96,6 +96,18 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
 }
 .tl-now::before { content: ""; position: absolute; inset: -12px -6px; }   /* większe pole dotyku */
 .tl-now:focus-visible { outline: 3px solid var(--c-morning); outline-offset: 4px; }
+.tl-tip {   /* data i godzina obok kreski „teraz”, nad kartą pory */
+  position: absolute; left: calc(50% + 20px); z-index: 5; transform: translateY(-50%);
+  padding: 6px 10px; border-radius: 10px; background: var(--ink); color: var(--card);
+  font-size: 13px; font-weight: 700; line-height: 1.2; white-space: nowrap; font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow); pointer-events: none; animation: tl-tip-in .15s ease-out;
+}
+.tl-tip::before {   /* ogonek w stronę kreski */
+  content: ""; position: absolute; right: 100%; top: 50%; transform: translateY(-50%);
+  border: 6px solid transparent; border-right-color: var(--ink);
+}
+@keyframes tl-tip-in { from { opacity: 0; transform: translate(-6px, -50%); } }
+@media (prefers-reduced-motion: reduce) { .tl-tip { animation: none; } }
 .tl-dot {
   position: absolute; left: 50%; z-index: 3; transform: translate(-50%, -50%);
   width: 16px; height: 16px; padding: 0; border-radius: 50%; cursor: pointer;
