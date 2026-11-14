@@ -96,7 +96,7 @@ const SURVEYS = {
 
 /* ---------- stan ---------- */
 let acts = [], elog = {}, plans = {}, surveys = [], strategies = [], records = [];
-const eui = { survey: null, stmt: null, editAct: null, quickAdd: null };
+const eui = { survey: null, stmt: null, editAct: null, quickAdd: null, day: null };   // day: oglądany dzień z przeszłości ('YYYY-MM-DD') albo null = dziś
 
 function energyInit() {
   // jednorazowa kopia danych sprzed aktualizacji (na wszelki wypadek)
@@ -150,6 +150,9 @@ const saveStrat = () => store(KEY_STRAT, strategies);
 const signed = n => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
 const todayKey = () => dkey(today0());   // dzień aplikacji (patrz „Rano od” w app.js)
 const tomorrowKey = () => dkey(addDays(today0(), 1));
+// Dzień oglądany w zakładce Energia (strzałki ‹ ›): dzień z przeszłości albo dziś.
+// Dzień, który przestał być przeszłością (np. po zmianie „Rano od”), wraca do dziś.
+const energyDayKey = () => (eui.day && eui.day < todayKey() ? eui.day : todayKey());
 
 function applyCalm() {
   document.documentElement.dataset.calm = settings.lowSensory ? '1' : '';
@@ -346,14 +349,32 @@ function renderEnergy() {
   const v = $('#view-energy');
   if (settings.energyModule === false) { v.innerHTML = surveysOnlyHtml(); return; }   // konto energii wyłączone — zostają badania
   if (!acts.length) { v.innerHTML = setupHtml(); return; }
-  const tk = todayKey();
+  const tk = energyDayKey();
+  const isToday = tk === todayKey();
   const L = ledger(tk);
   const day = L[tk] || { dep: 0, wd: 0, carryIn: 0, balance: 0 };
+  const head = `
+    <header class="head">
+      <button class="icon-btn" data-act="e-day-prev" aria-label="Poprzedni dzień">‹</button>
+      <div><div class="eyebrow">Energia</div><h1>Księgowość Energetyczna</h1></div>
+      <button class="icon-btn" data-act="e-day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
+    </header>
+    <p class="lead">${esc(fmt(parseKey(tk), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>`;
+
+  // Dzień z przeszłości: tylko saldo tego dnia, dodawanie jednym dotknięciem i operacje tego dnia
+  // (bez badań, podpowiedzi, planu, budżetu na jutro, trendu, rankingu, strategii i listy czynności).
+  if (!isToday) {
+    v.innerHTML = `${head}
+    ${saldoCard(day, null)}
+    ${quickLogHtml(tk)}
+    ${todayLogHtml(tk)}
+    <p class="footer"><button class="link" data-act="e-day-today">Wróć do dziś</button></p>
+  `;
+    return;
+  }
   const st = status();
 
-  v.innerHTML = `
-    <header class="head"><span></span><div><div class="eyebrow">Energia</div><h1>Księgowość Energetyczna</h1></div><span></span></header>
-    <p class="lead">${esc(fmt(today0(), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>
+  v.innerHTML = `${head}
     ${saldoCard(day, st)}
     ${calibrationHtml(day.balance)}
     ${surveyDueHtml()}
@@ -423,7 +444,7 @@ function setupHtml() {
 function saldoCard(day, st) {
   const b = day.balance;
   const pct = Math.max(-100, Math.min(100, b)) / 2; // ±50% szerokości
-  const lv = LEVELS[st.level];
+  const lv = st && LEVELS[st.level];
   return `
     <section class="card saldo">
       <div class="saldo-top">
@@ -431,9 +452,9 @@ function saldoCard(day, st) {
           <div class="saldo-n ${b < 0 ? 'neg' : ''}">${signed(b)}</div>
           <div class="saldo-t">${b > 0 ? 'Na plusie' : b < 0 ? 'Na minusie (debet)' : 'Na zero'}</div>
         </div>
-        <div class="light ${lv.cls}" role="status">
+        ${lv ? `<div class="light ${lv.cls}" role="status">
           <i aria-hidden="true"></i><span><b>${lv.name}</b><br>${lv.text}</span>
-        </div>
+        </div>` : ''}
       </div>
       <div class="gauge" aria-hidden="true">
         <span class="mid"></span>
@@ -444,7 +465,7 @@ function saldoCard(day, st) {
         <span>wpłaty <b>+${day.dep}</b></span>
         <span>wypłaty <b>−${day.wd}</b></span>
       </div>
-      ${st.reasons.length ? `<p class="note">Dlaczego: ${esc(st.reasons.join(' · '))}</p>` : ''}
+      ${st?.reasons.length ? `<p class="note">Dlaczego: ${esc(st.reasons.join(' · '))}</p>` : ''}
     </section>`;
 }
 
@@ -509,7 +530,9 @@ function todayPlanHtml() {
     </div>`;
 }
 
-function quickLogHtml() {
+// past = true (dzień z przeszłości): bez „＋ Moja wpłata / wypłata”, dotknięcie zapisuje pod oglądanym dniem.
+function quickLogHtml(dayK = null) {
+  const past = dayK != null && dayK !== todayKey();
   const btn = a => `<button class="qa ${a.kind}" data-act="elog" data-id="${a.id}"><span>${a.pinned ? '<i class="pin" aria-label="przypięta">📌</i>' : ''}${esc(a.name)}</span><small>${a.kind === 'd' ? '+' : '−'}${a.def}</small></button>`;
   const q = { w: quickTop('w', TOP_N), d: quickTop('d', TOP_N) };
   const more = q.w.rest.length > 0 || q.d.rest.length > 0;
@@ -526,7 +549,7 @@ function quickLogHtml() {
       <div class="qcol ${kind}">
         ${head}
         <div class="qlist" id="qa-${kind}">${(open ? [...top, ...rest] : top).map(btn).join('') || '<span class="muted">brak</span>'}</div>
-        <button class="btn soft sm qnew" data-act="qa-new" data-kind="${kind}">＋ Moja ${kind === 'd' ? 'wpłata' : 'wypłata'}</button>
+        ${past ? '' : `<button class="btn soft sm qnew" data-act="qa-new" data-kind="${kind}">＋ Moja ${kind === 'd' ? 'wpłata' : 'wypłata'}</button>`}
       </div>`;
   };
   return `
@@ -704,13 +727,14 @@ document.addEventListener('keydown', ev => {
   if (opSetTime(id, m)) { rerender(); document.querySelector(`.tl-op[data-op="${id}"]`)?.focus(); }
 });
 
-function todayLogHtml() {
-  const list = (elog[todayKey()] || []).slice().sort((a, b) => a.t - b.t);
+function todayLogHtml(dayK = todayKey()) {
+  const list = (elog[dayK] || []).slice().sort((a, b) => a.t - b.t);
+  const past = dayK !== todayKey();
   return `
     <div class="card">
-      <h3>Dzisiejsze operacje${list.length ? ` <span class="ops-sum ${opsSum(list) < 0 ? 'neg' : ''}">${signed(opsSum(list))}</span>` : ''}</h3>
+      <h3>${past ? 'Operacje tego dnia' : 'Dzisiejsze operacje'}${list.length ? ` <span class="ops-sum ${opsSum(list) < 0 ? 'neg' : ''}">${signed(opsSum(list))}</span>` : ''}</h3>
       ${list.length ? opsTimelineHtml(list)
-      : '<p class="note" style="margin:0">Nic jeszcze dziś. Dotknij czynności powyżej — zapisze się z domyślną wartością, którą możesz potem zmienić.</p>'}
+      : `<p class="note" style="margin:0">${past ? 'Brak operacji tego dnia. Dotknij czynności powyżej, żeby dopisać ją do tego dnia — godzinę zmienisz, przeciągając znacznik na osi.' : 'Nic jeszcze dziś. Dotknij czynności powyżej — zapisze się z domyślną wartością, którą możesz potem zmienić.'}</p>`}
     </div>`;
 }
 
@@ -1021,12 +1045,17 @@ async function shareSummary() {
 /* =========================================================
    Zdarzenia (wywoływane z app.js)
    ========================================================= */
+// Wpis pod dniem k. Dziś: t = teraz. Dzień z przeszłości: t = ta sama godzina co teraz, ale w dobie
+// aplikacji tamtego dnia (jak przy przeciąganiu znacznika na osi) — godzinę można potem przesunąć.
 function logActivity(id, k = todayKey()) {
   const a = actById(id);
   if (!a) return;
-  (elog[k] ||= []).push({ id: uid(), a: a.id, n: a.name, k: a.kind, v: a.def, t: Date.now() });
+  let t = Date.now();
+  if (k !== todayKey()) { const d = parseKey(k); d.setHours(0, 0, 0, 0); d.setMinutes(logMin(nowMinutes())); t = d.getTime(); }
+  (elog[k] ||= []).push({ id: uid(), a: a.id, n: a.name, k: a.kind, v: a.def, t });
   saveLog();
-  toast(`${a.kind === 'd' ? '➕' : '➖'} ${a.name}: ${a.kind === 'd' ? '+' : '−'}${a.def}`);
+  const when = k !== todayKey() ? ` (${fmt(parseKey(k), { day: 'numeric', month: 'short' })})` : '';
+  toast(`${a.kind === 'd' ? '➕' : '➖'} ${a.name}: ${a.kind === 'd' ? '+' : '−'}${a.def}${when}`);
 }
 function findEntry(eid) {
   for (const [k, list] of Object.entries(elog)) { const i = list.findIndex(x => x.id === eid); if (i >= 0) return [k, i]; }
@@ -1044,7 +1073,13 @@ function energyClick(act, el) {
       toast('Konto energii gotowe');
       return true;
     }
-    case 'elog': logActivity(el.dataset.id); rerender(); return true;
+    case 'elog': logActivity(el.dataset.id, ui.view === 'energy' ? energyDayKey() : todayKey()); rerender(); return true;
+    case 'e-day-prev': eui.day = dkey(addDays(parseKey(energyDayKey()), -1)); renderEnergy(); window.scrollTo({ top: 0 }); return true;
+    case 'e-day-next': {
+      const k = dkey(addDays(parseKey(energyDayKey()), 1));
+      eui.day = k < todayKey() ? k : null; renderEnergy(); window.scrollTo({ top: 0 }); return true;
+    }
+    case 'e-day-today': eui.day = null; renderEnergy(); window.scrollTo({ top: 0 }); return true;
     case 'e-chip': {
       const [k, i] = findEntry(el.dataset.entry);
       if (k) { elog[k][i].v = Number(el.dataset.v); saveLog(); rerender(); }

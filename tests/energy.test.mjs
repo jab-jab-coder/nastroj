@@ -12,6 +12,8 @@ const K = {
 const ON = { [K.settings]: { onboarded: true } };
 const act = (id, kind = 'w', extra = {}) => ({ id, name: `Czynność ${id}`, kind, cat: 'spol', def: 20, archived: false, ...extra });
 const withActs = (list, more = {}) => ({ ...ON, [K.acts]: list, ...more });
+const app0 = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d, 12).getTime(); };   // południe dnia k
+const dayBefore = k => { const [y, m, d] = k.split('-').map(Number); const x = new Date(y, m - 1, d - 1); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
 
 describe('start: migracja i kopia sprzed v2', () => {
   test('pierwszy start z ocenami z v1: kopia w backup.pre-v2 i znacznik schematu', () => {
@@ -201,6 +203,58 @@ describe('dziennik energii (nastroj.energy.v1)', () => {
     const [x] = app.stored(K.elog)[TODAY];
     assert.deepEqual({ ...x, id: '' }, { id: '', a: 'a1', n: 'Czynność a1', k: 'd', v: 40, t: app.now() });
     assert.equal(app.toasts.at(-1), '➕ Czynność a1: +40');
+  });
+
+  test('Energia, dzień z przeszłości (strzałka ‹): dotknięcie zapisuje pod tamtym dniem, o tej samej godzinie', async () => {
+    const app = boot({ storage: withActs([act('a1', 'w', { def: 30 })]) });
+    app.dom({ '#view-energy': {} });
+    app.run("ui.view = 'energy'");
+    await app.click('e-day-prev');
+    assert.equal(app.g('eui.day'), YESTERDAY);
+    await app.click('elog', { id: 'a1' });
+    const log = app.stored(K.elog);
+    assert.equal(log[TODAY], undefined, 'nic pod dzisiejszym dniem');
+    const [x] = log[YESTERDAY];
+    assert.deepEqual({ ...x, id: '' }, { id: '', a: 'a1', n: 'Czynność a1', k: 'w', v: 30, t: app.now() - 864e5 });
+    assert.match(app.toasts.at(-1), /^➖ Czynność a1: −30 \(22 paź/);
+  });
+
+  test('Energia, dzień z przeszłości: tylko saldo, skróty i operacje tego dnia', async () => {
+    const app = boot({ storage: withActs([act('a1'), act('d1', 'd')], {
+      [K.elog]: { [YESTERDAY]: [{ id: 'l1', a: 'a1', n: 'Wczorajsza', k: 'w', v: 20, t: app0(YESTERDAY) }] },
+      [K.plan]: { [TODAY]: [{ id: 'p1', a: 'a1' }] },
+      [K.strat]: ['Cisza'],
+    }) });
+    app.dom({ '#view-energy': {} });
+    app.run("ui.view = 'energy'");
+    app.call('renderEnergy');
+    const today = app.run("$('#view-energy').innerHTML");
+    for (const s of ['Zaplanowane na dziś', 'data-act="qa-new"', 'data-act="strat-add"', 'data-act="survey"', 'class="light']) assert.ok(today.includes(s), `dziś: ${s}`);
+    await app.click('e-day-prev');
+    const past = app.run("$('#view-energy').innerHTML");
+    assert.ok(past.includes('Operacje tego dnia') && past.includes('Wczorajsza'));
+    assert.ok(past.includes('data-act="elog"'), 'dodawanie jednym dotknięciem zostaje');
+    for (const s of ['Zaplanowane na dziś', 'data-act="qa-new"', 'data-act="strat-add"', 'data-act="act-new"', 'data-act="survey"',
+      'data-act="stmt"', 'class="light', 'plan-select', 'Dzisiejsze operacje']) assert.ok(!past.includes(s), `przeszłość bez: ${s}`);
+    assert.ok(!/disabled/.test(past.split('e-day-next')[1].split('>')[0]), 'strzałka › aktywna');
+  });
+
+  test('Energia: strzałka › wraca do dziś i dalej nie idzie', async () => {
+    const app = boot({ storage: withActs([act('a1')]) });
+    app.dom({ '#view-energy': {} });
+    app.run("ui.view = 'energy'");
+    await app.click('e-day-prev'); await app.click('e-day-prev');
+    assert.equal(app.g('energyDayKey()'), dayBefore(YESTERDAY));
+    await app.click('e-day-next');
+    assert.equal(app.g('eui.day'), YESTERDAY);
+    await app.click('e-day-next');
+    assert.equal(app.g('eui.day'), null);
+    await app.click('e-day-next');
+    assert.equal(app.g('energyDayKey()'), TODAY);
+    await app.click('e-day-prev'); await app.click('e-day-today');
+    assert.equal(app.g('eui.day'), null);
+    await app.click('elog', { id: 'a1' });
+    assert.equal(app.stored(K.elog)[TODAY].length, 1);
   });
 
   test('nieznana czynność nie tworzy wpisu', async () => {
