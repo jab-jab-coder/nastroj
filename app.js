@@ -140,9 +140,11 @@ function store(k, v) {
 }
 
 let toastTimer;
-function toast(msg) {
+// html (opcjonalnie): wersja z grafiką (np. baterią SVG); msg zostaje wersją tekstową.
+function toast(msg, html) {
   const t = $('#toast');
   t.textContent = msg;
+  if (html) t.innerHTML = html;
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
@@ -1804,8 +1806,15 @@ document.addEventListener('click', async ev => {
       delete ui.drafts[`${dk}|e`];
       renderToday();
       navRateSync();
-      const what = v != null ? `${v}/10` : `energia ${en}/10`;
-      toast(`${v != null ? mood(v)[0] : '⚡'} Zapisano: ${SLOTS.find(s => s.id === slot).label.toLowerCase()} — ${what}`);
+      // Potwierdzenie: nastrój (emoji) i energia (bateria jak w karcie pory) — to, co zostało zapisane.
+      const pora = SLOTS.find(s => s.id === slot).label.toLowerCase();
+      const m = v != null ? { emo: mood(v)[0], txt: `${v}/10` } : null;
+      const txtE = en != null ? `energia ${en}/10` : '';
+      const lead = m ? m.emo : '🔋';
+      const parts = [m?.txt, txtE].filter(Boolean);
+      const htmlE = en != null ? `<span class="toast-en">${energyIcon(en)} ${en}/10</span>` : '';
+      toast(`${lead} Zapisano: ${pora} — ${parts.join(' · ')}`,
+        `${m ? `${m.emo} ` : ''}Zapisano: ${esc(pora)} — ${[m?.txt, htmlE].filter(Boolean).join(' · ')}`);
       break;
     }
     case 'del': {
