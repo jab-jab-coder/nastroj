@@ -265,14 +265,9 @@ function renderToday() {
   ui.todayKey = todayK();
 
   $('#view-today').innerHTML = `
-    <header class="head">
-      <button class="icon-btn" data-act="day-prev" aria-label="Poprzedni dzień">‹</button>
-      <div>
+    ${dayHeadHtml(`
         <div class="eyebrow">${isToday ? 'Dziś' : esc(fmt(ui.day, { weekday: 'long' }))}</div>
-        <h1>${esc(fmt(ui.day, { day: 'numeric', month: 'long' }))}</h1>
-      </div>
-      <button class="icon-btn" data-act="day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
-    </header>
+        <h1>${esc(fmt(ui.day, { day: 'numeric', month: 'long' }))}</h1>`)}
     ${energyOn() ? saldoChipHtml(key) : ''}
     <div class="tl" role="group" aria-label="Oś doby od ${clockMin(dayStartMin())} do ${clockMin(dayStartMin())}">
       ${SLOTS.map((s, i) => `<div class="tl-row">
@@ -283,6 +278,21 @@ function renderToday() {
       </div>`).join('')}
     </div>
   `;
+}
+
+// Nagłówek z przewijaniem dni — wspólny dla Dziś i Energii (jeden oglądany dzień: ui.day).
+// ‹ poprzedni dzień, › następny (nie dalej niż dziś), » wraca do dziś — widoczny od przedwczoraj wstecz.
+function dayHeadHtml(inner) {
+  const k = dkey(ui.day), tk = todayK();
+  const jump = k < dkey(addDays(today0(), -1));
+  return `<header class="head${jump ? ' jump' : ''}">
+      <button class="icon-btn" data-act="day-prev" aria-label="Poprzedni dzień">‹</button>
+      <div>${inner}</div>
+      <span class="head-r">
+        <button class="icon-btn" data-act="day-next" aria-label="Następny dzień" ${k >= tk ? 'disabled' : ''}>›</button>
+        ${jump ? '<button class="icon-btn" data-act="day-today" aria-label="Wróć do dziś" title="Wróć do dziś">»</button>' : ''}
+      </span>
+    </header>`;
 }
 
 // Pionowa oś doby obok kart: od „Rano od” (góra) do tej samej godziny następnego dnia (dół).
@@ -1763,8 +1773,9 @@ document.addEventListener('click', async ev => {
       if (settings.oddechSound) oddechAudioInit();
       el.outerHTML = oddechSoundBtn();          // bez przerysowania ekranu, cykl biegnie dalej
       break;
-    case 'day-prev': ui.day = addDays(ui.day, -1); renderToday(); break;
-    case 'day-next': if (ui.day < today0()) { ui.day = addDays(ui.day, 1); renderToday(); } break;
+    case 'day-prev': ui.day = addDays(ui.day, -1); rerender(); break;   // Dziś albo Energia (wspólny dzień)
+    case 'day-next': if (ui.day < today0()) { ui.day = addDays(ui.day, 1); rerender(); } break;
+    case 'day-today': ui.day = today0(); rerender(); window.scrollTo({ top: 0 }); break;
     case 'week-prev': ui.week = addDays(ui.week, -7); ui.selWeek = null; renderWeek(); break;
     case 'week-next': ui.week = addDays(ui.week, 7); ui.selWeek = null; renderWeek(); break;
     case 'month-prev': ui.month = new Date(ui.month.getFullYear(), ui.month.getMonth() - 1, 1); ui.selMonth = null; renderMonth(); break;
@@ -2090,6 +2101,9 @@ async function syncState() {
 // Sprawdzanie przypomnień, gdy aplikacja działa (także w tle, dopóki system jej nie uśpi)
 async function checkReminders() {
   const k = todayK();
+  if (ui.view === 'energy' && document.visibilityState === 'visible' && ui.todayKey && ui.todayKey !== k && dkey(ui.day) === ui.todayKey) {
+    ui.day = today0(); renderEnergy();   // nowa doba aplikacji także na Energii (wspólny dzień)
+  }
   if (ui.view === 'today' && document.visibilityState === 'visible') {
     // nowa doba aplikacji (godzina „Rano od”): ekran pokazujący dotąd „dziś” przechodzi na nowy dzień
     if (ui.todayKey && ui.todayKey !== k && dkey(ui.day) === ui.todayKey) { ui.day = today0(); renderToday(); }
@@ -2133,7 +2147,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     // po powrocie do aplikacji (np. następnego dnia) odśwież „dziś”
     const t = today0();
-    if (ui.view === 'today' && (ui.day > t || (ui.todayKey && dkey(ui.day) === ui.todayKey))) ui.day = t;
+    if ((ui.view === 'today' || ui.view === 'energy') && (ui.day > t || (ui.todayKey && dkey(ui.day) === ui.todayKey))) ui.day = t;
     rerender();
   }
   checkReminders();
