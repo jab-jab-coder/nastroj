@@ -118,6 +118,7 @@ gałąź → commit (testy przed każdym commitem) → push (GitHub Actions „T
 ## Dokumentacja
 
 - `README.md` — funkcje i formaty danych. `tests/README.md` — testy, harness, zachowania do decyzji.
+- Praca nad wersjami językowymi: najpierw przeczytaj `docs/wersja-angielska.md`.
 - Poza repo (Projekt „Nastrój App” w claude.ai): „Moduł Leki — specyfikacja”, „Samouczek — propozycje”,
   „Przewodnik — treści”, „Wersja angielska — analiza i plan”.
 
