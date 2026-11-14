@@ -237,6 +237,29 @@ describe('dziennik energii (nastroj.energy.v1)', () => {
     for (const s of ['Zaplanowane na dziś', 'data-act="qa-new"', 'data-act="strat-add"', 'data-act="act-new"', 'data-act="survey"',
       'data-act="stmt"', 'class="light', 'plan-select', 'Dzisiejsze operacje']) assert.ok(!past.includes(s), `przeszłość bez: ${s}`);
     assert.ok(!/disabled/.test(past.split('e-day-next')[1].split('>')[0]), 'strzałka › aktywna');
+    assert.ok(past.includes('Saldo z 4 tygodni'), 'wykres salda zostaje');
+  });
+
+  test('Saldo z 4 tygodni dla dnia z przeszłości: 28 dni kończących się tym dniem, saldo liczone do niego', () => {
+    const day = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d, 12).getTime(); };
+    const app = boot({ storage: withActs([act('a1')], {
+      [K.elog]: {
+        '2026-09-20': [{ id: 'x0', a: 'a1', n: 'X', k: 'd', v: 40, t: day('2026-09-20') }],   // poza oknem do 22.10, w oknie do 18.10
+        [YESTERDAY]: [{ id: 'x1', a: 'a1', n: 'X', k: 'w', v: 30, t: day(YESTERDAY) }],
+        [TODAY]: [{ id: 'x2', a: 'a1', n: 'X', k: 'w', v: 50, t: day(TODAY) }],
+      },
+    }) });
+    const bars = html => (html.match(/<rect /g) || []).length;
+    const html = app.call('trendHtml', YESTERDAY);
+    assert.match(html, /do 22\.10/);
+    assert.match(html, />22\.10</, 'ostatni podpis osi = oglądany dzień');
+    assert.ok(!html.includes('>23.10<'), 'bez dni po oglądanym');
+    assert.equal(bars(html), 28, 'słupek na każdy dzień okna 25.09–22.10 (saldo przeniesione od 20.09)');
+    const old = app.call('trendHtml', '2026-09-25');
+    assert.match(old, />25\.09</);
+    assert.equal(bars(old), 6, '20.09–25.09: saldo z przeniesieniem, dalszych dni brak');
+    assert.ok(!app.call('trendHtml', '2026-09-10').includes('<svg'), 'przed pierwszym wpisem — brak wykresu');
+    assert.ok(!app.call('trendHtml').includes('<small>do '), 'dziś — tytuł bez daty');
   });
 
   test('Energia: strzałka › wraca do dziś i dalej nie idzie', async () => {

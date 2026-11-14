@@ -361,13 +361,14 @@ function renderEnergy() {
     </header>
     <p class="lead">${esc(fmt(parseKey(tk), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>`;
 
-  // Dzień z przeszłości: tylko saldo tego dnia, dodawanie jednym dotknięciem i operacje tego dnia
-  // (bez badań, podpowiedzi, planu, budżetu na jutro, trendu, rankingu, strategii i listy czynności).
+  // Dzień z przeszłości: saldo tego dnia, dodawanie jednym dotknięciem, operacje tego dnia i saldo z 4 tygodni
+  // do tego dnia (bez badań, podpowiedzi, planu, budżetu na jutro, rankingu, strategii i listy czynności).
   if (!isToday) {
     v.innerHTML = `${head}
     ${saldoCard(day, null)}
     ${quickLogHtml(tk)}
     ${todayLogHtml(tk)}
+    ${trendHtml(tk)}
     <p class="footer"><button class="link" data-act="e-day-today">Wróć do dziś</button></p>
   `;
     return;
@@ -775,11 +776,12 @@ function planHtml(todayBal) {
     </div>`;
 }
 
-function trendHtml() {
+// 28 dni kończących się dniem tk (dziś albo dzień oglądany w historii); saldo z przeniesieniem liczone do tk.
+function trendHtml(tk = todayKey()) {
   const N = 28;
-  const tk = todayKey();
+  const end = parseKey(tk), past = tk !== todayKey();
   const L = ledger(tk);
-  const days = [...Array(N)].map((_, i) => dkey(addDays(today0(), i - N + 1)));
+  const days = [...Array(N)].map((_, i) => dkey(addDays(end, i - N + 1)));
   const bals = days.map(k => L[k]?.balance ?? null);
   if (!bals.some(b => b != null)) return '';
   const W = 360, H = 190, l = 34, r = 10, t = 22, bt = 24;
@@ -813,8 +815,8 @@ function trendHtml() {
   });
   return `
     <div class="card chart-card">
-      <h3 style="padding:0 8px">Saldo z 4 tygodni</h3>
-      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Saldo energii z ostatnich 28 dni">${s}</svg>
+      <h3 style="padding:0 8px">Saldo z 4 tygodni${past ? ` <small>do ${end.getDate()}.${pad2(end.getMonth() + 1)}</small>` : ''}</h3>
+      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Saldo energii z ${past ? `28 dni do ${esc(fmt(end, { day: 'numeric', month: 'long' }))}` : 'ostatnich 28 dni'}">${s}</svg>
       <div class="legend">
         <span><i class="bpos-i"></i>na plusie</span><span><i class="bneg-i"></i>na minusie</span><span>◆ wyniki badań</span>
       </div>
