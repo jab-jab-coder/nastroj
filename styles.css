@@ -68,6 +68,10 @@ h3 { font-size: 15px; margin: 0 0 10px; font-weight: 800; }
   cursor: pointer;
 }
 .icon-btn:disabled { opacity: .35; box-shadow: none; cursor: default; }
+/* nagłówek z przewijaniem dni: po prawej › i (od przedwczoraj wstecz) » „wróć do dziś” */
+.head-r { display: flex; justify-content: flex-end; gap: 6px; }
+.head.jump { grid-template-columns: 44px 1fr auto; }
+.head.jump h1 { overflow-wrap: anywhere; }
 
 /* ---------- Dziś: pionowa oś doby ---------- */
 /* Wiersz = odcinek osi + karta pory; odcinek ma wysokość karty (z odstępem do następnej).

@@ -209,8 +209,8 @@ describe('dziennik energii (nastroj.energy.v1)', () => {
     const app = boot({ storage: withActs([act('a1', 'w', { def: 30 })]) });
     app.dom({ '#view-energy': {} });
     app.run("ui.view = 'energy'");
-    await app.click('e-day-prev');
-    assert.equal(app.g('eui.day'), YESTERDAY);
+    await app.click('day-prev');
+    assert.equal(app.g('energyDayKey()'), YESTERDAY);
     await app.click('elog', { id: 'a1' });
     const log = app.stored(K.elog);
     assert.equal(log[TODAY], undefined, 'nic pod dzisiejszym dniem');
@@ -230,13 +230,13 @@ describe('dziennik energii (nastroj.energy.v1)', () => {
     app.call('renderEnergy');
     const today = app.run("$('#view-energy').innerHTML");
     for (const s of ['Zaplanowane na dziś', 'data-act="qa-new"', 'data-act="strat-add"', 'data-act="survey"', 'class="light']) assert.ok(today.includes(s), `dziś: ${s}`);
-    await app.click('e-day-prev');
+    await app.click('day-prev');
     const past = app.run("$('#view-energy').innerHTML");
     assert.ok(past.includes('Operacje tego dnia') && past.includes('Wczorajsza'));
     assert.ok(past.includes('data-act="elog"'), 'dodawanie jednym dotknięciem zostaje');
     for (const s of ['Zaplanowane na dziś', 'data-act="qa-new"', 'data-act="strat-add"', 'data-act="act-new"', 'data-act="survey"',
       'data-act="stmt"', 'class="light', 'plan-select', 'Dzisiejsze operacje']) assert.ok(!past.includes(s), `przeszłość bez: ${s}`);
-    assert.ok(!/disabled/.test(past.split('e-day-next')[1].split('>')[0]), 'strzałka › aktywna');
+    assert.ok(!/disabled/.test(past.split('day-next')[1].split('>')[0]), 'strzałka › aktywna');
     assert.ok(past.includes('Saldo z 4 tygodni'), 'wykres salda zostaje');
   });
 
@@ -262,48 +262,56 @@ describe('dziennik energii (nastroj.energy.v1)', () => {
     assert.ok(!app.call('trendHtml').includes('<small>do '), 'dziś — tytuł bez daty');
   });
 
-  test('Energia: strzałka › wraca do dziś i dalej nie idzie', async () => {
+  test('Energia: strzałka › wraca do dziś i dalej nie idzie; » wraca do dziś', async () => {
     const app = boot({ storage: withActs([act('a1')]) });
     app.dom({ '#view-energy': {} });
-    app.run("ui.view = 'energy'");
-    await app.click('e-day-prev'); await app.click('e-day-prev');
+    app.call('show', 'energy');
+    await app.click('day-prev'); await app.click('day-prev');
     assert.equal(app.g('energyDayKey()'), dayBefore(YESTERDAY));
-    await app.click('e-day-next');
-    assert.equal(app.g('eui.day'), YESTERDAY);
-    await app.click('e-day-next');
-    assert.equal(app.g('eui.day'), null);
-    await app.click('e-day-next');
-    assert.equal(app.g('energyDayKey()'), TODAY);
-    await app.click('e-day-prev'); await app.click('e-day-today');
-    assert.equal(app.g('eui.day'), null);
+    await app.click('day-next');
+    assert.equal(app.g('energyDayKey()'), YESTERDAY);
+    await app.click('day-next'); await app.click('day-next');
+    assert.equal(app.g('dkey(ui.day)'), TODAY, '› nie wychodzi poza dziś');
+    await app.click('day-prev'); await app.click('day-prev'); await app.click('day-prev');
+    await app.click('day-today');
+    assert.equal(app.g('dkey(ui.day)'), TODAY);
     await app.click('elog', { id: 'a1' });
     assert.equal(app.stored(K.elog)[TODAY].length, 1);
   });
 
-  test('chip salda na Dziś (dzień z przeszłości) otwiera Energię na tym samym dniu; z dziś — na dziś', async () => {
+  test('Dziś i Energia mają wspólny dzień: przewinięcie na jednej karcie zmienia drugą', async () => {
     const app = boot({ storage: withActs([act('a1')]) });
-    await app.click('day-prev');
-    await app.click('go-energy');
+    app.dom({ '#view-energy': {}, '#view-today': {} });
+    await app.click('day-prev');                          // na Dziś
+    await app.click('go-energy');                         // chip salda
     assert.equal(app.g('ui.view'), 'energy');
-    assert.equal(app.g('eui.day'), YESTERDAY);
+    assert.equal(app.g('energyDayKey()'), YESTERDAY);
     await app.click('elog', { id: 'a1' });
     assert.equal(app.stored(K.elog)[YESTERDAY].length, 1);
+    await app.click('day-prev');                          // na Energii
+    app.call('show', 'week');
     app.call('show', 'today');
-    await app.click('day-next');
-    await app.click('go-energy');
-    assert.equal(app.g('energyDayKey()'), TODAY);
+    assert.equal(app.g('dkey(ui.day)'), dayBefore(YESTERDAY), 'Dziś pokazuje dzień ustawiony na Energii');
+    app.call('show', 'energy');
+    assert.equal(app.g('energyDayKey()'), dayBefore(YESTERDAY), 'zmiana karty nie resetuje dnia');
   });
 
-  test('wejście na Energię z innej karty wraca do dziś; powrót z Oddechu zostawia oglądany dzień', async () => {
+  test('guzik » „wróć do dziś” w nagłówku: brak dziś i wczoraj, jest od przedwczoraj wstecz (Dziś i Energia)', async () => {
     const app = boot({ storage: withActs([act('a1')]) });
-    app.call('show', 'energy');
-    await app.click('e-day-prev');
-    app.call('show', 'oddech');
-    app.call('show', 'energy');
-    assert.equal(app.g('eui.day'), YESTERDAY, 'po Oddechu ten sam dzień');
-    app.call('show', 'week');
-    app.call('show', 'energy');
-    assert.equal(app.g('eui.day'), null, 'po innej karcie — dziś');
+    app.dom({ '#view-energy': {}, '#view-today': {} });
+    const has = sel => app.run(`$('${sel}').innerHTML`).includes('data-act="day-today" aria-label');
+    for (const [view, sel] of [['today', '#view-today'], ['energy', '#view-energy']]) {
+      app.call('show', view);
+      assert.ok(!has(sel), `${view}: dziś bez »`);
+      await app.click('day-prev');
+      assert.ok(!has(sel), `${view}: wczoraj bez »`);
+      await app.click('day-prev');
+      assert.ok(has(sel), `${view}: przedwczoraj z »`);
+      assert.match(app.run(`$('${sel}').innerHTML`), /class="head jump"/);
+      await app.click('day-today');
+      assert.equal(app.g('dkey(ui.day)'), TODAY);
+      assert.ok(!has(sel), `${view}: po » znowu dziś`);
+    }
   });
 
   test('nieznana czynność nie tworzy wpisu', async () => {

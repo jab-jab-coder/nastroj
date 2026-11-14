@@ -96,7 +96,7 @@ const SURVEYS = {
 
 /* ---------- stan ---------- */
 let acts = [], elog = {}, plans = {}, surveys = [], strategies = [], records = [];
-const eui = { survey: null, stmt: null, editAct: null, quickAdd: null, day: null };   // day: oglądany dzień z przeszłości ('YYYY-MM-DD') albo null = dziś
+const eui = { survey: null, stmt: null, editAct: null, quickAdd: null };
 
 function energyInit() {
   // jednorazowa kopia danych sprzed aktualizacji (na wszelki wypadek)
@@ -150,9 +150,9 @@ const saveStrat = () => store(KEY_STRAT, strategies);
 const signed = n => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0');
 const todayKey = () => dkey(today0());   // dzień aplikacji (patrz „Rano od” w app.js)
 const tomorrowKey = () => dkey(addDays(today0(), 1));
-// Dzień oglądany w zakładce Energia (strzałki ‹ ›): dzień z przeszłości albo dziś.
-// Dzień, który przestał być przeszłością (np. po zmianie „Rano od”), wraca do dziś.
-const energyDayKey = () => (eui.day && eui.day < todayKey() ? eui.day : todayKey());
+// Dzień oglądany w zakładce Energia = dzień oglądany na Dziś (wspólne ui.day i strzałki ‹ › w app.js).
+// Dzień, który nie jest przeszłością (np. po zmianie „Rano od”), to dziś.
+const energyDayKey = () => { const k = dkey(ui.day); return k < todayKey() ? k : todayKey(); };
 
 function applyCalm() {
   document.documentElement.dataset.calm = settings.lowSensory ? '1' : '';
@@ -353,12 +353,9 @@ function renderEnergy() {
   const isToday = tk === todayKey();
   const L = ledger(tk);
   const day = L[tk] || { dep: 0, wd: 0, carryIn: 0, balance: 0 };
+  ui.todayKey = todayKey();
   const head = `
-    <header class="head">
-      <button class="icon-btn" data-act="e-day-prev" aria-label="Poprzedni dzień">‹</button>
-      <div><div class="eyebrow">Energia</div><h1>Księgowość Energetyczna</h1></div>
-      <button class="icon-btn" data-act="e-day-next" aria-label="Następny dzień" ${isToday ? 'disabled' : ''}>›</button>
-    </header>
+    ${dayHeadHtml('<div class="eyebrow">Energia</div><h1>Księgowość Energetyczna</h1>')}
     <p class="lead">${esc(fmt(parseKey(tk), { weekday: 'long', day: 'numeric', month: 'long' }))}</p>`;
 
   // Dzień z przeszłości: saldo tego dnia, dodawanie jednym dotknięciem, operacje tego dnia i saldo z 4 tygodni
@@ -369,7 +366,7 @@ function renderEnergy() {
     ${quickLogHtml(tk)}
     ${todayLogHtml(tk)}
     ${trendHtml(tk)}
-    <p class="footer"><button class="link" data-act="e-day-today">Wróć do dziś</button></p>
+    <p class="footer"><button class="link" data-act="day-today">Wróć do dziś</button></p>
   `;
     return;
   }
@@ -1066,12 +1063,7 @@ function findEntry(eid) {
 
 function energyClick(act, el) {
   switch (act) {
-    case 'go-energy': {   // chip salda na Dziś: Energia otwiera się na dniu oglądanym na Dziś
-      const k = ui.view === 'today' ? dkey(ui.day) : null;
-      show('energy');
-      if (k && k < todayKey()) { eui.day = k; renderEnergy(); }
-      return true;
-    }
+    case 'go-energy': show('energy'); return true;   // ten sam dzień co na Dziś (wspólne ui.day)
     case 'e-setup': {
       const picked = [...document.querySelectorAll('[data-tpl]')].filter(c => c.checked).map(c => TEMPLATES[Number(c.dataset.tpl)]);
       if (!picked.length) { toast('Wybierz przynajmniej jedną czynność'); return true; }
@@ -1081,12 +1073,6 @@ function energyClick(act, el) {
       return true;
     }
     case 'elog': logActivity(el.dataset.id, ui.view === 'energy' ? energyDayKey() : todayKey()); rerender(); return true;
-    case 'e-day-prev': eui.day = dkey(addDays(parseKey(energyDayKey()), -1)); renderEnergy(); window.scrollTo({ top: 0 }); return true;
-    case 'e-day-next': {
-      const k = dkey(addDays(parseKey(energyDayKey()), 1));
-      eui.day = k < todayKey() ? k : null; renderEnergy(); window.scrollTo({ top: 0 }); return true;
-    }
-    case 'e-day-today': eui.day = null; renderEnergy(); window.scrollTo({ top: 0 }); return true;
     case 'e-chip': {
       const [k, i] = findEntry(el.dataset.entry);
       if (k) { elog[k][i].v = Number(el.dataset.v); saveLog(); rerender(); }
