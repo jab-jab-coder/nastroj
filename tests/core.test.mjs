@@ -139,6 +139,15 @@ describe('oceny nastroju i energii (nastroj.entries.v1)', () => {
     await app.input({ value: '2', dataset: { kind: 'energy' } }, card);
     await app.click('save', {}, { card });
     assert.deepEqual(app.stored(K.entries)[TODAY].evening, { t: app.now(), v: 6, e: 2 });
+    assert.match(app.toasts.at(-1), /Zapisano: wieczór — 6\/10 · energia 2\/10/);
+  });
+
+  test('Potwierdzenie zapisu samej energii pokazuje energię', async () => {
+    const app = boot();
+    const card = { key: TODAY, slot: 'morning' };
+    await app.input({ value: '7', dataset: { kind: 'energy' } }, card);
+    await app.click('save', {}, { card });
+    assert.match(app.toasts.at(-1), /^🔋 Zapisano: rano — energia 7\/10$/);
   });
 
   test('„Usuń” usuwa ocenę po potwierdzeniu, bez potwierdzenia nic nie zmienia', async () => {

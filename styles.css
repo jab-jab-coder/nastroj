@@ -327,6 +327,8 @@ input[type=time] {
   max-width: calc(100% - 32px); text-align: center;
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
+#toast .toast-en { white-space: nowrap; }
+#toast .bat { width: 28px; height: 17px; vertical-align: -3px; }
 
 
 
