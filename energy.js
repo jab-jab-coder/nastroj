@@ -1064,7 +1064,12 @@ function findEntry(eid) {
 
 function energyClick(act, el) {
   switch (act) {
-    case 'go-energy': show('energy'); return true;
+    case 'go-energy': {   // chip salda na Dziś: Energia otwiera się na dniu oglądanym na Dziś
+      const k = ui.view === 'today' ? dkey(ui.day) : null;
+      show('energy');
+      if (k && k < todayKey()) { eui.day = k; renderEnergy(); }
+      return true;
+    }
     case 'e-setup': {
       const picked = [...document.querySelectorAll('[data-tpl]')].filter(c => c.checked).map(c => TEMPLATES[Number(c.dataset.tpl)]);
       if (!picked.length) { toast('Wybierz przynajmniej jedną czynność'); return true; }

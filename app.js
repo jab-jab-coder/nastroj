@@ -1422,6 +1422,8 @@ function showView(view) {
   if (view !== 'tama') tamaStop();
   document.body.classList.toggle('sw-on', view === 'stopwatch');
   document.body.classList.toggle('animals-on', view === 'animals' || view === 'animals-together' || view === 'tama');
+  // Wejście na Energię z innej karty zaczyna od dziś (powrót z Oddechu / Tamy zostawia oglądany dzień)
+  if (view === 'energy' && !['energy', 'oddech', 'tama'].includes(ui.view) && typeof eui !== 'undefined') eui.day = null;
   ui.view = view;
   document.querySelectorAll('.view').forEach(v => { v.hidden = v.dataset.view !== view; });
   const tabFor = view === 'oddech' || view === 'tama' ? 'energy' : view === 'leki' ? 'settings' : view === 'dzik' ? 'month' : view === 'animals' || view === 'animals-together' ? 'week' : view;  // Oddech, Tama → Energia, Leki → Ustawienia, Dzik → Miesiąc, Animals(-together) → Tydzień

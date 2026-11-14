@@ -257,6 +257,32 @@ describe('dziennik energii (nastroj.energy.v1)', () => {
     assert.equal(app.stored(K.elog)[TODAY].length, 1);
   });
 
+  test('chip salda na Dziś (dzień z przeszłości) otwiera Energię na tym samym dniu; z dziś — na dziś', async () => {
+    const app = boot({ storage: withActs([act('a1')]) });
+    await app.click('day-prev');
+    await app.click('go-energy');
+    assert.equal(app.g('ui.view'), 'energy');
+    assert.equal(app.g('eui.day'), YESTERDAY);
+    await app.click('elog', { id: 'a1' });
+    assert.equal(app.stored(K.elog)[YESTERDAY].length, 1);
+    app.call('show', 'today');
+    await app.click('day-next');
+    await app.click('go-energy');
+    assert.equal(app.g('energyDayKey()'), TODAY);
+  });
+
+  test('wejście na Energię z innej karty wraca do dziś; powrót z Oddechu zostawia oglądany dzień', async () => {
+    const app = boot({ storage: withActs([act('a1')]) });
+    app.call('show', 'energy');
+    await app.click('e-day-prev');
+    app.call('show', 'oddech');
+    app.call('show', 'energy');
+    assert.equal(app.g('eui.day'), YESTERDAY, 'po Oddechu ten sam dzień');
+    app.call('show', 'week');
+    app.call('show', 'energy');
+    assert.equal(app.g('eui.day'), null, 'po innej karcie — dziś');
+  });
+
   test('nieznana czynność nie tworzy wpisu', async () => {
     const app = boot({ storage: withActs([act('a1')]) });
     await app.click('elog', { id: 'brak' });
