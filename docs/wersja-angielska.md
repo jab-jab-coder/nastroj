@@ -22,8 +22,7 @@ języka ani regionu z telefonu. Wybór ustala naraz język tekstów, początek t
 
 Do potwierdzenia przy okazji (propozycje w sekcji 7 i 2.3):
 - a) en-US, krótkie podpisy na osiach (oś doby, pasek pór): „9 AM” czy zwięźle „9a”? Propozycja: **„9a”/„2:30p”** tylko na osiach, pełne „9:00 AM” wszędzie indziej — do oceny w kopii testowej.
-- b) Domena JakoTako: GitHub Pages tego konta (`jab-jab-coder.github.io/jakotako/`, wymaga PR „N” w Nastroju — sekcja 0.3) czy osobna domena?
-  Propozycja: **GitHub Pages tego konta** + PR „N”.
+- b) Domena JakoTako: GitHub Pages tego konta (`jab-jab-coder.github.io/jakotako/`) z prefiksem `jt` i etapem N — sekcja 0.3. Propozycja: **tak**.
 
 ## 0. Model: nowa aplikacja na bazie kodu (decyzja 8)
 
@@ -33,7 +32,7 @@ JakoTako **nie jest aktualizacją** Nastroju. Kod Nastroju jest punktem wyjścia
   Jego użytkownicy nie dostają JakoTako jako aktualizacji. Ten dokument i plan zostają tu jako historia decyzji.
 - **JakoTako**: **osobne repozytorium** (`jab-jab-coder/jakotako`) w **osobnym katalogu `jakotako`** (lokalnie obok `nastroj`),
   utworzone z kodu Nastroju (propozycja: kopia z historią git, żeby zachować `git log`/`blame`), nowy adres GitHub Pages,
-  nowa instalacja PWA (nowy `manifest` `id`/`start_url`), `VERSION` od `jakotako-v1`, własny `CLAUDE.md`/`README.md` (kopie dostosowane),
+  nowa instalacja PWA (nowy `manifest` `id`/`start_url`), `VERSION` od `jt-v1`, własny `CLAUDE.md`/`README.md` (kopie dostosowane),
   nowa strona instalacji i nowy kod QR.
 - **Przejście z Nastroju**: użytkownik robi eksport JSON w Nastroju i import w JakoTako (propozycja: JakoTako przyjmuje pliki `app: 'nastroj'`
   v1 i v2 oraz własne `app: 'jakotako'`). Brak automatycznej migracji między aplikacjami.
@@ -59,17 +58,23 @@ JakoTako **nie jest aktualizacją** Nastroju. Kod Nastroju jest punktem wyjścia
 
 Repo `jab-jab-coder/jakotako` na GitHub Pages tego samego konta daje adres `jab-jab-coder.github.io/jakotako/` — obie aplikacje dzielą wtedy **origin**, a więc:
 
-1. **`localStorage` wspólny** dla obu aplikacji → JakoTako **musi mieć własny prefiks kluczy**: `jakotako.*` (np. `jakotako.entries.v1`).
+1. **`localStorage` wspólny** dla obu aplikacji → JakoTako **musi mieć własny prefiks kluczy**: `jt.*` (np. `jt.entries.v1`).
    Inaczej czytałaby i nadpisywała dane Nastroju (a „Usuń wszystkie dane” w jednej kasowałoby drugą).
+   Prefiks `jt` (decyzja autora 2026-11-27) obejmuje **wszystko, co jest wspólne dla domeny**: klucze localStorage `jt.*`,
+   nazwy cache `jt-vNN` i `jt-state`, tag powiadomień `jt-mood-*`, tag `periodicSync` `jt-mood-reminder`.
+   Usuwanie danych w JakoTako kasuje tylko klucze z listy (`removeItem` po kluczach `jt.*`), nigdy `localStorage.clear()`.
+   Prefiks **nie wystarcza na pkt 2** — tam potrzebna jest zmiana w Nastroju.
 2. **Cache Storage wspólny, a SW Nastroju kasuje cudze cache**: `sw.js` przy aktywacji usuwa każdy cache inny niż swój `VERSION` i `nastroj-state`
    (`keys.filter(k => k !== VERSION && k !== STATE_CACHE)`). Każda aktualizacja Nastroju skasowałaby offline JakoTako (i odwrotnie).
-   → **PR w Nastroju przed startem JakoTako**: kasować tylko `k.startsWith('nastroj-v')`; JakoTako: cache `jakotako-vNN`, `jakotako-state`,
-   kasowanie tylko `jakotako-v*`.
-3. **Powiadomienia**: tag `mood-${slot}` → w JakoTako `jakotako-mood-${slot}` (ta sama domena — powiadomienia mogłyby się nadpisywać);
-   `periodicSync` jest per rejestracja SW (osobny zakres ścieżki) — OK.
+   → **PR w Nastroju przed startem JakoTako**: kasować tylko `k.startsWith('nastroj-v')`; JakoTako: cache `jt-vNN`, `jt-state`,
+   kasowanie tylko `jt-v*`.
+3. **Powiadomienia**: tag `mood-${slot}` → w JakoTako `jt-mood-${slot}` (ta sama domena — powiadomienia mogłyby się nadpisywać);
+   `periodicSync` jest per rejestracja SW (osobny zakres ścieżki), ale dla porządku też z prefiksem: `jt-mood-reminder`.
 4. `navigator.storage` (limit, trwałość) — wspólny dla domeny; bez zmian w kodzie, tylko świadomość.
 
-Alternatywa bez tych pułapek: osobna domena (własna domena albo inne konto/organizacja GitHub) — do decyzji autora.
+Po tych zmianach (prefiks `jt` w JakoTako + etap N w Nastroju) obie aplikacje działają obok siebie w tej samej domenie bez kolizji.
+Test w JakoTako: żadna operacja aplikacji nie czyta ani nie zapisuje klucza spoza `jt.*` (rozszerzenie `contract.test.mjs`).
+Alternatywa bez etapu N: osobna domena (własna domena albo inne konto/organizacja GitHub).
 
 ## 2a. Usunięcie modułów (etap 0a, decyzja 6)
 
@@ -156,8 +161,8 @@ Brak kolizji nazw: `renderMeds`, `tutorial`, `COMPLIMENTS`, `slotsCard…`, `fmt
 
 ### 2.2 Przestrzeń nazw JakoTako (etap 0) i czego nie zmieniamy
 
-Zmieniamy (nowa aplikacja, sekcja 0): prefiks kluczy `nastroj.` → `jakotako.` (te same sufiksy: `entries.v1`, `settings.v1`, …),
-cache `jakotako-vNN` / `jakotako-state`, `app: 'jakotako'` w eksporcie (import przyjmuje też `'nastroj'`), `UID:jakotako-…@jakotako` w ICS,
+Zmieniamy (nowa aplikacja, sekcja 0): prefiks kluczy `nastroj.` → `jt.` (te same sufiksy: `entries.v1`, `settings.v1`, …),
+cache `jt-vNN` / `jt-state`, `app: 'jakotako'` w eksporcie (import przyjmuje też `'nastroj'`), `UID:jakotako-…@jakotako` w ICS,
 tag powiadomień, `manifest` (`id`, `name`), strona instalacji (`pobierz.html` w nowym repo może zostać pod tą nazwą — to inny adres).
 
 Nie zmieniamy (import z Nastroju): id kategorii, id szablonów `tpl`, nazwy i znaczenia pól w obiektach, `version: 2` formatu eksportu.
@@ -167,7 +172,7 @@ Komentarze po polsku — zostają (zmiana opcjonalna, osobno).
 ### 2.3 Pułapki przy zmianie nazw
 
 1. **Historia i adresy** — bez aliasów (nowa aplikacja); `NAV_HASH` i `navUrl()` od razu z nowymi nazwami.
-2. **Klucze w testach** — `tests/harness.mjs` (`EXPORT_FIELDS`, klucze `K` w testach) i `TECHNICAL` w `contract.test.mjs` z prefiksem `jakotako.`.
+2. **Klucze w testach** — `tests/harness.mjs` (`EXPORT_FIELDS`, klucze `K` w testach) i `TECHNICAL` w `contract.test.mjs` z prefiksem `jt.`.
 3. **Każdy przemianowany plik** w 4 miejscach: `index.html`, `SHELL` w `sw.js`, `APP_FILES` w `tests/harness.mjs`, `APP` w `tests/pokrycie.mjs`.
    Ikony — tylko `SHELL` i miejsca użycia (`app.js`, `index.html`, `manifest.webmanifest`, `pobierz.html`).
 4. **Testy**: odwołują się do nazw plików (`harness.mjs`, `pokrycie.mjs`). Zmiana testów jest tu zamierzona
@@ -243,8 +248,8 @@ Teksty wymagające tłumaczenia twórczego:
 
 N. **Nastrój (w tym repo), przed startem JakoTako** — `sw.js`: kasować tylko własne cache `nastroj-v*` (sekcja 0.3, pkt 2). Potrzebne tylko,
    jeśli JakoTako będzie na tej samej domenie. Podbicie `VERSION` Nastroju.
-0. **Nowe repo JakoTako** (sekcja 0) — `jab-jab-coder/jakotako`, katalog `jakotako`, kopia z historią, GitHub Pages, przestrzeń nazw (2.2: prefiks `jakotako.`, cache, `app`, manifest `id`, ICS, tag powiadomień),
-   import plików `app: 'nastroj'`, `VERSION` `jakotako-v1`, `CLAUDE.md`/`README.md` dla JakoTako, ten dokument skopiowany do `docs/`.
+0. **Nowe repo JakoTako** (sekcja 0) — `jab-jab-coder/jakotako`, katalog `jakotako`, kopia z historią, GitHub Pages, przestrzeń nazw (2.2: prefiks `jt.`, cache, `app`, manifest `id`, ICS, tag powiadomień),
+   import plików `app: 'nastroj'`, `VERSION` `jt-v1`, `CLAUDE.md`/`README.md` dla JakoTako, ten dokument skopiowany do `docs/`.
 0a. **Usunięcie modułów** (sekcja 2a) — gry, zwierzęta, Stoper z rekordami, Oddech; Samouczek. Podbicie `VERSION`.
    `CLAUDE.md` JakoTako: tabela plików, kolejność skryptów, „Ukryte widoki” (znika), lista kluczy bez `records.v1`.
 0b. **Zmiana nazw w kodzie** (sekcja 2) — bez zmian widocznych dla użytkownika, testy przechodzą (zmienione tylko nazwy w testach).
@@ -410,5 +415,5 @@ PR #42 (Energia — poprzednie dni) i #43 (energia w potwierdzeniu zapisu):
 - 2026-11-07 — aktualizacja do `main` @ eee69b2 (PR #40, `nastroj-v52`).
 - 2026-11-27 — aktualizacja do `main` @ 166f11b (PR #43, `nastroj-v53`): decyzje autora (ton, nazwa „JakoTako”, komplementy idiom za idiom,
   en-GB domyślny + en-US jako trzecia opcja z tygodniem od niedzieli, AM/PM i datami USA, zmiana nazw przed i18n), etap 0 z mapą zmian nazw i pułapkami (historia, adresy, skrót), sekcja o nazwie produktu,
-  model „nowa aplikacja na bazie kodu, nie nowa wersja” (sekcja 0: nowe repo i adres, prefiks `jakotako.`, pułapki wspólnej domeny,
+  model „nowa aplikacja na bazie kodu, nie nowa wersja” (sekcja 0: nowe repo i adres, prefiks `jt.`, pułapki wspólnej domeny,
   import z Nastroju), usunięcie gier, zwierząt, Stopera z rekordami (w JakoTako bez `records.v1`) i Oddechu, zmiana kroku 1 Samouczka (etap 0a), regiony pl/en-GB/en-US wybierane jawnie w Ustawieniach (tydzień, zegar, daty, lista kontrolna przełączania), pułapki danych (`settings.collapsed`, nazwy w `energy.v1`), mapa wykonawcza, zmiany z PR #42–#43.
