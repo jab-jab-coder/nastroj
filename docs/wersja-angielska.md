@@ -1,6 +1,6 @@
-# Wersja angielska (JakoTako) — analiza kodu i plan i18n
+# JakoTako — nowa aplikacja na bazie kodu Nastroju: analiza i plan (wersje językowe, i18n)
 
-Status: decyzje autora podjęte (sekcja 1), kod bez zmian · aktualizacja 2026-11-27 ·
+Status: decyzje autora podjęte (sekcja 1), kod bez zmian. **JakoTako to nowa aplikacja, nie nowa wersja Nastroju** (sekcja 0) · aktualizacja 2026-11-27 ·
 stan repo: `main` @ 166f11b (PR #43), `sw.js` VERSION `nastroj-v53`, testy 201/201 · storage 113/113.
 
 ## 1. Decyzje autora (2026-11-27)
@@ -8,12 +8,13 @@ stan repo: `main` @ 166f11b (PR #43), `sw.js` VERSION `nastroj-v53`, testy 201/2
 | # | Pytanie | Decyzja | Skutek dla wykonania |
 |---|---|---|---|
 | 1 | Ton EN | **Luźny**, jak po polsku (także MOODS i ENERGIES, z wulgaryzmem) | Tłumaczenie twórcze, nie „grzeczne”; przegląd tonu przez autora |
-| 2 | Nazwa produktu | **„JakoTako”**, ta sama po polsku i po angielsku | Nazwa neutralna językowo → jeden manifest (pkt 4.9 wariant a). Zmiana nazwy w UI obu języków — sekcja 6 |
+| 2 | Nazwa produktu | **„JakoTako”**, ta sama po polsku i po angielsku | Nazwa neutralna językowo → jeden manifest (pkt 4.10 wariant a). Zmiana nazwy w UI obu języków — sekcja 6 |
 | 3 | Komplementy | **Tłumaczymy na EN**, ale idiomy zastępujemy idiomami angielskimi (bez tłumaczenia dosłownego) | `compliments.en.js` z tymi samymi kluczami `tpl` i kategoriami co PL; liczba pozycji nie musi być równa |
 | 4 | Wariant angielskiego | **en-GB = domyślny angielski**; **en-US jako trzecia opcja**: tydzień od niedzieli, godziny AM/PM, daty jak w USA. Wykres tygodnia w en-US zaczyna się od niedzieli — bez wpływu na dane | Trzy ustawienia regionalne (`pl`, `en-GB`, `en-US`); tydzień, zegar i daty z jednej tabeli `LOCALES`; rozdzielenie godzin „do danych” i „do wyświetlania” — sekcja 7 |
 | 5 | Polskie nazwy w kodzie | **Zmieniamy w trakcie przebudowy, przed i18n** | Etap 0b w planie (sekcja 5), mapa zmian w sekcji 2 |
 | 6 | Moduły dodatkowe | **W JakoTako usuwamy**: gry Tama (bóbr) i Dzik, ekran z mordkami zwierząt magicznych (bocian, animals-together), Stoper i ćwiczenie oddechowe (Oddech) — funkcje i odwołania w Samouczku oraz w karcie Samouczek w Ustawieniach | Etap 0a (przed zmianą nazw i i18n) — sekcja 2a; mniej kodu do przemianowania i tłumaczenia |
-| 7 | Rekordy stopera i Samouczek | **Rekordy stopera (`nastroj.records.v1`) usuwamy razem ze Stoperem** — bez zgodności wstecz. Krok 1 Samouczka: zmiana wg propozycji (sekcja 2a) | Świadomy wyjątek od zasady „klucz raz dodany nie znika z kodu” — za zgodą autora, `CLAUDE.md` („Dane”) poprawiany w PR etapu 0a |
+| 7 | Rekordy stopera i Samouczek | **Rekordy stopera (`nastroj.records.v1`) usuwamy razem ze Stoperem** — w JakoTako ich nie ma (import z Nastroju pomija pole `records`). Krok 1 Samouczka: zmiana wg propozycji (sekcja 2a) | Nastrój bez zmian; w JakoTako `records.v1` po prostu nie istnieje (nowa aplikacja — decyzja 8), więc bez wyjątku od zasad danych |
+| 8 | Model wydania | **JakoTako to nowa aplikacja zbudowana na kodzie Nastroju, a nie nowa wersja Nastroju** | Osobne repo i osobny katalog `jakotako`; Nastrój zostaje w katalogu `nastroj` i w tym repo. Nowy adres, nowa instalacja, własna przestrzeń danych. Odpadają aliasy i zgodność z zainstalowanym Nastrojem — sekcja 0 |
 
 Decyzja 4 zmieniona 2026-11-27 (pierwotnie: tylko en-US, en-GB później). Uzupełnienie tego samego dnia:
 **użytkownik jednoznacznie wybiera system** (Polski / English (UK) / English (US)) w Ustawieniach — aplikacja nie zgaduje
@@ -21,7 +22,54 @@ języka ani regionu z telefonu. Wybór ustala naraz język tekstów, początek t
 
 Do potwierdzenia przy okazji (propozycje w sekcji 7 i 2.3):
 - a) en-US, krótkie podpisy na osiach (oś doby, pasek pór): „9 AM” czy zwięźle „9a”? Propozycja: **„9a”/„2:30p”** tylko na osiach, pełne „9:00 AM” wszędzie indziej — do oceny w kopii testowej.
-- b) Adresy `#/…`: nowe angielskie + stare polskie jako aliasy? Propozycja: **tak**.
+- b) Domena JakoTako: GitHub Pages tego konta (`jab-jab-coder.github.io/jakotako/`, wymaga PR „N” w Nastroju — sekcja 0.3) czy osobna domena?
+  Propozycja: **GitHub Pages tego konta** + PR „N”.
+
+## 0. Model: nowa aplikacja na bazie kodu (decyzja 8)
+
+JakoTako **nie jest aktualizacją** Nastroju. Kod Nastroju jest punktem wyjścia, a JakoTako to osobny produkt:
+
+- **Nastrój zostaje** w tym repo (`jab-jab-coder/nastroj`) i w katalogu `nastroj`, pod obecnym adresem, z obecnymi danymi i instalacjami.
+  Jego użytkownicy nie dostają JakoTako jako aktualizacji. Ten dokument i plan zostają tu jako historia decyzji.
+- **JakoTako**: **osobne repozytorium** (`jab-jab-coder/jakotako`) w **osobnym katalogu `jakotako`** (lokalnie obok `nastroj`),
+  utworzone z kodu Nastroju (propozycja: kopia z historią git, żeby zachować `git log`/`blame`), nowy adres GitHub Pages,
+  nowa instalacja PWA (nowy `manifest` `id`/`start_url`), `VERSION` od `jakotako-v1`, własny `CLAUDE.md`/`README.md` (kopie dostosowane),
+  nowa strona instalacji i nowy kod QR.
+- **Przejście z Nastroju**: użytkownik robi eksport JSON w Nastroju i import w JakoTako (propozycja: JakoTako przyjmuje pliki `app: 'nastroj'`
+  v1 i v2 oraz własne `app: 'jakotako'`). Brak automatycznej migracji między aplikacjami.
+- **Zasady danych z `CLAUDE.md`** (tylko dodawanie, zgodność wstecz) obowiązują JakoTako **od jej pierwszego wydania**. Przed pierwszym wydaniem
+  format danych JakoTako możemy ustalić swobodnie — jedyny wymóg: import plików z Nastroju.
+
+### 0.1 Co dzięki temu odpada (względem wcześniejszych wersji planu)
+
+- Aliasy starych adresów `#/energia`… i `?widok=stoper`, mapa `VIEW_ALIAS` dla historii — JakoTako nie ma starych adresów ani historii.
+- Sprzątanie `records.v1` przy starcie — JakoTako nigdy nie miała rekordów; wystarczy, że import pomija pole `records`.
+- Zachowywanie `settings.oddechSound`, `compliment.v1`, migracji schematu v1→v2 (`nastroj.schema`, `nastroj.backup.pre-v2`, `linkTemplates()`
+  dla danych w pamięci) — w nowej instalacji zbędne. Import plików v1 z Nastroju zostaje.
+- Zachowanie `app: 'nastroj'`, `UID:nastroj-…` w ICS, nazwy `pobierz.html` — w JakoTako własne (`app: 'jakotako'`, `UID:jakotako-…@jakotako`).
+- Stałe `data-sec` w Ustawieniach mogą mieć dowolne (angielskie) id — w JakoTako nie ma starych `settings.collapsed`.
+
+### 0.2 Co zostaje (bo import z Nastroju)
+
+- Id kategorii `spol/sens/pozn/fiz/emoc` i id szablonów `tpl` (23 szt.) — import dopasowuje po nich czynności, a komplementy po `tpl`.
+- Pola obiektów (`v`, `t`, `e`, `a`, `n`, `k`, `meds`, `medlog`, …) — te same znaczenia; nazwy czynności z Nastroju są po polsku → `actName()`/`opName()` (4.6).
+- Import ustawień: jak w Nastroju — ustawień nie przywraca (zasada z `CLAUDE.md`), więc region i język wybiera się w JakoTako.
+
+### 0.3 Pułapka: ta sama domena (`jab-jab-coder.github.io`)
+
+Repo `jab-jab-coder/jakotako` na GitHub Pages tego samego konta daje adres `jab-jab-coder.github.io/jakotako/` — obie aplikacje dzielą wtedy **origin**, a więc:
+
+1. **`localStorage` wspólny** dla obu aplikacji → JakoTako **musi mieć własny prefiks kluczy**: `jakotako.*` (np. `jakotako.entries.v1`).
+   Inaczej czytałaby i nadpisywała dane Nastroju (a „Usuń wszystkie dane” w jednej kasowałoby drugą).
+2. **Cache Storage wspólny, a SW Nastroju kasuje cudze cache**: `sw.js` przy aktywacji usuwa każdy cache inny niż swój `VERSION` i `nastroj-state`
+   (`keys.filter(k => k !== VERSION && k !== STATE_CACHE)`). Każda aktualizacja Nastroju skasowałaby offline JakoTako (i odwrotnie).
+   → **PR w Nastroju przed startem JakoTako**: kasować tylko `k.startsWith('nastroj-v')`; JakoTako: cache `jakotako-vNN`, `jakotako-state`,
+   kasowanie tylko `jakotako-v*`.
+3. **Powiadomienia**: tag `mood-${slot}` → w JakoTako `jakotako-mood-${slot}` (ta sama domena — powiadomienia mogłyby się nadpisywać);
+   `periodicSync` jest per rejestracja SW (osobny zakres ścieżki) — OK.
+4. `navigator.storage` (limit, trwałość) — wspólny dla domeny; bez zmian w kodzie, tylko świadomość.
+
+Alternatywa bez tych pułapek: osobna domena (własna domena albo inne konto/organizacja GitHub) — do decyzji autora.
 
 ## 2a. Usunięcie modułów (etap 0a, decyzja 6)
 
@@ -55,49 +103,37 @@ Do tego:
 
 ### Dane
 
-- **`nastroj.records.v1` (rekordy stopera) — usuwamy (decyzja 7, bez zgodności wstecz).** Wyjątek od zasady
-  „klucz raz dodany nie znika z kodu” — za zgodą autora z 2026-11-27. Jak to zrobić bezpiecznie:
-  - `energy.js`: znika `KEY_RECS` jako źródło danych, `records`, `recordAdd()`, `saveRecs()`, `records` w `energyExport()`,
-    `energyCounts()` i gałąź `data.records` w `energyImport()`.
-  - **Sprzątanie**: jednorazowo przy starcie (`energyInit()`) `localStorage.removeItem('nastroj.records.v1')` — rekordy znikają też z telefonu,
-    a nie tylko z interfejsu. `energyWipe()` nie musi już go kasować.
-  - **Import starych kopii** z polem `records` — pole jest **pomijane bez błędu** (import tylko dopisuje to, co zna). Toast importu bez „rekordów stopera”.
-  - **Eksport** nie ma pola `records` (`version: 2` zostaje — usunięcie pola nie zmienia znaczenia pozostałych).
-  - Podsumowanie danych w Ustawieniach (`renderSettings`) i toast importu (`importData`) — bez wzmianki o rekordach.
-  - **Testy**: `EXPORT_FIELDS` w `tests/harness.mjs` bez `records`; klucz `nastroj.records.v1` do `TECHNICAL` w `tests/contract.test.mjs`
-    z uzasadnieniem „usunięty w JakoTako (Stoper), kasowany przy starcie” (kod nadal zawiera ten napis w sprzątaniu, więc test kontraktu
-    tego wymaga); `FIELDS.record` i sprawdzenie `s.records` w `contract.test.mjs` — usunąć; `describe('rekordy stopera…')` w `energy.test.mjs`
-    i testy `records` w `export-import.test.mjs` zastąpić dwoma: (1) start z kluczem `nastroj.records.v1` → klucz usunięty,
-    (2) import pliku z `records` → bez błędu, nic nie zapisane, pozostałe dane zaimportowane. `tests/fixtures/export-v2.json` może zachować
-    `records` — właśnie jako przypadek „stare pole w kopii”.
-  - **Dokumentacja** w PR etapu 0a: `CLAUDE.md` sekcja „Dane — zasady nienaruszalne” (lista kluczy bez `records.v1`, dopisek o wyjątku
-    i kluczu kasowanym przy starcie), `README.md` (format `records`), `tests/README.md`.
-- **`settings.oddechSound`** — pole zostaje w danych (`DEFAULT_SETTINGS` i `FIELDS` w `tests/contract.test.mjs`), nieużywane; komentarz w kodzie.
+- **Rekordy stopera — usuwamy (decyzja 7).** W JakoTako (nowa aplikacja, sekcja 0) wystarczy:
+  - `energy.js`: znika `KEY_RECS`, `records`, `recordAdd()`, `saveRecs()`, `records` w `energyExport()`, `energyCounts()`, `energyWipe()`
+    i gałąź `data.records` w `energyImport()`;
+  - **import kopii z Nastroju** z polem `records` — pole **pomijane bez błędu**; toast importu i podsumowanie danych w Ustawieniach bez rekordów;
+  - bez sprzątania localStorage przy starcie (JakoTako ma własny prefiks kluczy i nigdy nie miała rekordów);
+  - testy: `EXPORT_FIELDS` bez `records`, `FIELDS.record` i sprawdzenie `s.records` w `contract.test.mjs` usunięte, testy rekordów w
+    `energy.test.mjs`/`export-import.test.mjs` zastąpione testem „import pliku z `records` → bez błędu, nic nie zapisane, reszta zaimportowana”
+    (`tests/fixtures/export-v2.json` zachowuje `records` jako przypadek pliku z Nastroju);
+  - `CLAUDE.md` JakoTako: lista kluczy bez `records.v1` — bez „wyjątku”, bo to nowa aplikacja.
+- **`settings.oddechSound`** — w JakoTako znika z `DEFAULT_SETTINGS` i `FIELDS` (import ustawień i tak nie przywraca).
 - **Stan gier** był tylko w pamięci — nic do sprzątania w localStorage.
 
-### Stare wejścia po aktualizacji (bez błędów)
+### Stare wejścia
 
-- `?widok=stoper` (skrót w zainstalowanych PWA do czasu odświeżenia manifestu) → `DEEP_LINKS` bez `stoper` → start na Dziś;
-  parametr i tak jest czyszczony z adresu.
-- `#/stoper`, `#/oddech` → `navViewFromHash()` zwraca `today` dla nieznanych adresów.
-- Wpisy historii z `v: 'dzik' | 'tama' | 'oddech' | 'stopwatch' | 'animals'…` → popstate: brak w `renderers` → cofnięcie (istniejąca ścieżka `navGo`).
-- Dodać test: start z `?widok=stoper` i z `#/oddech` daje Dziś bez wyjątku.
+Nie dotyczy — JakoTako to nowa instalacja bez starych skrótów, adresów i historii (sekcja 0.1). Wystarczy, że nieznany
+`#/…` daje Dziś (już tak działa `navViewFromHash()`), a `DEEP_LINKS` jest puste.
 
 ### Testy i dokumentacja w tym samym PR
 
 - `core.test.mjs` — asercje na Oddech (5) i stoper (9) usunąć; w PR wypisać, które i dlaczego. `energy.test.mjs`, `export-import.test.mjs`,
-  `contract.test.mjs` — testy `records` zamienione wg punktu „Dane” wyżej. `pokrycie.mjs` — operacje `recordAdd`/`saveRecs` znikają z kodu,
-  dochodzi `removeItem` w sprzątaniu (pokryty testem (1)).
+  `contract.test.mjs` — testy `records` zamienione wg punktu „Dane” wyżej. `pokrycie.mjs` — operacje `recordAdd`/`saveRecs` znikają z kodu.
 - `README.md` (Stoper, skrót, ukryte widoki), `tests/README.md`, `CLAUDE.md` (tabela plików, kolejność skryptów, „Ukryte widoki”,
   skrót „Stoper” przy manifeście, „style gier” przy `styles.css`) — zasady chronione bez zmian poza tym, co wynika z decyzji 6.
-- Podbicie `VERSION` (zmienia się `SHELL`). Kopia testowa: zakładki reagują od razu, Samouczek bez mordek i bez zdania o Stoperze, brak skrótu Stoper, import starej kopii z rekordami bez błędu.
+- Podbicie `VERSION` (zmienia się `SHELL`). Kopia testowa: zakładki reagują od razu, Samouczek bez mordek i bez zdania o Stoperze, brak skrótu Stoper, import kopii z Nastroju (z rekordami) bez błędu.
 
 ## 2. Zmiana nazw w kodzie (etap 0b, po 0a, przed i18n)
 
 Po etapie 0a znikają z mapy: Dzik, Tama, Oddech, Stoper, zwierzęta (pliki, funkcje, `data-act`, CSS, ikony, adresy `#/stoper`, `#/oddech`, `?widok=`).
 
-Kod jest w ~95% po angielsku. Polskie nazwy są w kilku modułach. Zasada: **zmieniamy identyfikatory kodu,
-nie zmieniamy danych ani publicznych adresów** (stare adresy działają dalej przez aliasy).
+Kod jest w ~95% po angielsku. Polskie nazwy są w kilku modułach. Zasada: **zmieniamy identyfikatory kodu i adresy;
+format danych zostaje zgodny z plikami eksportu Nastroju** (sekcja 0.2). Aliasów starych adresów nie potrzeba (sekcja 0.1).
 
 ### 2.1 Mapa zmian
 
@@ -114,34 +150,30 @@ nie zmieniamy danych ani publicznych adresów** (stare adresy działają dalej p
 | | `KOMPLEMENTY`, `KOMPLEMENTY_CZYNNOSCI`, `KOMPLEMENTY_KATEGORIE` | `COMPLIMENTS`, `COMPLIMENTS_BY_ACTIVITY`, `COMPLIMENTS_BY_CATEGORY` |
 | `data-act` | `leki`, `pory-undo` | `meds`, `slots-undo` |
 | Klasy CSS | `.saldo-*` (w tym `.saldo-chip`) | `.balance-*` |
-| Adresy | `#/energia`, `#/tydzien`, `#/miesiac`, `#/ustawienia`, `#/leki` (`NAV_HASH`) | `#/energy`, `#/week`, `#/month`, `#/settings`, `#/meds` + stare jako aliasy w `navViewFromHash()` |
+| Adresy | `#/energia`, `#/tydzien`, `#/miesiac`, `#/ustawienia`, `#/leki` (`NAV_HASH`) | `#/energy`, `#/week`, `#/month`, `#/settings`, `#/meds` (bez aliasów) |
 
 Brak kolizji nazw: `renderMeds`, `tutorial`, `COMPLIMENTS`, `slotsCard…`, `fmtNum`, `unicorn` nie występują dziś w kodzie. `COMPL` w `app.js` zostaje.
 
-### 2.2 Czego NIE zmieniamy (dane i adresy publiczne)
+### 2.2 Przestrzeń nazw JakoTako (etap 0) i czego nie zmieniamy
 
-- Klucze localStorage `nastroj.*`, cache `nastroj-state`, prefiks `VERSION` `nastroj-vNN`.
-- Pole `settings.oddechSound` — zostaje pod tą nazwą (zgodność danych), nieużywane po etapie 0a.
-- Id kategorii `spol/sens/pozn/fiz/emoc`, id szablonów `tpl` (`spotkanie`, `czas-sam`… — 23 szt.).
-- `app: 'nastroj'` w eksporcie JSON (testy `energy` i `export-import` to sprawdzają) i `UID:nastroj-…@nastroj` w ICS
-  (zmiana zdublowałaby wydarzenia w kalendarzu).
-- `pobierz.html` — link wysyłany znajomym i zakodowany w QR; zostaje pod tą nazwą (wersja EN: nowy `download.html`).
-- Adres repo i GitHub Pages (`…/nastroj/`) — zmiana przenosi zakres PWA (zainstalowane aplikacje i kody QR).
-  Ewentualna zmiana repo to osobna decyzja, poza tym planem.
-- Komentarze po polsku — zostają (zmiana opcjonalna, osobno).
+Zmieniamy (nowa aplikacja, sekcja 0): prefiks kluczy `nastroj.` → `jakotako.` (te same sufiksy: `entries.v1`, `settings.v1`, …),
+cache `jakotako-vNN` / `jakotako-state`, `app: 'jakotako'` w eksporcie (import przyjmuje też `'nastroj'`), `UID:jakotako-…@jakotako` w ICS,
+tag powiadomień, `manifest` (`id`, `name`), strona instalacji (`pobierz.html` w nowym repo może zostać pod tą nazwą — to inny adres).
+
+Nie zmieniamy (import z Nastroju): id kategorii, id szablonów `tpl`, nazwy i znaczenia pól w obiektach, `version: 2` formatu eksportu.
+
+Komentarze po polsku — zostają (zmiana opcjonalna, osobno).
 
 ### 2.3 Pułapki przy zmianie nazw
 
-1. **Historia przeglądarki**: `history.state.v` trzyma nazwę widoku (`navState()`), a popstate sprawdza `renderers[s.v]`.
-   Stare wpisy z `v: 'leki'` po aktualizacji → mapa `VIEW_ALIAS = { leki: 'meds' }`
-   stosowana w obsłudze `popstate`.
-2. **Adresy**: `navViewFromHash()` akceptuje stare i nowe hashe; `navUrl()` pisze nowe.
+1. **Historia i adresy** — bez aliasów (nowa aplikacja); `NAV_HASH` i `navUrl()` od razu z nowymi nazwami.
+2. **Klucze w testach** — `tests/harness.mjs` (`EXPORT_FIELDS`, klucze `K` w testach) i `TECHNICAL` w `contract.test.mjs` z prefiksem `jakotako.`.
 3. **Każdy przemianowany plik** w 4 miejscach: `index.html`, `SHELL` w `sw.js`, `APP_FILES` w `tests/harness.mjs`, `APP` w `tests/pokrycie.mjs`.
    Ikony — tylko `SHELL` i miejsca użycia (`app.js`, `index.html`, `manifest.webmanifest`, `pobierz.html`).
 4. **Testy**: odwołują się do nazw plików (`harness.mjs`, `pokrycie.mjs`). Zmiana testów jest tu zamierzona
    (nazwy, nie zachowanie) — w PR wypisać, które asercje zmieniono.
 5. **Podbicie `VERSION`** — zmienia się lista `SHELL`, stare pliki znikają z cache przy aktywacji nowego SW.
-6. Kopia testowa: Leki (Ustawienia → Moje leki), adresy `#/…` stare i nowe, „wstecz”.
+6. Kopia testowa: Leki (Ustawienia → Moje leki), adresy `#/…`, „wstecz”, import kopii z Nastroju.
 
 ## 3. Teksty do tłumaczenia — skala
 
@@ -188,7 +220,7 @@ Teksty wymagające tłumaczenia twórczego:
    Bez zmiany znaczenia pól.
 7. **Teksty interfejsu zapisane w danych** (pułapka): `settings.collapsed` przechowuje **tytuły sekcji Ustawień**
    (`settingsCollapsible()` bierze id z `h3.textContent`, `SEC_TUT = 'Samouczek'`). Po tłumaczeniu tytułów stan zwinięcia
-   by się zgubił. → stałe `data-sec` w szablonie, o wartości równej obecnym polskim tytułom (stare dane dalej pasują).
+   by się zgubił. → stałe `data-sec` w szablonie (w JakoTako dowolne id — nie ma starych danych, a import nie przywraca ustawień).
    Podobnie `compliment.v2` (`recent`) trzyma teksty komplementów — po zmianie języka tylko chwilowo słabszy filtr powtórzeń; bez zmian.
 8. **Treści użytkownika** (nazwy leków, własne czynności, strategie) — nie tłumaczymy.
 9. **Service worker** nie ma słowników. Tytuł („Jak się czujesz? 💗”) i treść („Czas na ocenę: …”) przekazać w `syncState()`
@@ -209,11 +241,15 @@ Teksty wymagające tłumaczenia twórczego:
 
 ## 5. Plan PR-ów
 
-0a. **Usunięcie modułów** (sekcja 2a) — gry, zwierzęta, Stoper z rekordami (`records.v1` kasowany), Oddech; Samouczek. Podbicie `VERSION`.
-   `CLAUDE.md`: tabela plików, kolejność skryptów, „Ukryte widoki”, „Dane” (wyjątek `records.v1`).
+N. **Nastrój (w tym repo), przed startem JakoTako** — `sw.js`: kasować tylko własne cache `nastroj-v*` (sekcja 0.3, pkt 2). Potrzebne tylko,
+   jeśli JakoTako będzie na tej samej domenie. Podbicie `VERSION` Nastroju.
+0. **Nowe repo JakoTako** (sekcja 0) — `jab-jab-coder/jakotako`, katalog `jakotako`, kopia z historią, GitHub Pages, przestrzeń nazw (2.2: prefiks `jakotako.`, cache, `app`, manifest `id`, ICS, tag powiadomień),
+   import plików `app: 'nastroj'`, `VERSION` `jakotako-v1`, `CLAUDE.md`/`README.md` dla JakoTako, ten dokument skopiowany do `docs/`.
+0a. **Usunięcie modułów** (sekcja 2a) — gry, zwierzęta, Stoper z rekordami, Oddech; Samouczek. Podbicie `VERSION`.
+   `CLAUDE.md` JakoTako: tabela plików, kolejność skryptów, „Ukryte widoki” (znika), lista kluczy bez `records.v1`.
 0b. **Zmiana nazw w kodzie** (sekcja 2) — bez zmian widocznych dla użytkownika, testy przechodzą (zmienione tylko nazwy w testach).
    Podbicie `VERSION`. Aktualizacja `CLAUDE.md` (tabela plików, kolejność skryptów), `README.md`, `tests/README.md`.
-0c. **Nazwa „JakoTako”** (sekcja 6) — po polsku, niezależnie od i18n; można połączyć z 0b albo zrobić osobno.
+0c. **Nazwa „JakoTako”** w tekstach (sekcja 6) — po polsku, niezależnie od i18n; można połączyć z 0 albo 0b.
 1. **Infrastruktura i18n** — `i18n/pl.js`, `i18n/en.js`, `i18n/en-US.js`, `i18n/i18n.js` (`LOCALES`, `tr`, `trn`, `fmtDate`, `fmtTime`, `fmtNum`, `applyStatic`, `WEEK_START` w `startOfWeek()`),
    `settings.lang` + pole wyboru w Ustawieniach (na razie tylko Polski; English (UK) w etapie 4, English (US) w 4b), stałe `data-sec`, test słowników. Zero zmian widocznych.
 2. **Ekstrakcja tekstów** moduł po module (Dziś/Tydzień/Miesiąc → Energia → Leki → Ustawienia → samouczek) do `pl.js`.
@@ -225,7 +261,7 @@ Teksty wymagające tłumaczenia twórczego:
    już w etapie 2 (przy ekstrakcji i tak dotykamy tych miejsc), żeby 4b było małe.
 5. **Peryferia** — `sw.js` (powiadomienie), ICS, CSV/wyciąg, podsumowanie, `download.html` (EN) + drugi QR, `README.md`.
 
-Szacunek: etapy 0a i 0b — mechaniczne, po 1 PR. Etapy 1–3 — największa praca (prawie każde `renderX()`), mechaniczna. Etap 4 — głównie redakcja.
+Etapy 0–5 wykonujemy w repo JakoTako; w repo Nastroju tylko N. Szacunek: etapy 0, 0a i 0b — mechaniczne, po 1 PR. Etapy 1–3 — największa praca (prawie każde `renderX()`), mechaniczna. Etap 4 — głównie redakcja.
 
 ## 6. Nazwa „JakoTako” (decyzja 2)
 
@@ -233,12 +269,12 @@ Zmienia się (tekst widoczny dla użytkownika): `<title>` w `index.html`, `name`
 (tytuł, `og:title`, `description`, nagłówek, `alt` ikony, treść), Ustawienia → „O aplikacji” (`»Nastrój«`, stopka „Nastrój · działa offline”),
 `SUMMARY` w ICS, tytuł wyciągu („Nastrój — wyciąg”), podsumowanie („Nastrój — krótkie podsumowanie”), nazwy plików eksportu
 (`nastroj-RRRR-MM-DD.json`, `nastroj-wyciag-…csv`, `nastroj-przypomnienia.ics`, `nastroj-kopia-sprzed-aktualizacji.json` → `jakotako-…`),
-`README.md`, `CLAUDE.md` (tytuł, tytuł kopii testowej „JakoTako test PR NN”).
+`README.md`, `CLAUDE.md` w repo JakoTako (tytuł, tytuł kopii testowej „JakoTako test PR NN”).
 
-Nie zmienia się — patrz 2.2 (klucze, cache, `app: 'nastroj'`, UID w ICS, adres repo, `pobierz.html` jako nazwa pliku).
+Identyfikatory techniczne (klucze, cache, `app`, UID w ICS, manifest `id`) — sekcja 2.2.
 
-Uwagi: zainstalowane PWA na Androidzie zmieniają nazwę na ekranie dopiero po aktualizacji manifestu przez Chrome (może to potrwać
-lub wymagać ponownej instalacji). Import nadal przyjmuje pliki `nastroj-*.json` (import nie patrzy na nazwę pliku).
+Uwagi: JakoTako instaluje się jako nowa aplikacja obok Nastroju (osobna ikona). Import przyjmuje pliki `nastroj-*.json` z Nastroju
+(import nie patrzy na nazwę pliku, tylko na zawartość).
 Słowo „nastrój” jako nazwa funkcji (ocena nastroju, kolumna „Nastrój” w wyciągu) zostaje — zmienia się tylko nazwa produktu.
 
 ## 7. Ustawienia regionalne: pl, en-GB, en-US (decyzja 4)
@@ -374,4 +410,5 @@ PR #42 (Energia — poprzednie dni) i #43 (energia w potwierdzeniu zapisu):
 - 2026-11-07 — aktualizacja do `main` @ eee69b2 (PR #40, `nastroj-v52`).
 - 2026-11-27 — aktualizacja do `main` @ 166f11b (PR #43, `nastroj-v53`): decyzje autora (ton, nazwa „JakoTako”, komplementy idiom za idiom,
   en-GB domyślny + en-US jako trzecia opcja z tygodniem od niedzieli, AM/PM i datami USA, zmiana nazw przed i18n), etap 0 z mapą zmian nazw i pułapkami (historia, adresy, skrót), sekcja o nazwie produktu,
-  usunięcie gier, zwierząt, Stopera z rekordami (`records.v1` kasowany, bez zgodności wstecz) i Oddechu, zmiana kroku 1 Samouczka (etap 0a), regiony pl/en-GB/en-US wybierane jawnie w Ustawieniach (tydzień, zegar, daty, lista kontrolna przełączania), pułapki danych (`settings.collapsed`, nazwy w `energy.v1`), mapa wykonawcza, zmiany z PR #42–#43.
+  model „nowa aplikacja na bazie kodu, nie nowa wersja” (sekcja 0: nowe repo i adres, prefiks `jakotako.`, pułapki wspólnej domeny,
+  import z Nastroju), usunięcie gier, zwierząt, Stopera z rekordami (w JakoTako bez `records.v1`) i Oddechu, zmiana kroku 1 Samouczka (etap 0a), regiony pl/en-GB/en-US wybierane jawnie w Ustawieniach (tydzień, zegar, daty, lista kontrolna przełączania), pułapki danych (`settings.collapsed`, nazwy w `energy.v1`), mapa wykonawcza, zmiany z PR #42–#43.
