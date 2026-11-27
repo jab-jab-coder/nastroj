@@ -11,7 +11,8 @@ stan repo: `main` @ 166f11b (PR #43), `sw.js` VERSION `nastroj-v53`, testy 201/2
 | 2 | Nazwa produktu | **„JakoTako”**, ta sama po polsku i po angielsku | Nazwa neutralna językowo → jeden manifest (pkt 4.9 wariant a). Zmiana nazwy w UI obu języków — sekcja 6 |
 | 3 | Komplementy | **Tłumaczymy na EN**, ale idiomy zastępujemy idiomami angielskimi (bez tłumaczenia dosłownego) | `compliments.en.js` z tymi samymi kluczami `tpl` i kategoriami co PL; liczba pozycji nie musi być równa |
 | 4 | Wariant angielskiego | **en-GB = domyślny angielski**; **en-US jako trzecia opcja**: tydzień od niedzieli, godziny AM/PM, daty jak w USA. Wykres tygodnia w en-US zaczyna się od niedzieli — bez wpływu na dane | Trzy ustawienia regionalne (`pl`, `en-GB`, `en-US`); tydzień, zegar i daty z jednej tabeli `LOCALES`; rozdzielenie godzin „do danych” i „do wyświetlania” — sekcja 7 |
-| 5 | Polskie nazwy w kodzie | **Zmieniamy w trakcie przebudowy, przed i18n** | Nowy etap 0 w planie (sekcja 5), mapa zmian w sekcji 2 |
+| 5 | Polskie nazwy w kodzie | **Zmieniamy w trakcie przebudowy, przed i18n** | Etap 0b w planie (sekcja 5), mapa zmian w sekcji 2 |
+| 6 | Moduły dodatkowe | **W JakoTako usuwamy**: gry Tama (bóbr) i Dzik, ekran z mordkami zwierząt magicznych (bocian, animals-together), Stoper i ćwiczenie oddechowe (Oddech) — funkcje i odwołania w Samouczku oraz w karcie Samouczek w Ustawieniach | Etap 0a (przed zmianą nazw i i18n) — sekcja 2a; mniej kodu do przemianowania i tłumaczenia |
 
 Decyzja 4 zmieniona 2026-11-27 (pierwotnie: tylko en-US, en-GB później). Uzupełnienie tego samego dnia:
 **użytkownik jednoznacznie wybiera system** (Polski / English (UK) / English (US)) w Ustawieniach — aplikacja nie zgaduje
@@ -19,9 +20,67 @@ języka ani regionu z telefonu. Wybór ustala naraz język tekstów, początek t
 
 Do potwierdzenia przy okazji (propozycje w sekcji 7 i 2.3):
 - a) en-US, krótkie podpisy na osiach (oś doby, pasek pór): „9 AM” czy zwięźle „9a”? Propozycja: **„9a”/„2:30p”** tylko na osiach, pełne „9:00 AM” wszędzie indziej — do oceny w kopii testowej.
-- b) Adresy `#/…` i `?widok=`: nowe angielskie + stare polskie jako aliasy? Propozycja: **tak**.
+- b) Adresy `#/…`: nowe angielskie + stare polskie jako aliasy? Propozycja: **tak**.
 
-## 2. Zmiana nazw w kodzie (etap 0, przed i18n)
+## 2a. Usunięcie modułów (etap 0a, decyzja 6)
+
+Usuwamy funkcje i ich odwołania; **dane użytkownika zostają** (zasady nienaruszalne z `CLAUDE.md`).
+
+### Co znika
+
+| Moduł | Kod | Wejścia (do usunięcia) |
+|---|---|---|
+| Dzik (gra) | `dzik.js` w całości; w `app.js`: `dzikReset`/`dzikClick`/`renderDzik`, `act.startsWith('dzik-')`, `#view-dzik` | 2× dotknięcie „Miesiąc”, mordka w Samouczku |
+| Tama Bobra (gra) | `tama.js` w całości; `tamaReset/Stop/Again`, `tama-back`, `tama-again`, `#view-tama` | 2× dotknięcie „Energia”, mordka w Samouczku |
+| Zwierzęta magiczne | `animals-together.js` w całości; `renderAnimals()`, `atFlip`, `#view-animals`, `#view-animals-together`, klasa `body.animals-on` | 2× / 3× dotknięcie „Tydzień”, mordka bociana w Samouczku |
+| Stoper | `app.js`: `stopwatch`, `SW_*`, `sw…()` (`swReset`…`renderStopwatch`), `lastMeasures`, `swCompliment`, `uni-compl`, klawisz Enter na `.rw-head`, `body.sw-on`, `#view-stopwatch`; `energy.js`: `recordAdd()`, `saveRecs()` | 2× dotknięcie „Ustawienia”, skrót z manifestu, `#/stoper`, `?widok=stoper`, mordka w Samouczku, zdanie w kroku 1 Samouczka |
+| Oddech | `app.js`: `ODDECH`, `oddech…()`, `renderOddech`, `SPEAKER_SVG`, `oddech-back/sound`, `#view-oddech`; `samouczek.js:30` (`ui.view === 'oddech'`) | 3× dotknięcie „Energia”, `#/oddech`, mordka w Samouczku |
+
+Do tego:
+- **Zakładki** (`click` na `.tab` w `app.js`): cała obsługa wielokrotnych dotknięć (`settingsTap`, `monthTap`, `weekTaps`/`weekTimer`,
+  `tapEnergy`/`energyTimer`, `TRIPLE_MS`) → zwykłe `show(tab)`. Zysk: „Energia” i „Tydzień” przestają czekać 450 ms na kolejne dotknięcie.
+- **Nawigacja**: `renderers`, `NAV_HASH` (bez `stopwatch`, `oddech`), `NAV_HASH_PARENT` (znika), `NAV_SUB` (bez `oddech`),
+  `showView()` (bez `stopwatchStop/oddechStop/tamaStop`, `sw-on`, `animals-on`, mapowania zakładek), popstate (bez `dzikReset/tamaReset`), `tut-go` (znika).
+- **Samouczek w Ustawieniach** (`renderSettings`): rząd `.tut-pets` z 5 mordkami znika; jednorożec „Uruchom samouczek” zostaje.
+- **Samouczek** (`samouczek.js`, `tutStep1`): zdanie „…zawiera magiczne moduły, często zabawnie ukryte. Kliknij dwa razy w Ustawienia,
+  a koziorożec uruchomi Stoper…” — usunąć albo zastąpić; **nowe brzmienie do akceptacji autora** (propozycja: zostawić tylko
+  „Brakuje Ci czegoś? Daj znak Jackowi, serio!”).
+- **Manifest**: sekcja `shortcuts` (Stoper) znika.
+- **Pliki do usunięcia**: `dzik.js`, `tama.js`, `animals-together.js` (z 4 miejsc: `index.html`, `SHELL`, `APP_FILES`, `APP`);
+  ikony `bocian.svg`, `mordka-bobr.svg`, `mordka-bocian.svg`, `mordka-dzik.svg`, `mordka-wydech.svg`, `rownowaznia.svg`, `skrot-stoper.png` (z `SHELL`).
+  **Zostaje** `jednorozec.svg` (komplementy, Samouczek).
+- **CSS**: sekcje `.dzik-*`/`.dz-*`, `.tama-*`, `.oddech-*`, stoper (`.sw-*`, `.rw-*`, `body.sw-on`), `.animals-*`, `.at-*`, `.tut-pets`/`.tut-pet`.
+- **Komplementy**: zostają (jednorożec FAB). `pickCompliment()` zostaje — używa go też `showCompliment()`.
+
+### Dane — co zostaje mimo usunięcia funkcji
+
+- **`nastroj.records.v1`** (rekordy stopera) — klucz danych, więc wg `CLAUDE.md` nie znika z kodu: dalej wczytywany, **eksportowany
+  i importowany** (`energyExport/energyImport`), czyszczony przez `energyWipe()`. Starsze kopie JSON z rekordami importują się bez błędu,
+  a nowa kopia nie gubi rekordów. Znika tylko zapis nowych rekordów i ich wyświetlanie. W podsumowaniu danych w Ustawieniach
+  i w toaście importu — propozycja: dalej podawać liczbę rekordów, jeśli > 0 („N wyników stopera z wcześniejszej wersji”).
+  Usunięcie samych danych byłoby osobną decyzją autora (zmiana zasad nienaruszalnych).
+- **`settings.oddechSound`** — pole zostaje w danych (`DEFAULT_SETTINGS` i `FIELDS` w `tests/contract.test.mjs`), nieużywane; komentarz w kodzie.
+- **Stan gier** był tylko w pamięci — nic do sprzątania w localStorage.
+
+### Stare wejścia po aktualizacji (bez błędów)
+
+- `?widok=stoper` (skrót w zainstalowanych PWA do czasu odświeżenia manifestu) → `DEEP_LINKS` bez `stoper` → start na Dziś;
+  parametr i tak jest czyszczony z adresu.
+- `#/stoper`, `#/oddech` → `navViewFromHash()` zwraca `today` dla nieznanych adresów.
+- Wpisy historii z `v: 'dzik' | 'tama' | 'oddech' | 'stopwatch' | 'animals'…` → popstate: brak w `renderers` → cofnięcie (istniejąca ścieżka `navGo`).
+- Dodać test: start z `?widok=stoper` i z `#/oddech` daje Dziś bez wyjątku.
+
+### Testy i dokumentacja w tym samym PR
+
+- `core.test.mjs` — asercje na Oddech (5) i stoper (9) usunąć; w PR wypisać, które i dlaczego. `energy.test.mjs`, `export-import.test.mjs`,
+  `contract.test.mjs` — testy `records` (eksport/import) **zostają**. `pokrycie.mjs` — operacje `recordAdd`/`saveRecs` znikają z kodu, więc i z wymagań.
+- `README.md` (Stoper, skrót, ukryte widoki), `tests/README.md`, `CLAUDE.md` (tabela plików, kolejność skryptów, „Ukryte widoki”,
+  skrót „Stoper” przy manifeście, „style gier” przy `styles.css`) — zasady chronione bez zmian poza tym, co wynika z decyzji 6.
+- Podbicie `VERSION` (zmienia się `SHELL`). Kopia testowa: zakładki reagują od razu, Samouczek bez mordek, brak skrótu Stoper, import starej kopii z rekordami.
+
+## 2. Zmiana nazw w kodzie (etap 0b, po 0a, przed i18n)
+
+Po etapie 0a znikają z mapy: Dzik, Tama, Oddech, Stoper, zwierzęta (pliki, funkcje, `data-act`, CSS, ikony, adresy `#/stoper`, `#/oddech`, `?widok=`).
 
 Kod jest w ~95% po angielsku. Polskie nazwy są w kilku modułach. Zasada: **zmieniamy identyfikatory kodu,
 nie zmieniamy danych ani publicznych adresów** (stare adresy działają dalej przez aliasy).
@@ -30,30 +89,25 @@ nie zmieniamy danych ani publicznych adresów** (stare adresy działają dalej p
 
 | Obszar | Obecnie | Po zmianie |
 |---|---|---|
-| Pliki JS | `komplementy.js`, `leki.js`, `dzik.js`, `tama.js`, `samouczek.js` | `compliments.js`, `meds.js`, `boar.js`, `dam.js`, `tutorial.js` |
+| Pliki JS | `komplementy.js`, `leki.js`, `samouczek.js` | `compliments.js`, `meds.js`, `tutorial.js` |
 | Testy | `tests/leki.test.mjs` | `tests/meds.test.mjs` (opcjonalnie; `czestosc.test.mjs` → `frequency.test.mjs`) |
-| Ikony | `jednorozec.svg`, `rownowaznia.svg`, `bocian.svg`, `mordka-bobr/bocian/dzik/wydech.svg`, `skrot-stoper.png`, `qr-pobierz.svg` | `unicorn.svg`, `balance-beam.svg`, `stork.svg`, `face-beaver/stork/boar/exhale.svg`, `shortcut-stopwatch.png`, `qr-download.svg` |
-| Widoki (`ui.view`, `renderers`, `#view-…`, `data-view`) | `leki`, `oddech`, `dzik`, `tama` | `meds`, `breath`, `boar`, `dam` |
-| Funkcje/stałe | `renderOddech`, `oddechTimer/Tick/Audio/AudioInit/Stop/Phase/Click/SoundBtn`, `ODDECH` | `renderBreath`, `breath…`, `BREATH` |
-| | `renderLeki` | `renderMeds` |
-| | `renderDzik`, `dzikReset/Click/Svg`, `DZIK_*` | `renderBoar`, `boar…`, `BOAR_*` |
-| | `renderTama`, `tamaReset/Stop/Again`, `TAMA_SVG` | `renderDam`, `dam…`, `DAM_SVG` |
+| Ikony | `jednorozec.svg`, `qr-pobierz.svg` | `unicorn.svg`, `qr-download.svg` |
+| Widoki (`ui.view`, `renderers`, `#view-…`, `data-view`) | `leki` | `meds` |
+| Funkcje/stałe | `renderLeki` | `renderMeds` |
 | | `poryCardHtml`, `refreshPoryCard`, `poryState`, `poryReject`, `poryUndo`, `savePory`, `undoPory` | `slotsCardHtml`, `refreshSlotsCard`, `slotsState`, `slotsReject`, `slotsUndo`, `saveSlots`, `undoSlots` |
 | | `saldoCard`, `saldoChipHtml` | `balanceCard`, `balanceChipHtml` |
 | | `numPL` (`leki.js`) | `fmtNum` (w etapie 1 przechodzi do `i18n.js`) |
 | | `KOMPLEMENTY`, `KOMPLEMENTY_CZYNNOSCI`, `KOMPLEMENTY_KATEGORIE` | `COMPLIMENTS`, `COMPLIMENTS_BY_ACTIVITY`, `COMPLIMENTS_BY_CATEGORY` |
-| `data-act` | `oddech`, `oddech-back`, `oddech-sound`, `leki`, `dzik`, `dzik-acorn/oak/poop`, `tama`, `tama-again/back`, `pory-undo` | `breath…`, `meds`, `boar…`, `dam…`, `slots-undo` |
-| Klasy CSS | `.oddech-*`, `.dzik-*`, `.tama-*`, `.saldo-*` (w tym `.saldo-chip`) | `.breath-*`, `.boar-*`, `.dam-*`, `.balance-*` |
-| Adresy | `#/energia`, `#/tydzien`, `#/miesiac`, `#/ustawienia`, `#/leki`, `#/stoper`, `#/oddech` (`NAV_HASH`) | `#/energy`, `#/week`, `#/month`, `#/settings`, `#/meds`, `#/stopwatch`, `#/breath` + stare jako aliasy w `navViewFromHash()` |
-| Skrót z manifestu | `./?widok=stoper` (`DEEP_LINKS`) | `./?view=stopwatch`; `?widok=stoper` zostaje jako alias (zainstalowane PWA mają stary URL do czasu aktualizacji manifestu) |
+| `data-act` | `leki`, `pory-undo` | `meds`, `slots-undo` |
+| Klasy CSS | `.saldo-*` (w tym `.saldo-chip`) | `.balance-*` |
+| Adresy | `#/energia`, `#/tydzien`, `#/miesiac`, `#/ustawienia`, `#/leki` (`NAV_HASH`) | `#/energy`, `#/week`, `#/month`, `#/settings`, `#/meds` + stare jako aliasy w `navViewFromHash()` |
 
-Brak kolizji nazw: `breath`, `renderMeds`, `boar…` (poza zmienną lokalną w `dzik.js`), `dam`, `tutorial`,
-`COMPLIMENTS`, `slotsCard…`, `fmtNum`, `unicorn`, `stork` nie występują dziś w kodzie. `COMPL` w `app.js` zostaje.
+Brak kolizji nazw: `renderMeds`, `tutorial`, `COMPLIMENTS`, `slotsCard…`, `fmtNum`, `unicorn` nie występują dziś w kodzie. `COMPL` w `app.js` zostaje.
 
 ### 2.2 Czego NIE zmieniamy (dane i adresy publiczne)
 
 - Klucze localStorage `nastroj.*`, cache `nastroj-state`, prefiks `VERSION` `nastroj-vNN`.
-- Pole `settings.oddechSound` — zostaje pod tą nazwą (zgodność danych); w kodzie komentarz, że to celowo.
+- Pole `settings.oddechSound` — zostaje pod tą nazwą (zgodność danych), nieużywane po etapie 0a.
 - Id kategorii `spol/sens/pozn/fiz/emoc`, id szablonów `tpl` (`spotkanie`, `czas-sam`… — 23 szt.).
 - `app: 'nastroj'` w eksporcie JSON (testy `energy` i `export-import` to sprawdzają) i `UID:nastroj-…@nastroj` w ICS
   (zmiana zdublowałaby wydarzenia w kalendarzu).
@@ -65,15 +119,15 @@ Brak kolizji nazw: `breath`, `renderMeds`, `boar…` (poza zmienną lokalną w `
 ### 2.3 Pułapki przy zmianie nazw
 
 1. **Historia przeglądarki**: `history.state.v` trzyma nazwę widoku (`navState()`), a popstate sprawdza `renderers[s.v]`.
-   Stare wpisy z `v: 'leki'` po aktualizacji → mapa `VIEW_ALIAS = { leki: 'meds', oddech: 'breath', dzik: 'boar', tama: 'dam' }`
+   Stare wpisy z `v: 'leki'` po aktualizacji → mapa `VIEW_ALIAS = { leki: 'meds' }`
    stosowana w obsłudze `popstate`.
 2. **Adresy**: `navViewFromHash()` akceptuje stare i nowe hashe; `navUrl()` pisze nowe.
 3. **Każdy przemianowany plik** w 4 miejscach: `index.html`, `SHELL` w `sw.js`, `APP_FILES` w `tests/harness.mjs`, `APP` w `tests/pokrycie.mjs`.
    Ikony — tylko `SHELL` i miejsca użycia (`app.js`, `index.html`, `manifest.webmanifest`, `pobierz.html`).
-4. **Testy**: `core.test.mjs` odwołuje się do `oddech` (5×), inne testy do nazw plików. Zmiana testów jest tu zamierzona
+4. **Testy**: odwołują się do nazw plików (`harness.mjs`, `pokrycie.mjs`). Zmiana testów jest tu zamierzona
    (nazwy, nie zachowanie) — w PR wypisać, które asercje zmieniono.
 5. **Podbicie `VERSION`** — zmienia się lista `SHELL`, stare pliki znikają z cache przy aktywacji nowego SW.
-6. Kopia testowa: sprawdzić ukryte widoki (Dzik — 3× Miesiąc, Tama — Energia, Oddech — 3× Energia, zwierzęta — Tydzień), skrót Stoper, „wstecz”.
+6. Kopia testowa: Leki (Ustawienia → Moje leki), adresy `#/…` stare i nowe, „wstecz”.
 
 ## 3. Teksty do tłumaczenia — skala
 
@@ -85,11 +139,11 @@ Teksty są wpisane bezpośrednio w szablony HTML w funkcjach `renderX()` — nie
 | `app.js` | ~165 | Dziś (oś doby, dymek „teraz”, `DOW_FULL`, `dayHeadHtml`), Tydzień/Miesiąc, Ustawienia, MOODS, ENERGIES, `SLOTS`, pory, okno `#ask`, Oddech, Stoper, eksport/import, ICS, toasty |
 | `komplementy.js` | ~130 | 115+ komplementów — adaptacja z idiomami (decyzja 3) |
 | `leki.js` | ~100 | moduł Leki, `MED_DOW`, `MED_STATE`, `daysTxt`, `fmtDelta`, `fmtMin` |
-| `tama.js`, `samouczek.js`, `dzik.js`, `animals-together.js` | ~70 | gry (bóbr `BEAVER_SAY`), samouczek |
+| `samouczek.js` | ~40 | samouczek (gry, zwierzęta, Stoper i Oddech znikają w etapie 0a — ok. −30 linii gier i −30 linii Stopera/Oddechu w `app.js`) |
 | `pobierz.html` | ~45 | strona instalacji |
 | `index.html`, `manifest.webmanifest`, `sw.js` | ~10 | zakładki, `aria-label`, nazwa, powiadomienie |
 
-Razem ~700 linii, szacunkowo **680–880 kluczy**. `styles.css` ma polski tylko w komentarzach.
+Razem po etapie 0a ~640 linii, szacunkowo **620–800 kluczy**. `styles.css` ma polski tylko w komentarzach.
 
 Teksty wymagające tłumaczenia twórczego:
 - **MOODS** i **ENERGIES** — skale autora (`CLAUDE.md`), ton luźny (decyzja 1). Uwaga: MOODS[5] „Jako-tako ok” to też nazwa aplikacji.
@@ -98,7 +152,7 @@ Teksty wymagające tłumaczenia twórczego:
 - **Samoocena wypalenia autystycznego** — tłumaczenie + nadal „niewalidowane”.
 - **„Księgowość Energetyczna”** → „Energy Accounting” (oryginalna nazwa metody).
 - **Krótkie etykiety** — `CHIP_SHORT` (`mała/śred/duża/ogro`), dymki osi doby, guziki — krótkie odpowiedniki EN.
-- Gry, samouczek; Przewodnik dopiero, gdy wejdzie do aplikacji.
+- Samouczek; Przewodnik dopiero, gdy wejdzie do aplikacji.
 
 ## 4. Problemy techniczne
 
@@ -125,8 +179,8 @@ Teksty wymagające tłumaczenia twórczego:
 8. **Treści użytkownika** (nazwy leków, własne czynności, strategie) — nie tłumaczymy.
 9. **Service worker** nie ma słowników. Tytuł („Jak się czujesz? 💗”) i treść („Czas na ocenę: …”) przekazać w `syncState()`
    (pole `labels` już jest; dodać np. `texts: { title, body }`). Stary stan bez `texts` → polski fallback w `sw.js`.
-10. **Manifest** — jeden, `name`/`short_name` = „JakoTako” (decyzja 2). `description`, `lang` i nazwa skrótu „Stoper”
-    zostają w jednym języku (manifest nie jest per użytkownik). Propozycja: skrót „Stoper / Stopwatch” albo ikona + krótka nazwa neutralna.
+10. **Manifest** — jeden, `name`/`short_name` = „JakoTako” (decyzja 2). `description` i `lang`
+    zostają w jednym języku (manifest nie jest per użytkownik). Skrót „Stoper” znika w etapie 0a, więc problem nazwy skrótu odpada.
 11. **`index.html`** — etykiety zakładek, `aria-label`, `<title>`, `meta description` przez `data-i18n` + `applyStatic()`;
     `<html lang>` dynamicznie. Okno `#ask` i toasty są już w JS.
 12. **Toast z HTML** (od v53) — `toast(msg, html)` ma dwie wersje tego samego tekstu (tekst i HTML z baterią) — oba przez ten sam klucz z parametrami.
@@ -141,12 +195,13 @@ Teksty wymagające tłumaczenia twórczego:
 
 ## 5. Plan PR-ów
 
-0. **Zmiana nazw w kodzie** (sekcja 2) — bez zmian widocznych dla użytkownika, testy przechodzą (zmienione tylko nazwy w testach).
+0a. **Usunięcie modułów** (sekcja 2a) — gry, zwierzęta, Stoper, Oddech; dane `records.v1` zostają w kopii. Podbicie `VERSION`.
+0b. **Zmiana nazw w kodzie** (sekcja 2) — bez zmian widocznych dla użytkownika, testy przechodzą (zmienione tylko nazwy w testach).
    Podbicie `VERSION`. Aktualizacja `CLAUDE.md` (tabela plików, kolejność skryptów), `README.md`, `tests/README.md`.
-0b. **Nazwa „JakoTako”** (sekcja 6) — po polsku, niezależnie od i18n; można połączyć z 0 albo zrobić osobno.
+0c. **Nazwa „JakoTako”** (sekcja 6) — po polsku, niezależnie od i18n; można połączyć z 0b albo zrobić osobno.
 1. **Infrastruktura i18n** — `i18n/pl.js`, `i18n/en.js`, `i18n/en-US.js`, `i18n/i18n.js` (`LOCALES`, `tr`, `trn`, `fmtDate`, `fmtTime`, `fmtNum`, `applyStatic`, `WEEK_START` w `startOfWeek()`),
    `settings.lang` + pole wyboru w Ustawieniach (na razie tylko Polski; English (UK) w etapie 4, English (US) w 4b), stałe `data-sec`, test słowników. Zero zmian widocznych.
-2. **Ekstrakcja tekstów** moduł po module (Dziś/Tydzień/Miesiąc → Energia → Leki → Ustawienia → gry/samouczek) do `pl.js`.
+2. **Ekstrakcja tekstów** moduł po module (Dziś/Tydzień/Miesiąc → Energia → Leki → Ustawienia → samouczek) do `pl.js`.
    Polski wygląd identyczny, istniejące asercje na polskich tekstach przechodzą bez zmian. Przy okazji naprawa liczby mnogiej (4.2).
 3. **Dane wielojęzyczne** — `actName()`/`opName()`, `CATS`, MOODS, ENERGIES, `CHIP_SHORT`, `LEVELS`, ankiety, `FREQ`, komplementy w plikach per język.
 4. **Tłumaczenie EN (en-GB)** — UI z Claude, ton luźny; przegląd autora; CBI z oryginału; komplementy idiom za idiom.
@@ -155,7 +210,7 @@ Teksty wymagające tłumaczenia twórczego:
    już w etapie 2 (przy ekstrakcji i tak dotykamy tych miejsc), żeby 4b było małe.
 5. **Peryferia** — `sw.js` (powiadomienie), ICS, CSV/wyciąg, podsumowanie, `download.html` (EN) + drugi QR, `README.md`.
 
-Szacunek: etap 0 — mechaniczny, 1 PR. Etapy 1–3 — największa praca (prawie każde `renderX()`), mechaniczna. Etap 4 — głównie redakcja.
+Szacunek: etapy 0a i 0b — mechaniczne, po 1 PR. Etapy 1–3 — największa praca (prawie każde `renderX()`), mechaniczna. Etap 4 — głównie redakcja.
 
 ## 6. Nazwa „JakoTako” (decyzja 2)
 
@@ -230,7 +285,7 @@ inaczej „2:30 PM” trafi do `<input type=time>` albo do ustawień i zepsuje d
   pasek pór (`pdLabels`, `pdHandleLabel`, „okno 09:00–14:00”, opis „do HH:MM Dziś pokazuje…”), operacje energii
   (`opRowHtml`, etykiety i `aria-valuetext` suwaków, podgląd przy przeciąganiu `opShow` — `small.textContent`, toast „Godzina zmieniona”),
   Leki (`stateLine`, `packRowHtml`, `medsTodayHtml`, `medDayDetail`, `medSummary` — surowe `v.times.join(', ')`, `setUndo`
-  — surowe `d.s`, toasty), samouczek („Zapisano o …”), `nowText()`, Stoper (rekordy z datą i godziną).
+  — surowe `d.s`, toasty), samouczek („Zapisano o …”), `nowText()`.
 - **`fmtSlotMin()` → `24:00`** (koniec okna wieczoru): w en-US „12:00 AM”; propozycja: w en-US wyświetlać „midnight”.
 - **Miejsce**: „12:30 PM” jest o ~3 znaki dłuższe. `pdLabels()` zakłada stałą szerokość (min. odstęp 30, margines 13 jednostek SVG)
   → odstęp liczony od długości tekstu albo krótka forma `fmtClockShort`. Sprawdzić w kopii testowej: oś doby, pasek pór, oś operacji.
@@ -250,8 +305,7 @@ inaczej „2:30 PM” trafi do `<input type=time>` albo do ustawień i zepsuje d
 2. Otwarte warstwy (arkusz `#sheet`, edycja czynności, formularz leku, samouczek) — zamknąć przed przełączeniem albo przełącznik
    tylko w Ustawieniach, gdzie warstw nie ma (prościej).
 3. Szkice suwaków (`ui.drafts`) i dzień oglądany (`ui.day`) — niezależne od regionu, zostają.
-4. Stoper/Oddech (timery) — przełącznik jest w Ustawieniach, więc nie działają w tym czasie.
-5. Testy: każdy region × (Dziś, Tydzień, Miesiąc, Energia, Leki, Ustawienia) renderuje się bez wyjątków i bez brakujących kluczy;
+4. Testy: każdy region × (Dziś, Tydzień, Miesiąc, Energia, Leki, Ustawienia) renderuje się bez wyjątków i bez brakujących kluczy;
    test „przełączanie nie zmienia danych” (7.2); test `hhmm()` vs `fmtTime()` (wartości inputów zawsze `HH:MM`).
 
 ## 8. Architektura (bez builda, bez npm)
@@ -264,7 +318,7 @@ i18n/i18n.js → LOCALES, LANG, LOCALE, WEEK_START, HOUR12, tr(key, params), trn
                fmtDate(), fmtTime(), fmtClock(), fmtHM(), fmtNum(), applyStatic()
 ```
 
-- Kolejność skryptów (po etapie 0): `i18n/pl.js → i18n/en.js → i18n/en-US.js → i18n/i18n.js → compliments.js → energy.js → meds.js → boar.js → animals-together.js → dam.js → tutorial.js → app.js`.
+- Kolejność skryptów (po etapach 0a i 0b): `i18n/pl.js → i18n/en.js → i18n/en-US.js → i18n/i18n.js → compliments.js → energy.js → meds.js → tutorial.js → app.js`.
 - Każdy nowy plik JS w 4 miejscach (patrz 2.3). Oba słowniki ~40–60 KB — pomijalne offline.
 - Brak klucza w EN → fallback do PL + `console.warn`.
 - Duże listy (komplementy, MOODS, ENERGIES, szablony, ankiety) — osobne pliki per język (`compliments.pl.js`, `compliments.en.js`),
@@ -277,11 +331,11 @@ i18n/i18n.js → LOCALES, LANG, LOCALE, WEEK_START, HOUR12, tr(key, params), trn
 
 | Plik | Funkcje z tekstami | Uwagi |
 |---|---|---|
-| `app.js` | `SLOTS` (etykiety pór), `MOODS`, `ENERGIES`, `DOW_FULL`, `nowText`, `moodHeadHtml`, `energyRowHtml`, `renderToday`, `dayHeadHtml`, `dayRailSeg`, `slotCompact`, `slotCard`, `chartTitle`, `statsFor`, `detailHtml`, `legendHtml`, `monthLegendHtml`, `renderWeek`, `renderMonth`, `pdHandleLabel`, `poryCardHtml`, `savePory`/`poryReject` (toasty), `renderSettings`, `secSet`/`secAllLabel`/`settingsCollapsible`, `renderOddech`/`ODDECH`, `swSay`/`renderStopwatch`, `navAskOpen` (`#ask`), klik `save`/`del` (toast, `confirm`), `importData`, `downloadIcs`, `setNotifications`, `checkReminders` (toast i powiadomienie) | `SLOTS[].label.toLowerCase()` w toastach i powiadomieniu — w EN też małe litery, ale lepiej osobny klucz „pora w zdaniu” |
+| `app.js` | `SLOTS` (etykiety pór), `MOODS`, `ENERGIES`, `DOW_FULL`, `nowText`, `moodHeadHtml`, `energyRowHtml`, `renderToday`, `dayHeadHtml`, `dayRailSeg`, `slotCompact`, `slotCard`, `chartTitle`, `statsFor`, `detailHtml`, `legendHtml`, `monthLegendHtml`, `renderWeek`, `renderMonth`, `pdHandleLabel`, `poryCardHtml`, `savePory`/`poryReject` (toasty), `renderSettings`, `secSet`/`secAllLabel`/`settingsCollapsible`, `navAskOpen` (`#ask`), klik `save`/`del` (toast, `confirm`), `importData`, `downloadIcs`, `setNotifications`, `checkReminders` (toast i powiadomienie) | `SLOTS[].label.toLowerCase()` w toastach i powiadomieniu — w EN też małe litery, ale lepiej osobny klucz „pora w zdaniu” |
 | `energy.js` | `CATS`, `CHIPS`, `CHIP_SHORT`, `TEMPLATES`, `FREQ`, `SURVEYS`, `status()` (powody), `LEVELS`, `renderEnergy`, `surveysOnlyHtml`, `setupHtml`, `saldoCard`, `calibrationHtml`, `surveyDueHtml`, `recoveryHtml`, `todayPlanHtml`, `quickLogHtml`, `renderQuickAdd`, `opRowHtml`, `opsTimelineHtml` (aria), `todayLogHtml`, `planHtml`, `trendHtml`, `rankingHtml`, `strategiesHtml`, `inventoryHtml`, `renderSurvey`, `surveyResult`, `renderStatement`, `statementCsv`, `shareSummary`, `logActivity` (toast), `energyClick` (toasty), `energySettingsHtml` | `TEMPLATES[i][1]` → klucz po `tpl`; dzień z przeszłości ma osobne teksty (`past ? … : …`) |
 | `leki.js` | `MED_DOW`, `MED_STATE`, `fmtDelta`, `daysTxt`, `stateLine`, `medRowHtml`, `packRowHtml`, `medsTodayHtml`, `renderEntrySheet`, `medSummary`, `renderLeki`, `renderMedForm`, `renderPackForm`, `medsChartCard`, `fmtMin`, `medDayDetail`, `medsStatementHtml`, `medsShareLine`, `medsSettingsHtml`, `medsClick` (toasty, `confirm`) | `numPL` → `fmtNum`; `localeCompare(…, 'pl')` → `LOCALE` |
 | `komplementy.js` | 3 listy | cały plik per język |
-| `samouczek.js`, `tama.js`, `dzik.js`, `animals-together.js` | treści kroków, `BEAVER_SAY`, dymki | gry: stan w pamięci, bez danych |
+| `samouczek.js` | treści kroków | — |
 | `index.html`, `manifest.webmanifest`, `sw.js`, `pobierz.html` | statyczne | sekcje 4.9–4.11, 6 |
 
 Wzorzec ekstrakcji w jednym `renderX()`: tekst → `tr('obszar.klucz', { … })`, liczby z odmianą → `trn()`, daty → `fmtDate()`;
@@ -305,4 +359,4 @@ PR #42 (Energia — poprzednie dni) i #43 (energia w potwierdzeniu zapisu):
 - 2026-11-07 — aktualizacja do `main` @ eee69b2 (PR #40, `nastroj-v52`).
 - 2026-11-27 — aktualizacja do `main` @ 166f11b (PR #43, `nastroj-v53`): decyzje autora (ton, nazwa „JakoTako”, komplementy idiom za idiom,
   en-GB domyślny + en-US jako trzecia opcja z tygodniem od niedzieli, AM/PM i datami USA, zmiana nazw przed i18n), etap 0 z mapą zmian nazw i pułapkami (historia, adresy, skrót), sekcja o nazwie produktu,
-  regiony pl/en-GB/en-US wybierane jawnie w Ustawieniach (tydzień, zegar, daty, lista kontrolna przełączania), pułapki danych (`settings.collapsed`, nazwy w `energy.v1`), mapa wykonawcza, zmiany z PR #42–#43.
+  usunięcie gier, zwierząt, Stopera i Oddechu (etap 0a, dane `records.v1` zostają), regiony pl/en-GB/en-US wybierane jawnie w Ustawieniach (tydzień, zegar, daty, lista kontrolna przełączania), pułapki danych (`settings.collapsed`, nazwy w `energy.v1`), mapa wykonawcza, zmiany z PR #42–#43.
