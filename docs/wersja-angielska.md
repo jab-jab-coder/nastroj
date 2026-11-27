@@ -13,6 +13,7 @@ stan repo: `main` @ 166f11b (PR #43), `sw.js` VERSION `nastroj-v53`, testy 201/2
 | 4 | Wariant angielskiego | **en-GB = domyślny angielski**; **en-US jako trzecia opcja**: tydzień od niedzieli, godziny AM/PM, daty jak w USA. Wykres tygodnia w en-US zaczyna się od niedzieli — bez wpływu na dane | Trzy ustawienia regionalne (`pl`, `en-GB`, `en-US`); tydzień, zegar i daty z jednej tabeli `LOCALES`; rozdzielenie godzin „do danych” i „do wyświetlania” — sekcja 7 |
 | 5 | Polskie nazwy w kodzie | **Zmieniamy w trakcie przebudowy, przed i18n** | Etap 0b w planie (sekcja 5), mapa zmian w sekcji 2 |
 | 6 | Moduły dodatkowe | **W JakoTako usuwamy**: gry Tama (bóbr) i Dzik, ekran z mordkami zwierząt magicznych (bocian, animals-together), Stoper i ćwiczenie oddechowe (Oddech) — funkcje i odwołania w Samouczku oraz w karcie Samouczek w Ustawieniach | Etap 0a (przed zmianą nazw i i18n) — sekcja 2a; mniej kodu do przemianowania i tłumaczenia |
+| 7 | Rekordy stopera i Samouczek | **Rekordy stopera (`nastroj.records.v1`) usuwamy razem ze Stoperem** — bez zgodności wstecz. Krok 1 Samouczka: zmiana wg propozycji (sekcja 2a) | Świadomy wyjątek od zasady „klucz raz dodany nie znika z kodu” — za zgodą autora, `CLAUDE.md` („Dane”) poprawiany w PR etapu 0a |
 
 Decyzja 4 zmieniona 2026-11-27 (pierwotnie: tylko en-US, en-GB później). Uzupełnienie tego samego dnia:
 **użytkownik jednoznacznie wybiera system** (Polski / English (UK) / English (US)) w Ustawieniach — aplikacja nie zgaduje
@@ -43,8 +44,8 @@ Do tego:
   `showView()` (bez `stopwatchStop/oddechStop/tamaStop`, `sw-on`, `animals-on`, mapowania zakładek), popstate (bez `dzikReset/tamaReset`), `tut-go` (znika).
 - **Samouczek w Ustawieniach** (`renderSettings`): rząd `.tut-pets` z 5 mordkami znika; jednorożec „Uruchom samouczek” zostaje.
 - **Samouczek** (`samouczek.js`, `tutStep1`): zdanie „…zawiera magiczne moduły, często zabawnie ukryte. Kliknij dwa razy w Ustawienia,
-  a koziorożec uruchomi Stoper…” — usunąć albo zastąpić; **nowe brzmienie do akceptacji autora** (propozycja: zostawić tylko
-  „Brakuje Ci czegoś? Daj znak Jackowi, serio!”).
+  a koziorożec uruchomi Stoper…” — **usunąć** (decyzja 7). Z akapitu zostaje tylko „Brakuje Ci czegoś? Daj znak Jackowi, serio!”
+  (dołączone do poprzedniego akapitu albo jako osobny `tut-p`). W tym samym PR nazwa „Nastrój” w kroku 1 zostaje — zmienia ją etap 0c.
 - **Manifest**: sekcja `shortcuts` (Stoper) znika.
 - **Pliki do usunięcia**: `dzik.js`, `tama.js`, `animals-together.js` (z 4 miejsc: `index.html`, `SHELL`, `APP_FILES`, `APP`);
   ikony `bocian.svg`, `mordka-bobr.svg`, `mordka-bocian.svg`, `mordka-dzik.svg`, `mordka-wydech.svg`, `rownowaznia.svg`, `skrot-stoper.png` (z `SHELL`).
@@ -52,13 +53,25 @@ Do tego:
 - **CSS**: sekcje `.dzik-*`/`.dz-*`, `.tama-*`, `.oddech-*`, stoper (`.sw-*`, `.rw-*`, `body.sw-on`), `.animals-*`, `.at-*`, `.tut-pets`/`.tut-pet`.
 - **Komplementy**: zostają (jednorożec FAB). `pickCompliment()` zostaje — używa go też `showCompliment()`.
 
-### Dane — co zostaje mimo usunięcia funkcji
+### Dane
 
-- **`nastroj.records.v1`** (rekordy stopera) — klucz danych, więc wg `CLAUDE.md` nie znika z kodu: dalej wczytywany, **eksportowany
-  i importowany** (`energyExport/energyImport`), czyszczony przez `energyWipe()`. Starsze kopie JSON z rekordami importują się bez błędu,
-  a nowa kopia nie gubi rekordów. Znika tylko zapis nowych rekordów i ich wyświetlanie. W podsumowaniu danych w Ustawieniach
-  i w toaście importu — propozycja: dalej podawać liczbę rekordów, jeśli > 0 („N wyników stopera z wcześniejszej wersji”).
-  Usunięcie samych danych byłoby osobną decyzją autora (zmiana zasad nienaruszalnych).
+- **`nastroj.records.v1` (rekordy stopera) — usuwamy (decyzja 7, bez zgodności wstecz).** Wyjątek od zasady
+  „klucz raz dodany nie znika z kodu” — za zgodą autora z 2026-11-27. Jak to zrobić bezpiecznie:
+  - `energy.js`: znika `KEY_RECS` jako źródło danych, `records`, `recordAdd()`, `saveRecs()`, `records` w `energyExport()`,
+    `energyCounts()` i gałąź `data.records` w `energyImport()`.
+  - **Sprzątanie**: jednorazowo przy starcie (`energyInit()`) `localStorage.removeItem('nastroj.records.v1')` — rekordy znikają też z telefonu,
+    a nie tylko z interfejsu. `energyWipe()` nie musi już go kasować.
+  - **Import starych kopii** z polem `records` — pole jest **pomijane bez błędu** (import tylko dopisuje to, co zna). Toast importu bez „rekordów stopera”.
+  - **Eksport** nie ma pola `records` (`version: 2` zostaje — usunięcie pola nie zmienia znaczenia pozostałych).
+  - Podsumowanie danych w Ustawieniach (`renderSettings`) i toast importu (`importData`) — bez wzmianki o rekordach.
+  - **Testy**: `EXPORT_FIELDS` w `tests/harness.mjs` bez `records`; klucz `nastroj.records.v1` do `TECHNICAL` w `tests/contract.test.mjs`
+    z uzasadnieniem „usunięty w JakoTako (Stoper), kasowany przy starcie” (kod nadal zawiera ten napis w sprzątaniu, więc test kontraktu
+    tego wymaga); `FIELDS.record` i sprawdzenie `s.records` w `contract.test.mjs` — usunąć; `describe('rekordy stopera…')` w `energy.test.mjs`
+    i testy `records` w `export-import.test.mjs` zastąpić dwoma: (1) start z kluczem `nastroj.records.v1` → klucz usunięty,
+    (2) import pliku z `records` → bez błędu, nic nie zapisane, pozostałe dane zaimportowane. `tests/fixtures/export-v2.json` może zachować
+    `records` — właśnie jako przypadek „stare pole w kopii”.
+  - **Dokumentacja** w PR etapu 0a: `CLAUDE.md` sekcja „Dane — zasady nienaruszalne” (lista kluczy bez `records.v1`, dopisek o wyjątku
+    i kluczu kasowanym przy starcie), `README.md` (format `records`), `tests/README.md`.
 - **`settings.oddechSound`** — pole zostaje w danych (`DEFAULT_SETTINGS` i `FIELDS` w `tests/contract.test.mjs`), nieużywane; komentarz w kodzie.
 - **Stan gier** był tylko w pamięci — nic do sprzątania w localStorage.
 
@@ -73,10 +86,11 @@ Do tego:
 ### Testy i dokumentacja w tym samym PR
 
 - `core.test.mjs` — asercje na Oddech (5) i stoper (9) usunąć; w PR wypisać, które i dlaczego. `energy.test.mjs`, `export-import.test.mjs`,
-  `contract.test.mjs` — testy `records` (eksport/import) **zostają**. `pokrycie.mjs` — operacje `recordAdd`/`saveRecs` znikają z kodu, więc i z wymagań.
+  `contract.test.mjs` — testy `records` zamienione wg punktu „Dane” wyżej. `pokrycie.mjs` — operacje `recordAdd`/`saveRecs` znikają z kodu,
+  dochodzi `removeItem` w sprzątaniu (pokryty testem (1)).
 - `README.md` (Stoper, skrót, ukryte widoki), `tests/README.md`, `CLAUDE.md` (tabela plików, kolejność skryptów, „Ukryte widoki”,
   skrót „Stoper” przy manifeście, „style gier” przy `styles.css`) — zasady chronione bez zmian poza tym, co wynika z decyzji 6.
-- Podbicie `VERSION` (zmienia się `SHELL`). Kopia testowa: zakładki reagują od razu, Samouczek bez mordek, brak skrótu Stoper, import starej kopii z rekordami.
+- Podbicie `VERSION` (zmienia się `SHELL`). Kopia testowa: zakładki reagują od razu, Samouczek bez mordek i bez zdania o Stoperze, brak skrótu Stoper, import starej kopii z rekordami bez błędu.
 
 ## 2. Zmiana nazw w kodzie (etap 0b, po 0a, przed i18n)
 
@@ -195,7 +209,8 @@ Teksty wymagające tłumaczenia twórczego:
 
 ## 5. Plan PR-ów
 
-0a. **Usunięcie modułów** (sekcja 2a) — gry, zwierzęta, Stoper, Oddech; dane `records.v1` zostają w kopii. Podbicie `VERSION`.
+0a. **Usunięcie modułów** (sekcja 2a) — gry, zwierzęta, Stoper z rekordami (`records.v1` kasowany), Oddech; Samouczek. Podbicie `VERSION`.
+   `CLAUDE.md`: tabela plików, kolejność skryptów, „Ukryte widoki”, „Dane” (wyjątek `records.v1`).
 0b. **Zmiana nazw w kodzie** (sekcja 2) — bez zmian widocznych dla użytkownika, testy przechodzą (zmienione tylko nazwy w testach).
    Podbicie `VERSION`. Aktualizacja `CLAUDE.md` (tabela plików, kolejność skryptów), `README.md`, `tests/README.md`.
 0c. **Nazwa „JakoTako”** (sekcja 6) — po polsku, niezależnie od i18n; można połączyć z 0b albo zrobić osobno.
@@ -359,4 +374,4 @@ PR #42 (Energia — poprzednie dni) i #43 (energia w potwierdzeniu zapisu):
 - 2026-11-07 — aktualizacja do `main` @ eee69b2 (PR #40, `nastroj-v52`).
 - 2026-11-27 — aktualizacja do `main` @ 166f11b (PR #43, `nastroj-v53`): decyzje autora (ton, nazwa „JakoTako”, komplementy idiom za idiom,
   en-GB domyślny + en-US jako trzecia opcja z tygodniem od niedzieli, AM/PM i datami USA, zmiana nazw przed i18n), etap 0 z mapą zmian nazw i pułapkami (historia, adresy, skrót), sekcja o nazwie produktu,
-  usunięcie gier, zwierząt, Stopera i Oddechu (etap 0a, dane `records.v1` zostają), regiony pl/en-GB/en-US wybierane jawnie w Ustawieniach (tydzień, zegar, daty, lista kontrolna przełączania), pułapki danych (`settings.collapsed`, nazwy w `energy.v1`), mapa wykonawcza, zmiany z PR #42–#43.
+  usunięcie gier, zwierząt, Stopera z rekordami (`records.v1` kasowany, bez zgodności wstecz) i Oddechu, zmiana kroku 1 Samouczka (etap 0a), regiony pl/en-GB/en-US wybierane jawnie w Ustawieniach (tydzień, zegar, daty, lista kontrolna przełączania), pułapki danych (`settings.collapsed`, nazwy w `energy.v1`), mapa wykonawcza, zmiany z PR #42–#43.
