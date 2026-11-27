@@ -8,8 +8,9 @@ Przy rozbieżności z kodem źródłem prawdy jest kod i testy — wtedy popraw 
 - Właściciel: Jacek (product owner, wcześniej 15 lat programista). Komunikacja po polsku, zwięźle, rzeczowo.
 - Cel: prosta, szybka PWA na Androida do oceny nastroju i energii 3× dziennie, zarządzania energią
   metodą „energy accounting” i śledzenia leków — z myślą o osobach neuroatypowych (ADHD, autyzm) w Polsce.
-- „Nastrój” to nazwa robocza. Interfejs: tylko polski (wersja angielska jest planowana — nie wprowadzaj
-  tłumaczeń ani mechanizmu i18n bez decyzji autora).
+- „Nastrój” to nazwa robocza; docelowa nazwa produktu (PL i EN): **„JakoTako”** — zmiana wg planu w `docs/wersja-angielska.md`.
+  Interfejs: dziś tylko polski. Wersje Polski / English (UK) / English (US) są w realizacji — zakres, decyzje i kolejność PR-ów
+  w `docs/wersja-angielska.md`; nie wychodź poza ten plan bez decyzji autora.
 - Ton tekstów: ciepły, nieoceniający; dopuszczalny luźny/kolokwialny język (decyzja autora).
 
 ## Decyzje autora (nie zmieniać bez pytania)
