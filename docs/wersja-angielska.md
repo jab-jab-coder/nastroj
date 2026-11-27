@@ -15,6 +15,7 @@ stan repo: `main` @ 166f11b (PR #43), `sw.js` VERSION `nastroj-v53`, testy 201/2
 | 6 | Moduły dodatkowe | **W JakoTako usuwamy**: gry Tama (bóbr) i Dzik, ekran z mordkami zwierząt magicznych (bocian, animals-together), Stoper i ćwiczenie oddechowe (Oddech) — funkcje i odwołania w Samouczku oraz w karcie Samouczek w Ustawieniach | Etap 0a (przed zmianą nazw i i18n) — sekcja 2a; mniej kodu do przemianowania i tłumaczenia |
 | 7 | Rekordy stopera i Samouczek | **Rekordy stopera (`nastroj.records.v1`) usuwamy razem ze Stoperem** — w JakoTako ich nie ma (import z Nastroju pomija pole `records`). Krok 1 Samouczka: zmiana wg propozycji (sekcja 2a) | Nastrój bez zmian; w JakoTako `records.v1` po prostu nie istnieje (nowa aplikacja — decyzja 8), więc bez wyjątku od zasad danych |
 | 8 | Model wydania | **JakoTako to nowa aplikacja zbudowana na kodzie Nastroju, a nie nowa wersja Nastroju** | Osobne repo i osobny katalog `jakotako`; Nastrój zostaje w katalogu `nastroj` i w tym repo. Nowy adres, nowa instalacja, własna przestrzeń danych. Odpadają aliasy i zgodność z zainstalowanym Nastrojem — sekcja 0 |
+| 9 | Repo JakoTako | **Bez historii commitów, nowy kod bez wspominania o poprzednich wersjach.** Pierwszy commit = czysty kod startowy (etapy 0, 0a, 0b, 0c naraz). Repo publiczne `jab-jab-coder/jakotako`, katalog lokalny `/mnt/c/src/jakotako` | W repo JakoTako nie ma PR-ów „usunięcie Stopera” itp.; komentarze bez „od v6”, „sprzed v2”, migracji; w repo JakoTako własny plan i18n (`docs/i18n.md`, tylko etapy 1–5) zamiast tego dokumentu |
 
 Decyzja 4 zmieniona 2026-11-27 (pierwotnie: tylko en-US, en-GB później). Uzupełnienie tego samego dnia:
 **użytkownik jednoznacznie wybiera system** (Polski / English (UK) / English (US)) w Ustawieniach — aplikacja nie zgaduje
@@ -31,7 +32,7 @@ JakoTako **nie jest aktualizacją** Nastroju. Kod Nastroju jest punktem wyjścia
 - **Nastrój zostaje** w tym repo (`jab-jab-coder/nastroj`) i w katalogu `nastroj`, pod obecnym adresem, z obecnymi danymi i instalacjami.
   Jego użytkownicy nie dostają JakoTako jako aktualizacji. Ten dokument i plan zostają tu jako historia decyzji.
 - **JakoTako**: **osobne repozytorium** (`jab-jab-coder/jakotako`) w **osobnym katalogu `jakotako`** (lokalnie obok `nastroj`),
-  utworzone z kodu Nastroju (propozycja: kopia z historią git, żeby zachować `git log`/`blame`), nowy adres GitHub Pages,
+  utworzone z kodu Nastroju **bez historii git** (decyzja 9: pierwszy commit to czysty kod startowy), nowy adres GitHub Pages,
   nowa instalacja PWA (nowy `manifest` `id`/`start_url`), `VERSION` od `jt-v1`, własny `CLAUDE.md`/`README.md` (kopie dostosowane),
   nowa strona instalacji i nowy kod QR.
 - **Przejście z Nastroju**: użytkownik robi eksport JSON w Nastroju i import w JakoTako (propozycja: JakoTako przyjmuje pliki `app: 'nastroj'`
@@ -248,8 +249,9 @@ Teksty wymagające tłumaczenia twórczego:
 
 N. **Nastrój (w tym repo), przed startem JakoTako** — `sw.js`: kasować tylko własne cache `nastroj-v*` (sekcja 0.3, pkt 2). Potrzebne tylko,
    jeśli JakoTako będzie na tej samej domenie. Podbicie `VERSION` Nastroju.
-0. **Nowe repo JakoTako** (sekcja 0) — `jab-jab-coder/jakotako`, katalog `jakotako`, kopia z historią, GitHub Pages, przestrzeń nazw (2.2: prefiks `jt.`, cache, `app`, manifest `id`, ICS, tag powiadomień),
-   import plików `app: 'nastroj'`, `VERSION` `jt-v1`, `CLAUDE.md`/`README.md` dla JakoTako, ten dokument skopiowany do `docs/`.
+0. **Nowe repo JakoTako** (sekcja 0, decyzja 9) — `jab-jab-coder/jakotako` (publiczne), katalog `/mnt/c/src/jakotako`, **bez historii**;
+   etapy 0, 0a, 0b i 0c wykonane lokalnie razem i wypchnięte jako **jeden pierwszy commit** (czysty kod startowy). GitHub Pages, przestrzeń nazw (2.2: prefiks `jt.`, cache, `app`, manifest `id`, ICS, tag powiadomień),
+   import plików `app: 'nastroj'`, `VERSION` `jt-v1`, `CLAUDE.md`/`README.md` dla JakoTako, `docs/i18n.md` (plan etapów 1–5 bez historii Nastroju).
 0a. **Usunięcie modułów** (sekcja 2a) — gry, zwierzęta, Stoper z rekordami, Oddech; Samouczek. Podbicie `VERSION`.
    `CLAUDE.md` JakoTako: tabela plików, kolejność skryptów, „Ukryte widoki” (znika), lista kluczy bez `records.v1`.
 0b. **Zmiana nazw w kodzie** (sekcja 2) — bez zmian widocznych dla użytkownika, testy przechodzą (zmienione tylko nazwy w testach).
