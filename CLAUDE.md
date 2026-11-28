@@ -8,8 +8,11 @@ Przy rozbieżności z kodem źródłem prawdy jest kod i testy — wtedy popraw 
 - Właściciel: Jacek (product owner, wcześniej 15 lat programista). Komunikacja po polsku, zwięźle, rzeczowo.
 - Cel: prosta, szybka PWA na Androida do oceny nastroju i energii 3× dziennie, zarządzania energią
   metodą „energy accounting” i śledzenia leków — z myślą o osobach neuroatypowych (ADHD, autyzm) w Polsce.
-- „Nastrój” to nazwa robocza. Interfejs: tylko polski (wersja angielska jest planowana — nie wprowadzaj
-  tłumaczeń ani mechanizmu i18n bez decyzji autora).
+- Interfejs Nastroju: tylko polski; nie wprowadzaj tu tłumaczeń ani mechanizmu i18n.
+- **JakoTako** — osobna, nowa aplikacja zbudowana na kodzie Nastroju (nie nowa wersja Nastroju): osobne repo `jab-jab-coder/jakotako`,
+  osobny katalog `jakotako`, wersje Polski / English (UK) / English (US). Nastrój zostaje w tym repo i w katalogu `nastroj`.
+  Plan i decyzje: `docs/wersja-angielska.md`. W tym repo z planu JakoTako robimy tylko to, co dokument przypisuje Nastrojowi
+  (etap „N” — cache w `sw.js`).
 - Ton tekstów: ciepły, nieoceniający; dopuszczalny luźny/kolokwialny język (decyzja autora).
 
 ## Decyzje autora (nie zmieniać bez pytania)
@@ -118,7 +121,7 @@ gałąź → commit (testy przed każdym commitem) → push (GitHub Actions „T
 ## Dokumentacja
 
 - `README.md` — funkcje i formaty danych. `tests/README.md` — testy, harness, zachowania do decyzji.
-- Praca nad wersjami językowymi: najpierw przeczytaj `docs/wersja-angielska.md`.
+- Praca nad JakoTako i wersjami językowymi: najpierw przeczytaj `docs/wersja-angielska.md`.
 - Poza repo (Projekt „Nastrój App” w claude.ai): „Moduł Leki — specyfikacja”, „Samouczek — propozycje”,
   „Przewodnik — treści”, „Wersja angielska — analiza i plan”.
 
