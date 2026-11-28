@@ -12,7 +12,7 @@ Przy rozbieżności z kodem źródłem prawdy jest kod i testy — wtedy popraw 
 - **JakoTako** — osobna, nowa aplikacja zbudowana na kodzie Nastroju (nie nowa wersja Nastroju): osobne repo `jab-jab-coder/jakotako`,
   osobny katalog `jakotako`, wersje Polski / English (UK) / English (US). Nastrój zostaje w tym repo i w katalogu `nastroj`.
   Plan i decyzje: `docs/wersja-angielska.md`. W tym repo z planu JakoTako robimy tylko to, co dokument przypisuje Nastrojowi
-  (etap „N” — cache w `sw.js`).
+  (etap „N” — cache w `sw.js`, zrobiony).
 - Ton tekstów: ciepły, nieoceniający; dopuszczalny luźny/kolokwialny język (decyzja autora).
 
 ## Decyzje autora (nie zmieniać bez pytania)
@@ -27,6 +27,8 @@ Przy rozbieżności z kodem źródłem prawdy jest kod i testy — wtedy popraw 
 - Repo: `github.com/jab-jab-coder/nastroj`, gałąź `main` = produkcja.
 - Hosting: GitHub Pages → https://jab-jab-coder.github.io/nastroj/ (publikacja automatyczna po merge do `main`).
 - `pobierz.html` — strona do wysyłania znajomym (opis + instrukcja instalacji). Celowo poza powłoką offline w `sw.js`.
+- Ta sama domena (`jab-jab-coder.github.io`) obsługuje też inne aplikacje autora (np. JakoTako: klucze `jt.*`, cache `jt-*`).
+  Service worker kasuje tylko własne stare cache (`nastroj-v*`, test `tests/sw-cache.test.mjs`). Nigdy `localStorage.clear()` ani kasowanie cudzych cache.
 
 ## Proces zmian
 
@@ -101,7 +103,7 @@ gałąź → commit (testy przed każdym commitem) → push (GitHub Actions „T
   `EXPORT_FIELDS` w `tests/harness.mjs`, przykładowe dane w `tests/fixtures/export-v2.json`.
 - Nowy **klucz techniczny**: `TECHNICAL` w `tests/contract.test.mjs` z uzasadnieniem, dlaczego nie trafia do kopii.
 - Nowe **pole w zapisywanym obiekcie**: `FIELDS` w `tests/contract.test.mjs` + opis formatu w `README.md`.
-- Testy nie obejmują wyglądu, wykresów SVG, gier, service workera ani telefonu — do tego jest kopia testowa.
+- Testy nie obejmują wyglądu, wykresów SVG, gier, service workera (poza kasowaniem starych cache) ani telefonu — do tego jest kopia testowa.
 
 ## Dane — zasady nienaruszalne
 

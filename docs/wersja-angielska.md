@@ -247,7 +247,7 @@ Teksty wymagające tłumaczenia twórczego:
 
 ## 5. Plan PR-ów
 
-N. **Nastrój (w tym repo), przed startem JakoTako** — `sw.js`: kasować tylko własne cache `nastroj-v*` (sekcja 0.3, pkt 2). Potrzebne tylko,
+N. ✅ **Nastrój (w tym repo), przed startem JakoTako** — zrobione w `nastroj-v54` (test `tests/sw-cache.test.mjs`). `sw.js`: kasować tylko własne cache `nastroj-v*` (sekcja 0.3, pkt 2). Potrzebne tylko,
    jeśli JakoTako będzie na tej samej domenie. Podbicie `VERSION` Nastroju.
 0. **Nowe repo JakoTako** (sekcja 0, decyzja 9) — `jab-jab-coder/jakotako` (publiczne), katalog `/mnt/c/src/jakotako`, **bez historii**;
    etapy 0, 0a, 0b i 0c wykonane lokalnie razem i wypchnięte jako **jeden pierwszy commit** (czysty kod startowy). GitHub Pages, przestrzeń nazw (2.2: prefiks `jt.`, cache, `app`, manifest `id`, ICS, tag powiadomień),
